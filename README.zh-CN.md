@@ -84,14 +84,14 @@
 ./gradlew :app:assembleDebug
 ```
 
-工具链：AGP 9.3.3（内置 Kotlin，无需 kotlin-android 插件）、Gradle Wrapper 9.5.0、KSP 2.3.11；compileSdk / targetSdk 37，minSdk 29。无需额外签名配置即可构建 Debug 包。
+工具链：AGP 9.5.1（内置 Kotlin，无需 kotlin-android 插件）、Gradle Wrapper 9.6.1、KSP 2.3.13；compileSdk / targetSdk 37，minSdk 29。无需额外签名配置即可构建 Debug 包。
 
 ## 技术栈
 
 - **UI**：Android View 体系 + XML + ViewBinding + Material 3（DayNight 浅深色），单 `:app` 模块；不使用 Compose。
 - **架构**：MVVM——Activity / Fragment 只做生命周期、Insets、导航与渲染；业务状态为不可变 UiState + StateFlow；数据访问收敛在 `ChannelRepository`。
-- **数据**：Room 2.8.4（收藏 / 最近观看 / 导入频道三张表，KSP 编译器）。
-- **播放**：Media3 / ExoPlayer 1.8.0（含 HLS 扩展），播放器实例归播放页生命周期所有。
+- **数据**：Room 2.8.5（收藏 / 最近观看 / 导入频道三张表，KSP 编译器）。
+- **播放**：Media3 / ExoPlayer 1.11.1（含 HLS 扩展），播放器实例归播放页生命周期所有。
 - **异步**：kotlinx.coroutines（IO / Default 调度器分离，StateFlow + Channel）。
 
 ## 文档导航

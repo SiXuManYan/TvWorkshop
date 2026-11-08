@@ -71,4 +71,4 @@ Open the repository root in Android Studio and let Gradle sync, or run:
 ./gradlew :app:assembleDebug
 ```
 
-Toolchain: AGP 9.3.3 (built-in Kotlin), Gradle Wrapper 9.5.0, KSP 2.3.11, compileSdk/targetSdk 37, minSdk 29. See [Technical Design](project-docs/TECHNICAL_DESIGN.md) for architecture, data flow, Room schema, m3u parsing rules, and the player/source-rotation design. Long-term engineering rules live in [AGENTS.md](AGENTS.md).
+Toolchain: AGP 9.5.1 (built-in Kotlin), Gradle Wrapper 9.6.1, KSP 2.3.13, compileSdk/targetSdk 37, minSdk 29. See [Technical Design](project-docs/TECHNICAL_DESIGN.md) for architecture, data flow, Room schema, m3u parsing rules, and the player/source-rotation design. Long-term engineering rules live in [AGENTS.md](AGENTS.md).

@@ -29,13 +29,31 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 
 | 项 | 值 | 出处 |
 |---|---|---|
-| AGP | 9.3.3（内置 Kotlin，无 kotlin-android 插件） | `gradle/libs.versions.toml:2` |
-| Gradle Wrapper | 9.5.0 | `gradle/wrapper/gradle-wrapper.properties` |
-| KSP | 2.3.11（仅 Room 编译器） | `app/build.gradle.kts:3`、`gradle/libs.versions.toml:53` |
+| AGP | 9.5.1（内置 Kotlin，无 kotlin-android 插件） | `gradle/libs.versions.toml` |
+| Gradle Wrapper | 9.6.1 | `gradle/wrapper/gradle-wrapper.properties` |
+| KSP | 2.3.13（仅 Room 编译器） | `app/build.gradle.kts:3`、`gradle/libs.versions.toml` |
 | minSdk / targetSdk / compileSdk | 29 / 37 / 37 | `app/build.gradle.kts:8-15` |
 | versionCode / versionName | 1 / 1.0 | `app/build.gradle.kts:16-17` |
-| 关键依赖 | media3 1.8.0（exoplayer + hls + ui）、Room 2.8.4、Material 1.14.0、AppCompat 1.8.0、Lifecycle 2.10.0、Coroutines 1.10.2 | `gradle/libs.versions.toml` |
+| 关键依赖 | media3 1.11.1（exoplayer + hls + ui）、Room 2.8.5、Material 1.14.0、AppCompat 1.8.0、Lifecycle 2.11.0、Coroutines 1.11.0 | `gradle/libs.versions.toml` |
 | Release | `optimization { enable = false }`，未开 R8 | `app/build.gradle.kts:22-27` |
+
+### 2026-11-08 稳定依赖升级记录
+
+核对来源为 [Google Maven](https://dl.google.com/dl/android/maven2/master-index.xml)、[Maven Central](https://repo.maven.apache.org/maven2/)、各构件的 `maven-metadata.xml` 与发布 POM/Gradle Module Metadata；仅采用正式稳定版。AGP 9.5.1 的[官方兼容说明](https://developer.android.com/build/releases/agp-9-5-0-release-notes)要求 Gradle ≥9.6.0、JDK ≥17，Wrapper 从 9.5.0 升至 9.6.1，并用[官方 SHA-256](https://services.gradle.org/distributions/gradle-9.6.1-bin.zip.sha256)校验发行包。
+
+| 组件 | 原版本 | 升级后 |
+| --- | --- | --- |
+| AndroidX Annotation | 1.10.0 | 1.11.0 |
+| Lifecycle Runtime | 2.10.0 | 2.11.0 |
+| Lifecycle ViewModel | 2.10.0 | 2.11.0 |
+| Room | 2.8.4 | 2.8.5 |
+| Media3 | 1.8.0 | 1.11.1 |
+| Coroutines | 1.10.2 | 1.11.0 |
+| AGP | 9.3.3 | 9.5.1 |
+| KSP | 2.3.11 | 2.3.13 |
+| Gradle Wrapper | 9.5.0 | 9.6.1 |
+
+同步 AGENTS、双语 README 和本文当前版本表。已有构建缓存中的 Media3 成员引用辅助对照未发现缺失；缓存不代表当前源码编译，不能确认 HLS/切源/音频焦点或画中画行为。实际检查仅包含版本目录 TOML 与引用一致性、升级目标的发布元数据、AAR 的 minSdk / minCompileSdk / AGP 要求、Wrapper 校验值、当前文档版本与本地链接、历史记录保全及 `git diff --check`。本次未运行 Gradle、构建、依赖图解析、单元测试、Lint、安装或设备验收，旧构建/测试结果不覆盖本次升级；没有变更应用版本号或登记新发布。后续按需验证需覆盖 Room/KSP、HLS 与普通流、清晰度切换、自动重试、横屏/画中画和前后台恢复。
 
 ## 2. 包结构
 

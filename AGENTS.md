@@ -23,8 +23,8 @@
 Kotlin + **Android View 体系 + ViewBinding**，不是 Compose。**不要向 Compose 迁移**，也不要引入任何 Compose 依赖；涉及 XML 布局的改动继续用 XML 完成。
 
 - 单 `:app` 模块（`settings.gradle.kts` 仅 `include(":app")`），命名空间与应用 id 均为 `com.sugar.tv`。本项目没有 `core_framework` / `module_image` 等库模块，不要按其他项目模板引入。
-- AGP **9.3.3** 内置 Kotlin（根与模块脚本均未声明 `kotlin-android` 插件，不要补加），KSP **2.3.11**（仅用于 Room 编译器），Gradle Wrapper 9.5.0；minSdk 29，targetSdk / compileSdk 37，`compileOptions` Java 11。
-- 关键依赖以 `gradle/libs.versions.toml` 为准：media3（ExoPlayer + HLS + UI）1.8.0，Room 2.8.4，Material 1.14.0，AppCompat 1.8.0，Lifecycle 2.10.0，Coroutines 1.10.2。
+- AGP **9.5.1** 内置 Kotlin（根与模块脚本均未声明 `kotlin-android` 插件，不要补加），KSP **2.3.13**（仅用于 Room 编译器），Gradle Wrapper 9.6.1；minSdk 29，targetSdk / compileSdk 37，`compileOptions` Java 11。
+- 关键依赖以 `gradle/libs.versions.toml` 为准：media3（ExoPlayer + HLS + UI）1.11.1，Room 2.8.5，Material 1.14.0，AppCompat 1.8.0，Lifecycle 2.11.0，Coroutines 1.11.0；Annotation 1.11.0、Core 1.19.1。升级时同步本文和当前实现文档，默认采用稳定版；历史验证保留原日期与版本。AGP 9.5 要求 Gradle ≥9.6.0、JDK ≥17。
 - 页面导航用显式 `Intent`（主页 → 播放页），未引入 Navigation 组件库；不要为既有两页结构引入导航框架或 Jetpack Compose Navigation。
 - 网络只允许 `HttpURLConnection`（订阅下载），JSON 只允许 `org.json`（信号源序列化）；不引入 OkHttp / Retrofit / Gson / Coil / Glide 等第三方网络、图片或序列化库。
 - Release 构建当前 `optimization { enable = false }`，未开启 R8 混淆；改动混淆配置前先确认 `@Keep` 边界仍然成立。
