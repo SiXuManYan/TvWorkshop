@@ -44,6 +44,7 @@
     <string name="import_success_format">تم استيراد %1$d من القنوات بنجاح</string>
     <string name="import_failed_format">فشل الاستيراد: %1$s</string>
     <string name="import_invalid_url">تنسيق العنوان أو المحتوى غير صحيح</string>
+    <string name="import_unexpected_error">يتعذر إكمال الاستيراد الآن. يرجى المحاولة لاحقًا</string>
 
     <!-- الشبكة والتنظيف -->
     <string name="network_unavailable">الشبكة غير متاحة، يرجى التحقق من الشبكة والمحاولة مرة أخرى</string>

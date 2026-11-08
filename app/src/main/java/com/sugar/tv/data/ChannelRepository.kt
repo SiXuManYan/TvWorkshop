@@ -13,10 +13,11 @@ import com.sugar.tv.data.model.Channel
 import com.sugar.tv.data.model.ChannelSource
 import java.io.IOException
 import java.net.HttpURLConnection
-import java.net.URI
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -32,7 +33,7 @@ import kotlinx.coroutines.withContext
 private class MergedCandidate(
     val name: String,
     var group: String?,
-    val urls: MutableList<String>,
+    val urls: MutableSet<String>,
 )
 
 /**
@@ -56,8 +57,13 @@ class ChannelRepository(appContext: Context) {
         AppDatabase.DATABASE_NAME,
     ).build()
 
+    /** 收藏记录的数据库入口。 */
     private val favoriteDao = database.favoriteChannelDao()
+
+    /** 最近观看记录的数据库入口。 */
     private val recentDao = database.recentChannelDao()
+
+    /** 导入频道的数据库入口。 */
     private val importedDao = database.importedChannelDao()
 
     /**
@@ -90,7 +96,7 @@ class ChannelRepository(appContext: Context) {
      * 调用方以实际落点同步 UI 与提示，而非依据调用前的旧快照。
      */
     suspend fun toggleFavorite(channelId: String): Boolean = withContext(Dispatchers.IO) {
-        favoriteDao.toggle(channelId, System.currentTimeMillis())
+        favoriteDao.toggle(channelId = channelId, addedAt = System.currentTimeMillis())
     }
 
     /**
@@ -162,6 +168,8 @@ class ChannelRepository(appContext: Context) {
      * 导入流程共用实现：解析结果 → 按名称合并去重 → 过滤与内置/已导入的重复 → 落库。
      */
     private suspend fun importEntries(entries: List<M3uEntry>): Int {
+        val importContext = currentCoroutineContext()
+        importContext.ensureActive()
         if (entries.isEmpty()) {
             throw IllegalArgumentException("订阅内容中未找到任何可播放频道")
         }
@@ -173,18 +181,22 @@ class ChannelRepository(appContext: Context) {
                 keySelector = { it.name.replace(WHITESPACE_REGEX, "").lowercase() },
                 valueTransform = { channel -> channel.sources.map { source -> source.url } },
             )
-            .mapValues { (_, urlGroups) -> urlGroups.flatten() }
+            .mapValues { (_, urlGroups) -> urlGroups.flatten().toSet() }
 
         val merged = LinkedHashMap<String, MergedCandidate>()
         for (entry in entries) {
+            importContext.ensureActive()
             val key = entry.name.replace(WHITESPACE_REGEX, "").lowercase()
-            val current = merged.getOrPut(key) { MergedCandidate(entry.name, entry.group, mutableListOf()) }
+            val current = merged.getOrPut(key) {
+                MergedCandidate(name = entry.name, group = entry.group, urls = linkedSetOf())
+            }
             if (current.group == null) current.group = entry.group
-            if (entry.url !in current.urls) current.urls.add(entry.url)
+            current.urls.add(entry.url)
         }
 
         val newEntities = mutableListOf<ImportedChannelEntity>()
         for (item in merged.values) {
+            importContext.ensureActive()
             // 与内置频道同名时剔除已固化的信号源；全部重复则跳过。
             // 名称归一化与合并 key 同一规则：两侧都做空白归一化并转小写后比较，
             // 避免条目名含内部空白（如 "CCTV-1  综合" 双空格写法）时漏判重复导致同源重复导入。
@@ -195,7 +207,7 @@ class ChannelRepository(appContext: Context) {
 
             newEntities.add(
                 ImportedChannelEntity(
-                    id = M3uParser.importedChannelId(item.name, freshUrls.first()),
+                    id = M3uParser.importedChannelId(name = item.name, firstUrl = freshUrls.first()),
                     name = item.name,
                     groupName = item.group,
                     sourcesJson = SourceCodec.encode(
@@ -207,13 +219,9 @@ class ChannelRepository(appContext: Context) {
             )
         }
 
-        // 已导入过的频道（同名同源派生出相同 id）不重复写入与计数。
-        val existingIds = importedDao.getAll().mapTo(HashSet()) { it.id }
-        val toInsert = newEntities.filterNot { it.id in existingIds }
-        if (toInsert.isNotEmpty()) {
-            importedDao.insertAll(toInsert)
-        }
-        return toInsert.size
+        // 主键冲突由同一次批量插入原子跳过，无需先加载全部旧频道及其 JSON；计数取实际写入结果。
+        importContext.ensureActive()
+        return if (newEntities.isEmpty()) 0 else importedDao.insertAll(newEntities).count { it != -1L }
     }
 
     /**
@@ -221,7 +229,8 @@ class ChannelRepository(appContext: Context) {
      * 字符集优先响应头 `charset`，无法识别时回退 UTF-8；逐行消费不驻留整包文本。
      */
     private fun downloadAndParse(url: String): List<M3uEntry> {
-        val connection = (URI(url.trim()).toURL().openConnection() as HttpURLConnection).apply {
+        val uri = requireNotNull(parseHttpUri(url.trim())) { "订阅地址必须是有效的 http(s) 链接" }
+        val connection = (uri.toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MILLIS
             readTimeout = TIMEOUT_MILLIS
@@ -243,20 +252,14 @@ class ChannelRepository(appContext: Context) {
 
     /** 校验地址必须为 http(s)，否则抛 [IllegalArgumentException]。 */
     private fun requireValidHttpUrl(url: String) {
-        val scheme = runCatching { URI(url.trim()).scheme }.getOrNull()
-        require(
-            scheme.equals("http", ignoreCase = true) ||
-                scheme.equals("https", ignoreCase = true),
-        ) { "订阅地址必须是 http(s) 链接" }
+        require(parseHttpUri(url.trim()) != null) { "订阅地址必须是有效的 http(s) 链接" }
     }
 
     /**
      * 从响应头 Content-Type 解析字符集；缺省或无法识别时回退 UTF-8。
      */
     private fun parseCharset(contentType: String?): Charset {
-        val charsetName = contentType
-            ?.substringAfter("charset=", missingDelimiterValue = "")
-            ?.trim(' ', '"', ';')
+        val charsetName = contentType?.let { CHARSET_REGEX.find(it)?.groupValues?.get(1) }
             .orEmpty()
         if (charsetName.isBlank()) return StandardCharsets.UTF_8
         return runCatching { Charset.forName(charsetName) }.getOrDefault(StandardCharsets.UTF_8)
@@ -269,7 +272,7 @@ class ChannelRepository(appContext: Context) {
         return Channel(
             id = id,
             name = name,
-            category = M3uParser.categorize(name, groupName),
+            category = M3uParser.categorize(name = name, group = groupName),
             sources = sources,
         )
     }
@@ -280,5 +283,11 @@ class ChannelRepository(appContext: Context) {
 
         /** 名称归一化用的空白字符正则。 */
         val WHITESPACE_REGEX = Regex("\\s+")
+
+        /** HTTP 参数名不区分大小写，字符集值截至下一个分号或引号。 */
+        val CHARSET_REGEX = Regex(
+            pattern = """(?:^|;)\s*charset\s*=\s*["']?([^;"'\s]+)""",
+            option = RegexOption.IGNORE_CASE,
+        )
     }
 }

@@ -44,6 +44,7 @@
     <string name="import_success_format">Se importaron %1$d canales correctamente</string>
     <string name="import_failed_format">Error al importar: %1$s</string>
     <string name="import_invalid_url">El formato de la dirección o del contenido no es válido</string>
+    <string name="import_unexpected_error">No se pudo completar la importación. Inténtalo de nuevo más tarde</string>
 
     <!-- Red y limpieza -->
     <string name="network_unavailable">Red no disponible. Comprueba la red e inténtalo de nuevo</string>

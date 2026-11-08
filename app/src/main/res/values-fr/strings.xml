@@ -44,6 +44,7 @@
     <string name="import_success_format">%1$d chaînes importées avec succès</string>
     <string name="import_failed_format">Échec de l\'importation : %1$s</string>
     <string name="import_invalid_url">Le format de l\'adresse ou du contenu est incorrect</string>
+    <string name="import_unexpected_error">Impossible de terminer l\'importation. Veuillez réessayer plus tard</string>
 
     <!-- Réseau & nettoyage -->
     <string name="network_unavailable">Réseau indisponible. Vérifiez le réseau et réessayez</string>

@@ -35,7 +35,7 @@ object SourceCodec {
     /**
      * 把 JSON 数组字符串反序列化为信号源列表。
      *
-     * 容忍单个元素的字段缺失或类型异常：跳过无法解析的元素而不抛出。
+     * 容忍单个元素的字段缺失或类型异常：跳过非字符串或非法 HTTP(S) 地址，不影响其他线路。
      *
      * @return 解析出的信号源列表；整体格式非法时返回空列表
      */
@@ -46,11 +46,12 @@ object SourceCodec {
             buildList {
                 for (i in 0 until array.length()) {
                     val item = array.optJSONObject(i) ?: continue
-                    val url = item.optString(KEY_URL).trim()
-                    if (url.isEmpty()) continue
+                    // optString 会把数字与 JSON null 转成文本，需先校验原始类型与地址结构。
+                    val url = (item.opt(KEY_URL) as? String)?.trim() ?: continue
+                    if (parseHttpUri(url) == null) continue
                     add(
                         ChannelSource(
-                            label = item.optString(KEY_LABEL).ifBlank { url },
+                            label = (item.opt(KEY_LABEL) as? String)?.takeIf { it.isNotBlank() } ?: url,
                             url = url,
                         ),
                     )

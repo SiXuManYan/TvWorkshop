@@ -44,6 +44,7 @@
     <string name="import_success_format">成功导入 %1$d 个频道</string>
     <string name="import_failed_format">导入失败：%1$s</string>
     <string name="import_invalid_url">地址或内容格式不正确</string>
+    <string name="import_unexpected_error">暂时无法完成导入，请稍后重试</string>
 
     <!-- 网络与清理 -->
     <string name="network_unavailable">网络不可用，请检查网络后重试</string>

@@ -9,6 +9,7 @@ import com.sugar.tv.TvApplication
 import com.sugar.tv.data.model.Channel
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel as EventChannel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -20,9 +21,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -58,11 +63,17 @@ class BrowseViewModel(
     private val queryFlow = MutableStateFlow("")
 
     /**
-     * 收藏乐观更新覆盖表：channelId → 目标收藏状态。
+     * 收藏乐观更新覆盖表：channelId → 带请求代次的目标收藏状态。
      *
      * 仓库流未反映最新写入前，以覆盖值优先渲染星标；失败或成功确认后移除对应条目。
      */
-    private val favoriteOverrides = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    private val favoriteOverrides = MutableStateFlow<Map<String, FavoriteOverride>>(emptyMap())
+
+    /** 收藏点击代次：较早任务完成时不能释放后续点击创建的覆盖。 */
+    private var favoriteRequestId = 0L
+
+    /** 按点击顺序提交收藏写入，锁仅覆盖数据库操作，不包含等待观察流同步的时间。 */
+    private val favoriteWriteMutex = Mutex()
 
     init {
         // 进程重建恢复：回填选中分类（枚举名失效时回退默认）与已生效搜索词
@@ -89,6 +100,11 @@ class BrowseViewModel(
     /** 搜索词写入去抖任务：连续输入时取消上一次延迟提交。 */
     private var searchDebounceJob: Job? = null
 
+    /** 频道全集变化时才重建 id 索引，避免每次收藏或观看记录更新都遍历整个目录。 */
+    private val channelCatalog = repository.observeAllChannels().map { channels ->
+        ChannelCatalog(channels = channels, channelsById = channels.associateBy { it.id })
+    }
+
     /**
      * 数据快照流：频道列表 × 收藏 id × 最近观看 id × 乐观收藏覆盖合并。
      *
@@ -96,14 +112,14 @@ class BrowseViewModel(
      * 保证释放覆盖（从表中移除）不会引起星标回闪。
      */
     private val channelSnapshot: Flow<ChannelSnapshot> = combine(
-        repository.observeAllChannels(),
+        channelCatalog,
         repository.observeFavoriteIds(),
         repository.observeRecentIds(),
         favoriteOverrides,
-    ) { channels, favoriteIds, recentIds, overrides ->
+    ) { catalog, favoriteIds, recentIds, overrides ->
         ChannelSnapshot(
-            channels = channels,
-            channelsById = channels.associateBy { it.id },
+            channels = catalog.channels,
+            channelsById = catalog.channelsById,
             favoriteIds = effectiveFavorites(favoriteIds, overrides),
             recentIds = recentIds,
         )
@@ -119,10 +135,11 @@ class BrowseViewModel(
         categoryFlow,
     ) { snapshot, query, category ->
         buildUiState(snapshot, query, category)
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        initialValue = BrowseUiState(),
+        // 菜单创建可能早于 Room 首次发射，初始状态也需带恢复词才能正确展开搜索框。
+        initialValue = BrowseUiState(selectedCategory = categoryFlow.value, query = queryFlow.value),
     )
 
     /**
@@ -161,37 +178,45 @@ class BrowseViewModel(
      * 失败则回滚。成功经事件通道提示 favorite_added / favorite_removed；
      * 失败无专用文案资源，仅静默回滚，不虚构提示。
      *
-     * 目标态取自当前生效收藏集（[BrowseUiState.favorites]，含乐观覆盖的最新快照）
-     * 而非适配器最后绑定的条目，避免异步重绑窗口内的旧值导致快速双击切换丢失；
-     * 仓库切换为单条事务（[repository.toggleFavorite]），并发调用不丢更新，
-     * 提示文案以仓库实际落点为准。
+     * 目标态优先读取同步写入的覆盖表，避免 StateFlow 尚未合成下一帧时重复使用旧收藏态。
+     * 写入按点击顺序提交，覆盖仅由对应代次释放；提示文案以仓库实际落点为准。
      */
     fun toggleFavorite(item: ChannelListItem) {
-        val target = item.id !in uiState.value.favorites
-        favoriteOverrides.update { it + (item.id to target) }
+        val favorite = favoriteOverrides.value[item.id]?.favorite ?: (item.id in uiState.value.favorites)
+        val requestId = ++favoriteRequestId
+        favoriteOverrides.update {
+            it + (item.id to FavoriteOverride(favorite = !favorite, requestId = requestId))
+        }
         viewModelScope.launch {
             try {
-                val landed = repository.toggleFavorite(item.id)
+                val landed = favoriteWriteMutex.withLock { repository.toggleFavorite(item.id) }
                 // 等待仓库流反映最新收藏后再释放覆盖，避免列表星标短暂回闪；
                 // 仓库不按预期发射时（如骨架实现）按超时兜底释放。
                 withTimeoutOrNull(FAVORITE_SYNC_GRACE_MS) {
                     repository.observeFavoriteIds().firstOrNull { (item.id in it) == landed }
                 }
-                favoriteOverrides.update { it - item.id }
+                clearFavoriteOverride(channelId = item.id, requestId = requestId)
                 _events.send(BrowseEvent.FavoriteToggled(added = landed))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                favoriteOverrides.update { it - item.id }
+                clearFavoriteOverride(channelId = item.id, requestId = requestId)
             }
         }
     }
 
+    /** 仅释放本次请求创建的覆盖，防止旧任务完成或失败时清掉新点击的目标态。 */
+    private fun clearFavoriteOverride(channelId: String, requestId: Long) {
+        favoriteOverrides.update { overrides ->
+            if (overrides[channelId]?.requestId == requestId) overrides - channelId else overrides
+        }
+    }
+
     /**
-     * 导入频道源：http(s):// 开头走订阅地址导入，否则按已获取的订阅正文导入。
+     * 导入频道源：单行 http(s):// 地址走订阅下载，多行输入或其他文本按订阅正文解析。
      *
      * 进行中拒绝重复触发；IllegalArgumentException 归为格式错误、
-     * IOException 归为网络不可用，经事件通道提示；取消异常原样上抛不被吞掉。
+     * IOException 归为网络不可用，其余异常显示通用失败提示；取消异常原样上抛。
      */
     fun importChannels(rawInput: String) {
         if (!_importInFlight.compareAndSet(expect = false, update = true)) {
@@ -204,7 +229,10 @@ class BrowseViewModel(
                     _events.send(BrowseEvent.ImportFailed(R.string.import_invalid_url))
                     return@launch
                 }
-                val isUrl = input.startsWith(URL_PREFIX_HTTP) || input.startsWith(URL_PREFIX_HTTPS)
+                // 多行裸 URL 是订阅正文；只有单行地址才应发起订阅下载。
+                val isUrl = '\n' !in input && '\r' !in input &&
+                    (input.startsWith(URL_PREFIX_HTTP, ignoreCase = true) ||
+                        input.startsWith(URL_PREFIX_HTTPS, ignoreCase = true))
                 val importedCount = if (isUrl) {
                     repository.importFromUrl(input)
                 } else {
@@ -217,6 +245,9 @@ class BrowseViewModel(
                 _events.send(BrowseEvent.ImportFailed(R.string.import_invalid_url))
             } catch (e: IOException) {
                 _events.send(BrowseEvent.ImportFailed(R.string.network_unavailable))
+            } catch (_: Exception) {
+                // 数据库写入等非网络失败也应结束进度并允许重试，不向主线程泄漏异常。
+                _events.send(BrowseEvent.ImportFailed(R.string.import_unexpected_error))
             } finally {
                 _importInFlight.value = false
             }
@@ -295,13 +326,14 @@ class BrowseViewModel(
      */
     private fun effectiveFavorites(
         repoFavorites: List<String>,
-        overrides: Map<String, Boolean>,
+        overrides: Map<String, FavoriteOverride>,
     ): Set<String> {
         if (overrides.isEmpty()) {
             return repoFavorites.toSet()
         }
         val effective = repoFavorites.toMutableSet()
-        overrides.forEach { (channelId, favorite) ->
+        overrides.forEach { (channelId, pending) ->
+            val favorite = pending.favorite
             // 仓库已反映目标状态的覆盖视为无覆盖（no-op），其余以乐观覆盖为准
             if ((channelId in effective) != favorite) {
                 if (favorite) {
@@ -313,6 +345,25 @@ class BrowseViewModel(
         }
         return effective
     }
+
+    /**
+     * 尚未由数据库观察流确认的收藏目标。
+     *
+     * @property favorite 本次点击期望的收藏状态
+     * @property requestId 创建覆盖的点击代次
+     */
+    private data class FavoriteOverride(val favorite: Boolean, val requestId: Long)
+
+    /**
+     * 频道目录及可复用索引，与收藏和观看记录的变化解耦。
+     *
+     * @property channels 仓库顺序的频道全集
+     * @property channelsById 频道 id 索引
+     */
+    private data class ChannelCatalog(
+        val channels: List<Channel>,
+        val channelsById: Map<String, Channel>,
+    )
 
     /**
      * combine 中间层快照：频道按 id 索引 + 生效收藏集 + 最近观看顺序。

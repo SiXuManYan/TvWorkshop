@@ -63,17 +63,13 @@ interface ImportedChannelDao {
     @Query("SELECT * FROM imported_channels ORDER BY rowid ASC")
     fun observeAll(): Flow<List<ImportedChannelEntity>>
 
-    /** 同步读取全部导入频道（供导入时的去重比对）。 */
-    @Query("SELECT * FROM imported_channels")
-    suspend fun getAll(): List<ImportedChannelEntity>
-
     /** 查询单个导入频道；不存在时返回 `null`。 */
     @Query("SELECT * FROM imported_channels WHERE id = :id")
     suspend fun getById(id: String): ImportedChannelEntity?
 
-    /** 批量写入导入频道，同名同源幂等覆盖。 */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(entities: List<ImportedChannelEntity>)
+    /** 批量插入并保留已有同 id 频道；返回 rowid，主键冲突跳过的元素为 -1。 */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(entities: List<ImportedChannelEntity>): List<Long>
 
     /** 删除单个导入频道，返回删除的行数。 */
     @Query("DELETE FROM imported_channels WHERE id = :id")

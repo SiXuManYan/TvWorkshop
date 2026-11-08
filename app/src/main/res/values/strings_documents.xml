@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 本轮按用户要求仅提供中文；与仍保持 11 语言一致的 strings.xml 分开维护。 -->
+    <string name="about_page_title" translatable="false">关于电视工坊</string>
+    <string name="about_page_tagline" translatable="false">频道浏览 · 直播播放 · 列表导入</string>
+    <string name="about_page_version_format" translatable="false">版本 %1$s（%2$d）</string>
+    <string name="about_page_documents" translatable="false">版本与协议</string>
+    <string name="about_page_history_summary" translatable="false">了解新功能与体验改进</string>
+    <string name="about_page_agreement_summary" translatable="false">使用规则与内容权利说明</string>
+    <string name="about_page_privacy_summary" translatable="false">本地记录、网络请求与系统备份</string>
+    <string name="about_page_source_summary" translatable="false">频道来源说明</string>
+    <string name="about_page_offline_note" translatable="false">以下文档随应用提供，可离线阅读 · 当前仅有简体中文</string>
+    <string name="document_version_history" translatable="false">版本更新日志</string>
+    <string name="document_user_agreement" translatable="false">用户协议</string>
+    <string name="document_privacy_policy" translatable="false">隐私政策</string>
+    <string name="document_back" translatable="false">返回</string>
+    <string name="document_back_to_top" translatable="false">回到顶部</string>
+    <string name="document_language_note" translatable="false">离线文档 · 简体中文</string>
+    <string name="document_loading" translatable="false">正在加载文档…</string>
+    <string name="document_load_failed" translatable="false">暂时无法打开文档，请重试</string>
+    <string name="document_retry" translatable="false">重新加载</string>
+    <string name="document_expanded" translatable="false">已展开</string>
+    <string name="document_collapsed" translatable="false">已收起</string>
+    <string name="document_external_title" translatable="false">打开外部网页</string>
+    <string name="document_external_open" translatable="false">用浏览器打开</string>
+    <string name="document_external_cancel" translatable="false">取消</string>
+    <string name="document_external_unavailable" translatable="false">没有可打开此网页的浏览器</string>
+</resources>

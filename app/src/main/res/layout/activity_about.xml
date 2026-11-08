@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 关于页沿用工坊系列的信息卡与入口行，内容在宽窗口居中限宽。 -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/about_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_max="@dimen/dp_500">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/about_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="?attr/actionBarSize"
+            app:navigationContentDescription="@string/document_back"
+            app:navigationIcon="@drawable/ic_document_back"
+            app:navigationIconTint="?attr/colorOnSurface"
+            app:title="@string/about_page_title"
+            app:titleTextColor="?attr/colorOnSurface" />
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/about_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/dp_16"
+                android:paddingTop="@dimen/dp_16"
+                android:paddingEnd="@dimen/dp_16"
+                android:paddingBottom="@dimen/dp_32">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="@dimen/dp_24"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical"
+                        android:padding="@dimen/dp_24">
+
+                        <ImageView
+                            android:layout_width="@dimen/dp_80"
+                            android:layout_height="@dimen/dp_80"
+                            android:importantForAccessibility="no"
+                            android:src="@mipmap/ic_launcher" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/dp_16"
+                            android:text="@string/app_name"
+                            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/dp_8"
+                            android:gravity="center"
+                            android:text="@string/about_page_tagline"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:id="@+id/about_version"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/dp_20"
+                            android:background="@drawable/bg_about_version"
+                            android:paddingHorizontal="@dimen/dp_16"
+                            android:paddingVertical="@dimen/dp_8"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorOnPrimaryContainer" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_28"
+                    android:accessibilityHeading="true"
+                    android:text="@string/about_page_documents"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_8"
+                    android:layout_marginBottom="@dimen/dp_16"
+                    android:text="@string/about_page_offline_note"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:cardCornerRadius="@dimen/dp_20"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/about_history"
+                            style="@style/Widget.TvWorkshop.DocumentRow">
+
+                            <LinearLayout style="@style/Widget.TvWorkshop.DocumentRowText">
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowTitle"
+                                    android:text="@string/document_version_history" />
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowSummary"
+                                    android:text="@string/about_page_history_summary" />
+                            </LinearLayout>
+                            <ImageView style="@style/Widget.TvWorkshop.DocumentRowChevron" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/about_agreement"
+                            style="@style/Widget.TvWorkshop.DocumentRow">
+
+                            <LinearLayout style="@style/Widget.TvWorkshop.DocumentRowText">
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowTitle"
+                                    android:text="@string/document_user_agreement" />
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowSummary"
+                                    android:text="@string/about_page_agreement_summary" />
+                            </LinearLayout>
+                            <ImageView style="@style/Widget.TvWorkshop.DocumentRowChevron" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/about_privacy"
+                            style="@style/Widget.TvWorkshop.DocumentRow">
+
+                            <LinearLayout style="@style/Widget.TvWorkshop.DocumentRowText">
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowTitle"
+                                    android:text="@string/document_privacy_policy" />
+                                <TextView
+                                    style="@style/Widget.TvWorkshop.DocumentRowSummary"
+                                    android:text="@string/about_page_privacy_summary" />
+                            </LinearLayout>
+                            <ImageView style="@style/Widget.TvWorkshop.DocumentRowChevron" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/about_sources"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_16"
+                    android:minHeight="@dimen/dp_48"
+                    android:text="@string/about_page_source_summary" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

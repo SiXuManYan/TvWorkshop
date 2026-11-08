@@ -90,7 +90,7 @@ sealed interface BrowseEvent {
     /** 导入成功：携带成功导入的频道数量。 */
     data class ImportSucceeded(val importedCount: Int) : BrowseEvent
 
-    /** 导入失败：携带失败原因文案资源（格式错误 / 网络不可用）。 */
+    /** 导入失败：携带失败原因文案资源（格式错误 / 网络不可用 / 通用失败）。 */
     data class ImportFailed(@StringRes val reasonRes: Int) : BrowseEvent
 
     /** 收藏状态切换成功：携带切换后的目标状态。 */

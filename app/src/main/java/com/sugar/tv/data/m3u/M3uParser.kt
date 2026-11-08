@@ -1,6 +1,7 @@
 package com.sugar.tv.data.m3u
 
 import androidx.annotation.Keep
+import com.sugar.tv.data.parseHttpUri
 import com.sugar.tv.data.model.ChannelCategory
 import java.io.BufferedReader
 import java.net.URI
@@ -41,9 +42,14 @@ data class M3uEntry(
  */
 object M3uParser {
 
-    private const val EXTM3U_HEADER = "#EXTM3U"
+    /** EXTINF 元数据行前缀。 */
     private const val EXTINF_PREFIX = "#EXTINF"
-    private const val ATTRIBUTE_REGEX = """([a-zA-Z0-9_-]+)="([^"]*)""""
+
+    /** 属性正则只编译一次，避免每个频道重复创建 Pattern。 */
+    private val ATTRIBUTE_REGEX = Regex("""([a-zA-Z0-9_-]+)="([^"]*)"""")
+
+    /** 导入 id 使用固定 ASCII 小写十六进制，保持既有持久化格式。 */
+    private const val HEX_DIGITS = "0123456789abcdef"
 
     // 分类关键词：央视系（含 CNTV 旧域名/CGTN 台标命名）优先判定。
     private val CCTV_KEYWORDS = listOf("央视", "CCTV", "CNTV", "CGTN")
@@ -136,18 +142,19 @@ object M3uParser {
     fun importedChannelId(name: String, firstUrl: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest("$name\n$firstUrl".toByteArray(Charsets.UTF_8))
-        val hex = digest.joinToString(separator = "") { byte ->
-            "%02x".format(byte)
+        return buildString(capacity = 16) {
+            append("m3u:")
+            // id 只使用前 6 字节，无需为全部摘要字节逐个创建 Formatter。
+            for (index in 0 until 6) {
+                val value = digest[index].toInt() and 0xff
+                append(HEX_DIGITS[value ushr 4])
+                append(HEX_DIGITS[value and 0x0f])
+            }
         }
-        return "m3u:" + hex.take(12)
     }
 
     /** 判断文本行是否为可解析的 http(s) 播放地址。 */
-    private fun isPlayableUrl(line: String): Boolean {
-        val scheme = runCatching { URI(line).scheme }.getOrNull() ?: return false
-        return scheme.equals("http", ignoreCase = true) ||
-            scheme.equals("https", ignoreCase = true)
-    }
+    private fun isPlayableUrl(line: String): Boolean = parseHttpUri(line) != null
 
     /**
      * 解析 #EXTINF 行的属性与频道名。
@@ -160,7 +167,7 @@ object M3uParser {
         val attributePart = body.substring(0, nameIndex)
         val name = body.substring(nameIndex + 1).trim()
 
-        val attributes = ATTRIBUTE_REGEX.toRegex().findAll(attributePart)
+        val attributes = ATTRIBUTE_REGEX.findAll(attributePart)
             .associate { it.groupValues[1] to it.groupValues[2] }
         val displayName = name.ifBlank {
             attributes["tvg-name"]?.takeIf { it.isNotBlank() }

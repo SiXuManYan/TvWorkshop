@@ -17,6 +17,7 @@
 - [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core、Annotation、AppCompat、Lifecycle、ConstraintLayout 与 RecyclerView，提供界面、列表与页面状态管理。
 - [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer、HLS 与播放器 UI，提供直播媒体播放能力。
 - [Room](https://developer.android.com/jetpack/androidx/releases/room) — 收藏、最近观看与导入频道的本地数据库。
+- [Markwon](https://github.com/noties/Markwon) / [CommonMark Java](https://github.com/commonmark/commonmark-java) — 中文离线文档的 Markdown 解析与排版，页面结构参考拼图工坊与 RadioWorkshop。
 - [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test 与 Espresso](https://github.com/android/android-test) — JVM 单元测试与 Android 界面测试基础。
 - [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — 构建工具链与 Room 编译期符号处理。
 
@@ -34,14 +35,22 @@
 |---|---|
 | 频道分类浏览 | 最近观看 / 央视（含 CGTN）/ 卫视 / 外国频道 / 自定义五类，横向 Chip 单选切换 |
 | 内置频道目录 | 随应用内置 66 个频道（央视 24、卫视 32、外国 10）、169 个播放地址；「主源 / 备用」表示尝试顺序 |
-| 收藏 | 列表条目星标与播放页收藏按钮，写入本地 Room，并发切换不丢更新 |
+| 收藏 | 列表条目星标与播放页收藏按钮，写入本地 Room；列表乐观状态按点击代次确认，播放页星标跟随数据库观察流 |
 | 最近观看 | 播放即记录，按最近时间倒序展示；清空自定义频道不影响收藏与观看记录 |
-| 搜索 | 主页工具栏展开式搜索，按频道名包含匹配，输入 250ms 去抖 |
-| 导入 m3u / m3u8 频道列表 | 支持订阅地址（导入时下载）或直接粘贴列表正文；同一批次的同名频道合并信号源，已存在的同 id 频道跳过；逐行下载解析，解析结果仍全量保存在内存中；不定时刷新订阅 |
+| 搜索 | 主页工具栏展开式搜索，按频道名包含匹配，输入 250ms 去抖；目录筛选在后台执行，重建页面时恢复已生效查询 |
+| 导入 m3u / m3u8 频道列表 | 支持单行订阅地址（导入时下载）或直接粘贴列表正文（含多行裸 URL）；同一批次同名频道合并信号源并保序去重，数据库原子跳过已有 id，提示实际新增数；逐行下载解析，解析结果仍全量保存在内存中；不定时刷新订阅 |
 | 信号源自动轮换 | 播放报错后自动切下一路信号源，到末路失败后显示错误浮层，并每隔 8 秒重试当前源、最多 2 次；手动重试、换源或换台会取消待执行重试 |
-| 清晰度选择 | 多档视频源提供「自动 / 最高 / 高度上限」切换，单档源隐藏入口；启用备用解码器尝试，实际解码能力由设备决定 |
-| 关于与说明 | 主页菜单「关于」说明频道列表参考项目、版权边界、源失效处理与隐私边界 |
+| 清晰度选择 | 多档视频源提供「自动 / 最高 / 高度上限」切换，单档源隐藏入口；新源不含所选高度时回落自动并解除原限制，装载时的临时空轨道不清除偏好；启用备用解码器尝试，实际解码能力由设备决定 |
+| 关于、更新日志与协议 | 主页菜单「关于」进入独立信息页，展示当前构建版本，提供中文离线版本更新日志、用户协议、隐私政策；支持章节定位、滚动高亮、回顶与日志折叠，并保留频道来源说明 |
 | 横屏播放页 | 横屏全屏播放器：顶栏（返回 / 频道名 / 收藏）、底栏（上 / 下频道 / 频道列表 / 换源 / 清晰度 / 画中画）、双击左右半区或横向轻扫换台＋换台 OSD、5 秒无操作自动隐藏、频道抽屉带名称过滤；起播缓冲阈值配置为 800ms，实际出画时间取决于网络、源和设备；画中画可继续播放，其他后台场景释放播放器 |
+
+2026-11-09 完成一轮静态性能与正确性审查，修正快速换台重复目标、清晰度限制未解除、收藏竞争、主线程全量过滤与导入去重等问题。后台/画中画返回时恢复操作区，缺失频道会清空旧视频。新增回归测试代码，但本轮未运行构建、测试、Lint 或设备验证，没有实测性能结论，详见[审查记录](project-docs/TECHNICAL_DESIGN.md#2026-11-09-性能与正确性审查记录)。
+
+## 版本与协议
+
+从主页右上角菜单进入「关于」，即可查看[版本更新日志](docs/version-history/CHANGELOG.md)、[用户协议](docs/legal/USER_AGREEMENT.md)和[隐私政策](docs/legal/PRIVACY_POLICY.md)。三份正文随 APK 提供，阅读无需网络；本轮按需求仅提供简体中文，其他应用文案继续保持既有多语言支持。日志区分“开发中”与 1.0 基础能力，应用版本号未变更，也未补造发布日期。
+
+阅读页沿用拼图工坊与 RadioWorkshop 的章节胶囊、版本卡片和离线文档结构，适配本项目 XML / ViewBinding。法律文档始终完整展示，版本卡片可独立展开或收起，页面重建恢复阅读位置和展开状态。协议互链在应用内打开；网页链接经确认后交系统浏览器，不使用 WebView。
 
 ## 内置频道与直播源说明
 
@@ -76,6 +85,8 @@
 - Manifest 仅申请 `INTERNET` 权限。网络访问用于下载用户提供的订阅，以及请求播放列表、媒体分片和播放所需的相关资源；相应服务提供方会接收到 IP 地址、请求地址等网络请求信息，日志政策由对方决定。
 - 当前开启 Android 系统备份（`allowBackup=true`），且未排除 Room 数据库；根据设备、系统设置和备份服务，本机数据可能进入系统云备份或设备迁移，不能承诺数据始终不离开设备。
 
+完整说明见随包提供的[隐私政策](docs/legal/PRIVACY_POLICY.md)，应用内入口为「关于 → 隐私政策」。其中说明 HTTP 与带令牌地址的请求、清理导入频道的真实范围，以及系统备份和主动反馈的处理边界。
+
 ## 构建
 
 用 Android Studio 打开仓库根目录，等待 Gradle 同步完成即可运行；或命令行执行：
@@ -90,7 +101,8 @@
 
 - **UI**：Android View 体系 + XML + ViewBinding + Material 3（DayNight 浅深色），单 `:app` 模块；不使用 Compose。
 - **架构**：MVVM——Activity / Fragment 只做生命周期、Insets、导航与渲染；业务状态为不可变 UiState + StateFlow；数据访问收敛在 `ChannelRepository`。
-- **数据**：Room 2.8.5（收藏 / 最近观看 / 导入频道三张表，KSP 编译器）。
+- **数据**：Room 2.8.5（收藏 / 最近观看 / 导入频道三张表，KSP 编译器）；`LocalDocumentRepository` 负责随包文档读取与后台排版。
+- **文档阅读**：Markwon core 4.6.2，不启用网络图片插件；`docs/` 随包，研发文档 `project-docs/` 不随包。
 - **播放**：Media3 / ExoPlayer 1.11.1（含 HLS 扩展），播放器实例归播放页生命周期所有。
 - **异步**：kotlinx.coroutines（IO / Default 调度器分离，StateFlow + Channel）。
 
@@ -99,6 +111,7 @@
 | 问题 | 入口 |
 |---|---|
 | 架构、数据流、Room 表结构与 m3u 解析规则 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
+| 应用内更新说明与使用、隐私规则 | [版本更新日志](docs/version-history/CHANGELOG.md)、[用户协议](docs/legal/USER_AGREEMENT.md)、[隐私政策](docs/legal/PRIVACY_POLICY.md)（当前仅中文） |
 | 开发与审查规范（MVVM 边界、i18n、播放器边界等长期规则） | [AGENTS.md](AGENTS.md) |
 | 工程文档索引 | [project-docs/README.md](project-docs/README.md) |
 | English entry | [README.md](README.md) |

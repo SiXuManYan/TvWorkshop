@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.sugar.tv.R
 import com.sugar.tv.TvApplication
 import com.sugar.tv.data.model.Channel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel as EventChannel
@@ -15,11 +16,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * 播放页 ViewModel：持有频道、信号源、收藏等业务状态并协调数据仓库访问。
@@ -37,18 +40,22 @@ class PlayerViewModel(
     private val savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
 
+    /** 应用级频道仓库，负责耗时操作的调度与持久化。 */
     private val repository = (application as TvApplication).channelRepository
 
+    /** 播放业务状态的唯一可写入口。 */
     private val _uiState = MutableStateFlow(PlayerUiState())
 
     /** 播放页 UI 状态（不可变，只读暴露）。 */
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
+    /** 仓库频道全集快照，供换台和抽屉过滤共用。 */
     private val _allChannels = MutableStateFlow<List<Channel>>(emptyList())
 
     /** 全部频道（按仓库全集顺序），供频道抽屉展示与上 / 下频道切换。 */
     val allChannels: StateFlow<List<Channel>> = _allChannels.asStateFlow()
 
+    /** 收藏操作成功的一次性提示通道。 */
     private val _favoriteNotice = EventChannel<Int>(capacity = EventChannel.BUFFERED)
 
     /** 收藏变化的一次性提示，值为字符串资源 id（favorite_added / favorite_removed）。 */
@@ -57,21 +64,42 @@ class PlayerViewModel(
     /** 收藏频道 id 快照，用于换频道后恢复收藏态。 */
     private var favoriteIdSet: Set<String> = emptySet()
 
+    /** 当前待播放 / 已播放的频道 id：连续换台以最新请求为基准，不等待上一次查询完成。 */
+    private val currentChannelId: String?
+        get() = latestRequestedChannelId ?: _uiState.value.channel?.id
+            ?: savedStateHandle.get<String>(PlayerActivity.EXTRA_CHANNEL_ID)
+
+    /** 当前频道加载任务：新加载启动前取消上一次，避免快速换频道时旧结果乱序写回。 */
+    private var loadJob: Job? = null
+
+    /** 最新一次请求加载的频道 id：加载结果写回状态前核对，旧结果不得覆盖最新选择。 */
+    private var latestRequestedChannelId: String? = null
+
+    /** 末路失败后的有限重试任务；手动重试、换源或换频道取消，收藏等操作不取消。 */
+    private var autoRetryJob: Job? = null
+
+    /** 当前「全部失败」回合内已执行的自动重试次数，换频道或手动重试时归零。 */
+    private var autoRetryAttempts = 0
+
     init {
+        // 加载任务会立即读写上述字段，声明先于 init 以明确初始化依赖。
         viewModelScope.launch {
-            repository.observeAllChannels().flowOn(Dispatchers.IO).collect { channels ->
+            repository.observeAllChannels().collect { channels ->
                 _allChannels.value = channels
             }
         }
         viewModelScope.launch {
-            repository.observeFavoriteIds().flowOn(Dispatchers.IO).collect { ids ->
-                favoriteIdSet = ids.toSet()
-                val playingId = _uiState.value.channel?.id ?: return@collect
-                _uiState.update { state ->
-                    val favorite = favoriteIdSet.contains(playingId)
-                    if (state.isFavorite == favorite) state else state.copy(isFavorite = favorite)
+            repository.observeFavoriteIds()
+                .map { it.toSet() }
+                .flowOn(Dispatchers.Default)
+                .collect { ids ->
+                    favoriteIdSet = ids
+                    val playingId = _uiState.value.channel?.id ?: return@collect
+                    _uiState.update { state ->
+                        val favorite = favoriteIdSet.contains(playingId)
+                        if (state.isFavorite == favorite) state else state.copy(isFavorite = favorite)
+                    }
                 }
-            }
         }
         // Intent extras 会作为初始值进入 SavedStateHandle；进程重建时取写入后的最新值
         val requestedChannelId = savedStateHandle.get<String>(PlayerActivity.EXTRA_CHANNEL_ID)
@@ -81,22 +109,6 @@ class PlayerViewModel(
             _uiState.update { it.copy(channelMissing = true) }
         }
     }
-
-    /** 当前待播放 / 已播放的频道 id：优先取状态中的频道，缺失时回退到恢复句柄。 */
-    private val currentChannelId: String?
-        get() = _uiState.value.channel?.id ?: savedStateHandle.get<String>(PlayerActivity.EXTRA_CHANNEL_ID)
-
-    /** 当前频道加载任务：新加载启动前取消上一次，避免快速换频道时旧结果乱序写回。 */
-    private var loadJob: Job? = null
-
-    /** 最新一次请求加载的频道 id（代次标记）：加载结果写回状态前核对，旧结果不得覆盖最新选择。 */
-    private var latestRequestedChannelId: String? = null
-
-    /** 末路失败后的有限重试任务；手动重试、换源或换频道取消，收藏等操作不取消。 */
-    private var autoRetryJob: Job? = null
-
-    /** 当前「全部失败」回合内已执行的自动重试次数，换频道或手动重试时归零。 */
-    private var autoRetryAttempts = 0
 
     /**
      * 加载并开始播放指定频道：查询频道、恢复收藏态并记录一次观看。
@@ -114,7 +126,14 @@ class PlayerViewModel(
         autoRetryAttempts = 0
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            val channel = withContext(Dispatchers.IO) { repository.channelById(channelId) }
+            val channel = try {
+                repository.channelById(channelId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 查询失败使用已有错误浮层承接，避免未处理的数据库异常终止页面。
+                null
+            }
             // 结果代次核对：已被更新的请求取代时丢弃本次结果（任务通常已被取消，此为兜底）
             if (latestRequestedChannelId != channelId) return@launch
             savedStateHandle[PlayerActivity.EXTRA_CHANNEL_ID] = channelId
@@ -124,7 +143,11 @@ class PlayerViewModel(
                         channel = null,
                         sources = emptyList(),
                         channelMissing = true,
+                        allSourcesFailed = false,
                         isBuffering = false,
+                        isFavorite = false,
+                        qualityOptions = emptyList(),
+                        playRequestId = it.playRequestId + 1,
                     )
                 }
                 return@launch
@@ -143,11 +166,18 @@ class PlayerViewModel(
                     channelMissing = false,
                     allSourcesFailed = false,
                     isBuffering = if (sameRequest) current.isBuffering else channel.sources.isNotEmpty(),
+                    qualityOptions = if (sameRequest) current.qualityOptions else emptyList(),
                     playRequestId = if (sameRequest) current.playRequestId else current.playRequestId + 1,
                 )
             }
             // 观看记录跟随核对后的结果：被取代的旧加载不再落库
-            withContext(Dispatchers.IO) { repository.recordRecent(channelId) }
+            try {
+                repository.recordRecent(channelId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 观看记录是辅助数据，写入失败不应中断已开始的直播。
+            }
         }
     }
 
@@ -170,6 +200,7 @@ class PlayerViewModel(
                 currentSourceIndex = nextIndex,
                 allSourcesFailed = false,
                 isBuffering = true,
+                qualityOptions = emptyList(),
                 playRequestId = it.playRequestId + 1,
             )
         }
@@ -180,7 +211,8 @@ class PlayerViewModel(
      * 已到最后一路则停在「全部失败」错误态，并在有限次数内自动重试当前源
      * （见 [scheduleAutoRetry]），等待期间用户随时可以重试或手动换源。
      */
-    fun onPlaybackError() {
+    fun onPlaybackError(playRequestId: Long) {
+        if (playRequestId != _uiState.value.playRequestId || _uiState.value.sources.isEmpty()) return
         autoRetryJob?.cancel()
         val current = _uiState.value
         val nextIndex = current.currentSourceIndex + 1
@@ -191,6 +223,7 @@ class PlayerViewModel(
                     currentSourceIndex = nextIndex,
                     allSourcesFailed = false,
                     isBuffering = true,
+                    qualityOptions = emptyList(),
                     playRequestId = it.playRequestId + 1,
                 )
             }
@@ -218,6 +251,7 @@ class PlayerViewModel(
                     it.copy(
                         allSourcesFailed = false,
                         isBuffering = true,
+                        qualityOptions = emptyList(),
                         playRequestId = it.playRequestId + 1,
                     )
                 }
@@ -237,33 +271,41 @@ class PlayerViewModel(
                 it.copy(
                     allSourcesFailed = false,
                     isBuffering = true,
+                    qualityOptions = emptyList(),
                     playRequestId = it.playRequestId + 1,
                 )
             }
         }
     }
 
-    /** 同步播放器缓冲状态到 UI（由播放器状态回调驱动，UI 据此显隐中央加载指示）。 */
-    fun onBufferingChanged(isBuffering: Boolean) {
-        _uiState.update { if (it.isBuffering == isBuffering) it else it.copy(isBuffering = isBuffering) }
+    /** 同步当前播放请求的缓冲状态，忽略换台后旧媒体的迟到回调。 */
+    fun onBufferingChanged(playRequestId: Long, isBuffering: Boolean) {
+        _uiState.update {
+            if (it.playRequestId != playRequestId || it.isBuffering == isBuffering) it
+            else it.copy(isBuffering = isBuffering)
+        }
     }
 
     /**
      * 同步播放器上报的视频档位（由 `onTracksChanged` 驱动）。
      *
-     * 档位与上次一致时不重复发射；前置顶高度在新频道不存在时自动回落 [QualityMode.AUTO]，
+     * 档位与上次一致时不重复发射；已选高度在新频道不存在时自动回落 [QualityMode.AUTO]，
      * 保证锁定偏好跨频道生效且不会选中不存在的档位。
      */
-    fun onVideoQualityOptionsChanged(options: List<QualityOption>) {
+    fun onVideoQualityOptionsChanged(playRequestId: Long, options: List<QualityOption>) {
         _uiState.update { state ->
-            if (state.qualityOptions == options) {
+            if (state.playRequestId != playRequestId) return@update state
+            val keepPinned = state.qualityMode != QualityMode.PINNED ||
+                options.any { it.height == state.pinnedVideoHeight }
+            if (state.qualityOptions == options && keepPinned) {
                 state
             } else {
-                val keepPinned = state.qualityMode != QualityMode.PINNED ||
-                    options.any { it.height == state.pinnedVideoHeight }
                 state.copy(
                     qualityOptions = options,
                     qualityMode = if (keepPinned) state.qualityMode else QualityMode.AUTO,
+                    pinnedVideoHeight = if (keepPinned) state.pinnedVideoHeight else 0,
+                    // 回落自动档也必须驱动播放器解除旧的高度限制，不能只更新按钮文案。
+                    qualityRequestId = if (keepPinned) state.qualityRequestId else state.qualityRequestId + 1,
                 )
             }
         }
@@ -275,6 +317,10 @@ class PlayerViewModel(
      */
     fun selectQuality(mode: QualityMode, height: Int) {
         _uiState.update { state ->
+            // 对话框打开期间可能已经换源，不接受旧列表中已失效的高度。
+            if (mode == QualityMode.PINNED && state.qualityOptions.none { it.height == height }) {
+                return@update state
+            }
             if (state.qualityMode == mode && state.pinnedVideoHeight == height) {
                 state
             } else {
@@ -291,23 +337,33 @@ class PlayerViewModel(
      * 切换当前频道收藏状态，完成后通过一次性事件提示结果（文案由 UI 侧解析资源）。
      *
      * 仓库切换为单条事务（见 [repository.toggleFavorite]），并发双按不丢切换；
-     * UI 星标与提示以仓库实际落点（返回值）为准，而非调用前的旧快照，
-     * 快速连续按收藏键时不会出现 UI / 提示与库内状态错位。
+     * UI 星标由仓库观察流同步，操作完成只发提示，避免较早请求的返回值覆盖较新的数据库状态。
      */
     fun toggleFavorite() {
         val channelId = _uiState.value.channel?.id ?: return
         viewModelScope.launch {
-            val nowFavorite = withContext(Dispatchers.IO) { repository.toggleFavorite(channelId) }
-            _uiState.update { state ->
-                if (state.channel?.id == channelId && state.isFavorite != nowFavorite) {
-                    state.copy(isFavorite = nowFavorite)
-                } else {
-                    state
-                }
+            try {
+                val nowFavorite = repository.toggleFavorite(channelId)
+                _favoriteNotice.trySend(if (nowFavorite) R.string.favorite_added else R.string.favorite_removed)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // 写入失败保持仓库真实收藏态，不影响播放。
             }
-            _favoriteNotice.trySend(if (nowFavorite) R.string.favorite_added else R.string.favorite_removed)
         }
     }
+
+    /** 在 Default 调度器合成抽屉列表，搜索与播放状态变化只重建必要的行数据。 */
+    fun channelSheetRows(query: StateFlow<String>): Flow<List<ChannelSheetRow>> = combine(
+        allChannels,
+        uiState.map { it.channel?.id }.distinctUntilChanged(),
+        query,
+    ) { channels, playingId, search ->
+        channels.asSequence()
+            .filter { search.isEmpty() || it.name.contains(search, ignoreCase = true) }
+            .map { ChannelSheetRow(channel = it, isPlaying = it.id == playingId) }
+            .toList()
+    }.distinctUntilChanged().flowOn(Dispatchers.Default)
 
     override fun onCleared() {
         // ViewModel 销毁时关闭一次性事件通道，缓冲中的提示仍可被收集方消费完
@@ -333,7 +389,7 @@ class PlayerViewModel(
     private fun switchChannel(offset: Int) {
         val channels = _allChannels.value
         if (channels.isEmpty()) return
-        val playingId = _uiState.value.channel?.id ?: return
+        val playingId = currentChannelId ?: return
         val index = channels.indexOfFirst { it.id == playingId }
         if (index < 0) return
         loadChannel(channels[(index + offset).mod(channels.size)].id)

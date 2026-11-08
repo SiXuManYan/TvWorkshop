@@ -44,6 +44,7 @@
     <string name="import_success_format">%1$d 件のチャンネルをインポートしました</string>
     <string name="import_failed_format">インポートに失敗しました：%1$s</string>
     <string name="import_invalid_url">アドレスまたは内容の形式が正しくありません</string>
+    <string name="import_unexpected_error">インポートを完了できませんでした。しばらくしてから再試行してください</string>
 
     <!-- ネットワークと削除 -->
     <string name="network_unavailable">ネットワークを利用できません。接続を確認して再試行してください</string>

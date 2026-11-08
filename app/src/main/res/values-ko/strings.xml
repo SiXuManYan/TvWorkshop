@@ -44,6 +44,7 @@
     <string name="import_success_format">%1$d개의 채널을 성공적으로 가져왔습니다</string>
     <string name="import_failed_format">가져오기 실패: %1$s</string>
     <string name="import_invalid_url">주소 또는 내용 형식이 올바르지 않습니다</string>
+    <string name="import_unexpected_error">가져오기를 완료할 수 없습니다. 나중에 다시 시도해 주세요</string>
 
     <!-- 네트워크 및 정리 -->
     <string name="network_unavailable">네트워크를 사용할 수 없습니다. 네트워크를 확인한 후 다시 시도하세요</string>

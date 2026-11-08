@@ -44,6 +44,7 @@
     <string name="import_success_format">成功匯入 %1$d 個頻道</string>
     <string name="import_failed_format">匯入失敗：%1$s</string>
     <string name="import_invalid_url">地址或內容格式不正確</string>
+    <string name="import_unexpected_error">暫時無法完成匯入，請稍後再試</string>
 
     <!-- 網路與清理 -->
     <string name="network_unavailable">網路不可用，請檢查網路後重試</string>

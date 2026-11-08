@@ -17,6 +17,7 @@ This project is made possible by the following open-source projects, third-party
 - [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core, Annotation, AppCompat, Lifecycle, ConstraintLayout, and RecyclerView for UI, lists, and screen state.
 - [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer, HLS, and player UI components for live-stream playback.
 - [Room](https://developer.android.com/jetpack/androidx/releases/room) — Local database for favorites, recently watched channels, and imported channels.
+- [Markwon](https://github.com/noties/Markwon) / [CommonMark Java](https://github.com/commonmark/commonmark-java) — Markdown parsing and rendering for offline Chinese documents. The page structure follows CollageWorkshop and RadioWorkshop.
 - [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test and Espresso](https://github.com/android/android-test) — JVM unit-test and Android UI-test infrastructure.
 - [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — Build tooling and compile-time symbol processing for Room.
 
@@ -31,13 +32,21 @@ Current source version: `1.0`. Requires Android 10 (API 29) or later. Built with
 ## Features
 
 - **Channel browsing** with categories: Recent, CCTV (incl. CGTN), Satellite TV, Foreign channels, and Custom. 66 built-in channels and 169 stream URLs. Imported channels are categorized by name and group, so they may appear outside Custom.
-- **Favorites** and **recently watched** history, stored locally in Room.
-- **Search** by channel name with 250 ms input debouncing.
-- **Import m3u / m3u8 playlists** by URL or pasted text. Same-name entries merge within each import; existing channel IDs are skipped. Downloads are parsed line by line, while parsed results remain in memory. Imports are snapshots, with no scheduled subscription refresh.
+- **Favorites** and **recently watched** history, stored locally in Room. Browse-page optimistic updates confirm the matching click generation; the player favorite icon follows the database observation flow.
+- **Search** by channel name with 250 ms input debouncing, background filtering, and restoration of the active query after screen recreation.
+- **Import m3u / m3u8 playlists** by a single-line subscription URL or pasted text, including multiple bare URL lines. Same-name entries merge within each import with ordered source deduplication; existing IDs are skipped atomically in Room and only actual insertions are counted. Downloads are parsed line by line, while parsed results remain in memory. Imports are snapshots, with no scheduled subscription refresh.
 - **Automatic source rotation**: on playback errors, the player tries subsequent sources in order. Failure at the last source shows an error state, with at most 2 retries of the current source, 8 seconds apart. Manual retry, source switching, or channel switching cancels a pending retry.
-- **Quality selection** for streams with multiple video heights: Auto, Highest, or a height limit (e.g. 1080p). Hidden for single-height sources. Decoder fallback is enabled; available decoders depend on the device.
-- **About entry** in the main menu explaining playlist references, content rights, source failures, and privacy.
+- **Quality selection** for streams with multiple video heights: Auto, Highest, or a height limit (e.g. 1080p). Hidden for single-height sources. An unavailable height falls back to Auto and clears the old limit; temporary empty tracks during loading preserve the preference. Decoder fallback is enabled; available decoders depend on the device.
+- **About screen** in the main menu showing the current build version and linking to the offline changelog, user agreement, and privacy policy (Simplified Chinese for this increment). Includes chapter navigation, scroll highlighting, back to top, collapsible version cards, and the existing source information.
 - **Landscape fullscreen player** with double-tap / horizontal-swipe channel zapping, a channel OSD, picture-in-picture, a 5-second auto-hiding control bar, a searchable channel sheet, and prev/next switching. The startup buffer threshold is 800 ms; actual startup time depends on the stream, network, and device. Playback continues in picture-in-picture; other background scenarios release the player.
+
+A static performance and correctness review on **2026-11-09** fixed repeated targets during rapid zapping, stale quality limits, favorite-update races, full-list filtering on the main thread, and import deduplication. Controls are restored on return from the background or picture-in-picture, and missing channels clear the previous video. Regression test code was added; builds, tests, Lint, and device checks were not run in this review, and no measured performance improvement is claimed. See the [review record](project-docs/TECHNICAL_DESIGN.md#2026-11-09-性能与正确性审查记录).
+
+## Version and Legal Documents
+
+Open **About** from the main toolbar overflow menu to read the [changelog](docs/version-history/CHANGELOG.md), [user agreement](docs/legal/USER_AGREEMENT.md), or [privacy policy](docs/legal/PRIVACY_POLICY.md). These three documents and their new UI strings are intentionally Simplified Chinese only for now. They ship in the APK for offline reading; existing app translations remain in place. The changelog separates work in progress from the 1.0 feature baseline. The app version has not been changed and no release date has been invented.
+
+The XML/ViewBinding reader adapts the chapter pills, version cards, and local-document structure used in CollageWorkshop and RadioWorkshop. Legal sections stay expanded, while version cards can be toggled individually. Reading position and expansion state restore after recreation. Legal cross-links stay inside the app; external HTTP(S) links show the target for confirmation and then open in the system browser. No WebView is used. Markwon core 4.6.2 renders documents in the background without a remote-image plugin. User-facing `docs/` are bundled; engineering `project-docs/` are not.
 
 ## Built-in Channels and Source Attribution
 
@@ -62,6 +71,8 @@ The app does not host, relay, transcode, or record streams; playback still recei
 Favorites, history, and imported channels are processed and stored in a local Room database. The app has no accounts, analytics/crash-reporting SDKs, or developer-operated data collection service, and does not report those records. The manifest requests the `INTERNET` permission only.
 
 Network access downloads user-supplied playlists and requests playback resources. Those services receive ordinary network request information, including the IP address and requested URL, under their own logging policies. Android backup is enabled (`allowBackup=true`) and the Room database is not excluded, so data may be included in system cloud backup or device transfer depending on device settings and the backup service.
+
+The bundled [Chinese privacy policy](docs/legal/PRIVACY_POLICY.md), accessible through **About → 隐私政策**, also explains HTTP and token-bearing URLs, what deleting imported channels actually removes, system backup, and voluntary feedback.
 
 ## Build
 

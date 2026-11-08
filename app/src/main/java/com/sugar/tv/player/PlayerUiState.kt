@@ -38,11 +38,11 @@ enum class QualityMode {
  * @property isFavorite 当前频道是否已收藏
  * @property playRequestId 播放请求序号：换频道、换源、重试时递增；UI 侧据此装载 / 重装播放源
  *   （重试当前源时下标不变、仅序号递增，因此必须以序号而非下标判断是否重新装载）
- * @property qualityOptions 当前信号源可用的清晰度档位（按高度降序）；空列表表示单档位或未知，
- *   UI 据此隐藏清晰度入口
+ * @property qualityOptions 当前信号源可用的清晰度档位（按高度降序）；空列表表示未知或无视频，
+ *   单档信息仍保留用于验证高度偏好，少于两档时 UI 隐藏清晰度入口
  * @property qualityMode 当前清晰度模式（自动 / 锁最高 / 锁定指定高度）
  * @property pinnedVideoHeight [QualityMode.PINNED] 模式下锁定的视频高度
- * @property qualityRequestId 清晰度请求序号：用户切换档位时递增，UI 侧据此把
+ * @property qualityRequestId 清晰度请求序号：用户切换档位或自动回落时递增，UI 侧据此把
  *   `TrackSelectionParameters` 应用到播放器
  */
 data class PlayerUiState(

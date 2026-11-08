@@ -25,6 +25,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.sugar.tv.about.AboutActivity
 import com.sugar.tv.base.BaseActivity
 import com.sugar.tv.browse.BrowseCategory
 import com.sugar.tv.browse.BrowseEvent
@@ -64,6 +65,9 @@ class MainActivity : BaseActivity() {
     /** 最近一次渲染的分类：变化时触发列表回顶。 */
     private var lastRenderedCategory: BrowseCategory? = null
 
+    /** 程序化同步 Chip 时不回写用户意图，避免异步渲染旧状态后覆盖新选择。 */
+    private var syncingCategoryChips = false
+
     /** 当前展示的 Snackbar：新提示出现前关闭旧提示，避免快速连击时提示堆叠。 */
     private var currentSnackbar: Snackbar? = null
 
@@ -80,11 +84,12 @@ class MainActivity : BaseActivity() {
         observeViewModel()
     }
 
+    /** 释放页面持有的窗口与提示引用，避免导入正文随已关闭窗口继续驻留。 */
     override fun onDestroy() {
         // 对话框不由 ViewModel 持有，销毁时主动解除，避免窗口泄漏
-        importDialog?.dismiss()
-        importDialog = null
-        importDialogBinding = null
+        dismissImportDialog()
+        currentSnackbar?.dismiss()
+        currentSnackbar = null
         super.onDestroy()
     }
 
@@ -94,6 +99,7 @@ class MainActivity : BaseActivity() {
         return true
     }
 
+    /** 导入在当前页面处理，关于通过显式 Intent 进入版本与协议入口页。 */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_import -> {
@@ -101,23 +107,11 @@ class MainActivity : BaseActivity() {
                 true
             }
             R.id.menu_about -> {
-                showAboutDialog()
+                startActivity(Intent(this, AboutActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    /**
-     * 「关于」对话框：向用户说明内置频道来源、版权归属、源失效的兜底方式与隐私边界。
-     * 简述参考项目与数据请求边界，详细来源记录及许可说明见项目 README。
-     */
-    private fun showAboutDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.about_title)
-            .setMessage(R.string.about_body)
-            .setPositiveButton(R.string.action_ok, null)
-            .show()
     }
 
     /**
@@ -187,9 +181,9 @@ class MainActivity : BaseActivity() {
                 ),
             )
         )
-        // 仅响应「选中」方向；程序化同步触发的取消选中不回写，状态流去重也不会形成循环
+        // 只接收用户选中；状态渲染也会触发 checked 回调，不能再次当作用户意图提交。
         chip.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
+            if (isChecked && !syncingCategoryChips) {
                 viewModel.onCategorySelected(category)
             }
         }
@@ -200,8 +194,13 @@ class MainActivity : BaseActivity() {
      * 按状态同步 Chip 选中态：赋值为布尔绝对值，幂等且不累积。
      */
     private fun syncSelectedChip(selected: BrowseCategory) {
-        binding.browseCategoryChips.children.filterIsInstance<Chip>().forEach { chip ->
-            chip.isChecked = (chip.tag as? BrowseCategory) == selected
+        syncingCategoryChips = true
+        try {
+            binding.browseCategoryChips.children.filterIsInstance<Chip>().forEach { chip ->
+                chip.isChecked = (chip.tag as? BrowseCategory) == selected
+            }
+        } finally {
+            syncingCategoryChips = false
         }
     }
 
@@ -282,6 +281,13 @@ class MainActivity : BaseActivity() {
     private fun setupSearchView(searchItem: MenuItem) {
         val searchView = searchItem.actionView as? SearchView ?: return
         searchView.queryHint = getString(R.string.search_hint)
+        val activeQuery = viewModel.uiState.value.query
+        if (activeQuery.isNotEmpty()) {
+            // 展开会先清空 SearchView；恢复结束后再绑定监听，避免把恢复词写回成空串。
+            searchItem.expandActionView()
+            searchView.setQuery(activeQuery, false)
+            searchView.clearFocus()
+        }
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 viewModel.onQueryChanged(query.orEmpty())
@@ -302,12 +308,6 @@ class MainActivity : BaseActivity() {
                 return true
             }
         })
-        val activeQuery = viewModel.uiState.value.query
-        if (activeQuery.isNotEmpty()) {
-            searchItem.expandActionView()
-            searchView.setQuery(activeQuery, false)
-            searchView.clearFocus()
-        }
     }
 
     /**
@@ -339,6 +339,13 @@ class MainActivity : BaseActivity() {
             .create()
         importDialog = dialog
         importDialogBinding = dialogBinding
+        dialog.setOnDismissListener {
+            // 用户取消时也释放 Binding，特别是其中可能粘贴了整份大体积订阅正文。
+            if (importDialog === dialog) {
+                importDialog = null
+                importDialogBinding = null
+            }
+        }
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 viewModel.importChannels(dialogBinding.importInputEdit.text?.toString().orEmpty())

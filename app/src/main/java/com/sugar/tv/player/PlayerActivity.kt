@@ -95,16 +95,27 @@ class PlayerActivity : BaseActivity() {
     /** 播放器事件监听：缓冲状态同步、视频档位上报与播放失败自动换源。 */
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
-            viewModel.onBufferingChanged(isBuffering = playbackState == Player.STATE_BUFFERING)
+            val requestId = currentMediaRequestId() ?: return
+            viewModel.onBufferingChanged(
+                playRequestId = requestId,
+                isBuffering = playbackState == Player.STATE_BUFFERING,
+            )
         }
 
         override fun onTracksChanged(tracks: Tracks) {
-            viewModel.onVideoQualityOptionsChanged(extractQualityOptions(tracks))
+            // setMediaItem 会先清空轨道；这不是新源的真实档位，不能据此丢弃用户的高度偏好。
+            if (tracks.isEmpty) return
+            val requestId = currentMediaRequestId() ?: return
+            viewModel.onVideoQualityOptionsChanged(
+                playRequestId = requestId,
+                options = extractQualityOptions(tracks),
+            )
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            val requestId = currentMediaRequestId() ?: return
             // 当前信号源失败：交由 ViewModel 自动切下一路，全部失败则停在错误态
-            viewModel.onPlaybackError()
+            viewModel.onPlaybackError(playRequestId = requestId)
         }
     }
 
@@ -127,15 +138,27 @@ class PlayerActivity : BaseActivity() {
         observeViewModel()
     }
 
+    /** 前台就绪后创建播放器、重放请求并恢复可操作的控件。 */
     override fun onStart() {
         super.onStart()
         ensurePlayer()
+        // 不依赖生命周期收集器与播放器创建的先后顺序，前台恢复时显式重放当前请求。
+        render(viewModel.uiState.value)
+        if (!isInPictureInPictureMode) {
+            setControlsVisible(visible = true)
+            scheduleControlsHide()
+        }
     }
 
+    /** 非画中画退后台时撤销延迟 UI 任务并释放播放器。 */
     override fun onStop() {
         // 直播不后台播放：离开前台即释放播放器（画中画中仍处于可见前台，继续播放），
         // 回到前台重建实例并重新缓冲当前源
         if (!isInPictureInPictureMode) {
+            binding.root.removeCallbacks(hideControlsRunnable)
+            binding.root.removeCallbacks(osdHideRunnable)
+            binding.tvPlayerOsd.animate().cancel()
+            binding.tvPlayerOsd.isVisible = false
             releasePlayer()
         }
         super.onStop()
@@ -148,6 +171,7 @@ class PlayerActivity : BaseActivity() {
         super.onDestroy()
     }
 
+    /** 画中画隐藏覆盖层，退出时恢复操作区及其自动隐藏节奏。 */
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         // 画中画只保留视频画面：覆盖层整体隐藏，退出后恢复操作区并重新计时自动隐藏
@@ -155,6 +179,7 @@ class PlayerActivity : BaseActivity() {
         if (isInPictureInPictureMode) {
             binding.root.removeCallbacks(hideControlsRunnable)
         } else {
+            setControlsVisible(visible = true)
             scheduleControlsHide()
         }
     }
@@ -293,7 +318,7 @@ class PlayerActivity : BaseActivity() {
      * （自动 / 最高 / 具体高度如 1080p）。
      */
     private fun renderQualityControls(state: PlayerUiState) {
-        binding.btnPlayerQuality.isVisible = state.qualityOptions.isNotEmpty()
+        binding.btnPlayerQuality.isVisible = state.qualityOptions.size >= 2
         binding.btnPlayerQuality.text = when (state.qualityMode) {
             QualityMode.AUTO -> getString(R.string.quality_auto)
             QualityMode.HIGHEST -> getString(R.string.quality_highest)
@@ -307,7 +332,7 @@ class PlayerActivity : BaseActivity() {
      */
     private fun showQualityDialog() {
         val state = viewModel.uiState.value
-        if (state.qualityOptions.isEmpty()) {
+        if (state.qualityOptions.size < 2) {
             return
         }
         val labels = buildList {
@@ -326,12 +351,12 @@ class PlayerActivity : BaseActivity() {
             .setTitle(R.string.player_quality)
             .setSingleChoiceItems(labels.toTypedArray(), checkedIndex) { dialog, which ->
                 when (which) {
-                    0 -> viewModel.selectQuality(QualityMode.AUTO, height = 0)
-                    1 -> viewModel.selectQuality(QualityMode.HIGHEST, height = 0)
+                    0 -> viewModel.selectQuality(mode = QualityMode.AUTO, height = 0)
+                    1 -> viewModel.selectQuality(mode = QualityMode.HIGHEST, height = 0)
                     else ->
                         viewModel.selectQuality(
-                            QualityMode.PINNED,
-                            state.qualityOptions[which - 2].height,
+                            mode = QualityMode.PINNED,
+                            height = state.qualityOptions[which - 2].height,
                         )
                 }
                 dialog.dismiss()
@@ -355,14 +380,15 @@ class PlayerActivity : BaseActivity() {
 
     /**
      * 从播放器 `Tracks` 提取可选清晰度档位：仅统计被支持的视频格式，按高度去重
-     * （同高度取最高码率），高度降序；不足两档（固定单码率源）返回空列表，
-     * UI 据此隐藏清晰度入口。
+     * （同高度取最高码率），高度降序；保留单档信息用于验证高度偏好，入口由 UI 按档数隐藏。
      */
     private fun extractQualityOptions(tracks: Tracks): List<QualityOption> {
         val options = tracks.groups.asSequence()
-            .filter { it.type == C.TRACK_TYPE_VIDEO && it.isSupported }
+            .filter { it.type == C.TRACK_TYPE_VIDEO }
             .flatMap { group ->
-                (0 until group.length).map { index -> group.getTrackFormat(index) }
+                (0 until group.length).asSequence()
+                    .filter { index -> group.isTrackSupported(index) }
+                    .map { index -> group.getTrackFormat(index) }
             }
             .filter { it.height > 0 }
             .groupBy { it.height }
@@ -379,7 +405,7 @@ class PlayerActivity : BaseActivity() {
                 )
             }
             .sortedByDescending { it.height }
-        return if (options.size >= 2) options else emptyList()
+        return options
     }
 
     /** 档位标签：如 1080p——纯技术标签不含自然语言词，用 Locale.US 固定数字格式。 */
@@ -422,12 +448,18 @@ class PlayerActivity : BaseActivity() {
     /**
      * 装载当前请求的信号源：同一播放器实例 setMediaItem + prepare + play 平滑过渡。
      *
-     * @return 是否真正完成装载（播放器未就绪或无可播信号源时返回 `false`，等待下轮状态重试）
+     * 无可播信号源时清空旧媒体，避免错误浮层下仍播放上一个频道。
+     *
+     * @return 是否已应用请求；播放器未就绪时返回 `false`，等待前台恢复后重试
      */
     private fun applyCurrentSource(state: PlayerUiState): Boolean {
         val target = player ?: return false
-        val url = state.sources.getOrNull(state.currentSourceIndex)?.url ?: return false
-        target.setMediaItem(buildMediaItem(url))
+        val url = state.sources.getOrNull(state.currentSourceIndex)?.url
+        if (url == null) {
+            target.clearMediaItems()
+            return true
+        }
+        target.setMediaItem(buildMediaItem(url = url, playRequestId = state.playRequestId))
         target.prepare()
         target.play()
         return true
@@ -437,15 +469,22 @@ class PlayerActivity : BaseActivity() {
      * 构造 MediaItem：对 m3u / m3u8 直播地址显式声明 HLS 类型，避免带查询串等场景下
      * 按扩展名推断失败；其余地址交由 ExoPlayer 按内容自动识别。
      */
-    private fun buildMediaItem(url: String): MediaItem {
+    private fun buildMediaItem(url: String, playRequestId: Long): MediaItem {
         val lastSegment = Uri.parse(url).lastPathSegment.orEmpty().lowercase(Locale.ROOT)
         val mimeType = if (lastSegment.endsWith(".m3u8") || lastSegment.endsWith(".m3u")) {
             MimeTypes.APPLICATION_M3U8
         } else {
             null
         }
-        return MediaItem.Builder().setUri(url).setMimeType(mimeType).build()
+        return MediaItem.Builder()
+            .setMediaId(playRequestId.toString())
+            .setUri(url)
+            .setMimeType(mimeType)
+            .build()
     }
+
+    /** 从已装载媒体读取请求代次，用于拒绝新请求尚未装载时旧媒体发出的回调。 */
+    private fun currentMediaRequestId(): Long? = player?.currentMediaItem?.mediaId?.toLongOrNull()
 
     /** 获取可用的播放器实例；不存在时按直播播放配置创建并绑定到播放视图（PlayerView）。 */
     private fun ensurePlayer(): ExoPlayer {
@@ -488,9 +527,10 @@ class PlayerActivity : BaseActivity() {
     private fun releasePlayer() {
         val current = player ?: return
         current.removeListener(playerListener)
-        current.release()
-        player = null
+        // 先解除 Surface 关联，再释放实例，避免 PlayerView 在释放期间仍指向已失效播放器。
         binding.playerView.player = null
+        player = null
+        current.release()
         appliedPlayRequestId = NO_PLAY_REQUEST
         appliedQualityRequestId = NO_PLAY_REQUEST
     }
@@ -532,7 +572,11 @@ class PlayerActivity : BaseActivity() {
 
     /** 打开频道列表抽屉（与播放页共享同一 ViewModel）。 */
     private fun showChannelSheet() {
-        PlayerChannelsSheetFragment().show(supportFragmentManager, PlayerChannelsSheetFragment.TAG)
+        if (supportFragmentManager.isStateSaved ||
+            supportFragmentManager.findFragmentByTag(PlayerChannelsSheetFragment.TAG) != null
+        ) return
+        // 同步提交保证下一次连点能查到现有抽屉，避免叠加多个列表与观察任务。
+        PlayerChannelsSheetFragment().showNow(supportFragmentManager, PlayerChannelsSheetFragment.TAG)
     }
 
     /**

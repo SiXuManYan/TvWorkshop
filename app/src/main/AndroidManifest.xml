@@ -29,6 +29,14 @@
             </intent-filter>
         </activity>
 
+        <!-- 关于与中文离线文档：仅接受应用内显式导航，随窗口变化正常重建。 -->
+        <activity
+            android:name=".about.AboutActivity"
+            android:exported="false" />
+        <activity
+            android:name=".about.LocalDocumentActivity"
+            android:exported="false" />
+
         <!-- 播放页：横屏全屏播放器，仅内部跳转进入；支持画中画继续播放 -->
         <activity
             android:name=".player.PlayerActivity"

@@ -44,6 +44,7 @@
     <string name="import_success_format">%1$d Sender erfolgreich importiert</string>
     <string name="import_failed_format">Import fehlgeschlagen: %1$s</string>
     <string name="import_invalid_url">Das Format der Adresse oder des Inhalts ist ungültig</string>
+    <string name="import_unexpected_error">Der Import konnte nicht abgeschlossen werden. Bitte später erneut versuchen</string>
 
     <!-- Netzwerk & Aufräumen -->
     <string name="network_unavailable">Netzwerk nicht verfügbar. Bitte überprüfe das Netzwerk und versuche es erneut</string>

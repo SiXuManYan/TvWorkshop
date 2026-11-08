@@ -15,6 +15,8 @@ lifecycleViewmodelKtx = "2.11.0"
 coroutines = "1.11.0"
 constraintlayout = "2.2.2"
 recyclerview = "1.4.0"
+# 沿用拼图工坊与 RadioWorkshop 的本地 Markdown 渲染器，仅启用 core，无远程图片插件。
+markwon = "4.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,6 +25,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 
 # Lifecycle
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }

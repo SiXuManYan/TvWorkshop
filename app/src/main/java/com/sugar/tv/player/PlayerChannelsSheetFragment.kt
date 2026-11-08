@@ -15,16 +15,18 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.sugar.tv.R
 import com.sugar.tv.data.model.Channel
 import com.sugar.tv.databinding.SheetPlayerChannelsBinding
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
  * 播放页频道列表抽屉：顶部名称过滤，当前播放频道高亮；点选频道切换播放并关闭抽屉。
  *
- * 与播放页共享 [PlayerViewModel]（Activity 作用域），自身只做渲染与本地过滤；
+ * 与播放页共享 [PlayerViewModel]（Activity 作用域），自身只转交过滤词并渲染；
  * 系统导航栏 insets 由 BottomSheetDialog 自身处理，不再重复避让。
  */
 class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
 
+    /** 视图生命周期内的绑定引用，销毁视图时主动清除。 */
     private var _binding: SheetPlayerChannelsBinding? = null
 
     /** 抽屉视图绑定；仅 在 onCreateView 与 onDestroyView 之间可用。 */
@@ -35,16 +37,11 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
         ViewModelProvider(requireActivity())[PlayerViewModel::class.java]
     }
 
+    /** 当前抽屉视图的列表适配器，关闭时解除 RecyclerView 关联。 */
     private lateinit var adapter: ChannelSheetAdapter
 
-    /** 频道全集快照，用于本地名称过滤。 */
-    private var allChannels: List<Channel> = emptyList()
-
     /** 当前过滤关键词（trim 后，空串表示不过滤）。 */
-    private var query: String = ""
-
-    /** 最近一次渲染的当前播放频道 id，播放项变化时才重建列表。 */
-    private var lastCurrentChannelId: String? = null
+    private val query = MutableStateFlow("")
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,46 +58,26 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
         binding.sheetChannelRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.sheetChannelRecycler.adapter = adapter
         binding.sheetSearchEdit.doAfterTextChanged { text ->
-            query = text?.toString()?.trim().orEmpty()
-            refreshRows()
+            query.value = text?.toString()?.trim().orEmpty()
         }
         observeViewModel()
     }
 
-    /** 收集共享 ViewModel 的频道全集与播放态，驱动列表与高亮更新。 */
+    /** 仅在视图 STARTED 期间收集合成结果，过滤与行映射在 ViewModel 的 Default 调度器执行。 */
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    viewModel.allChannels.collect { channels ->
-                        allChannels = channels
-                        refreshRows()
-                    }
-                }
-                launch {
-                    viewModel.uiState.collect { state ->
-                        val playingId = state.channel?.id
-                        if (playingId != lastCurrentChannelId) {
-                            lastCurrentChannelId = playingId
-                            refreshRows()
-                        }
-                    }
-                }
+                viewModel.channelSheetRows(query).collect(::renderRows)
             }
         }
     }
 
-    /** 依据全集、过滤词与当前播放项重建行数据，交由 ListAdapter 做最小 diff 更新。 */
-    private fun refreshRows() {
-        val filtered = if (query.isEmpty()) {
-            allChannels
-        } else {
-            allChannels.filter { it.name.contains(query, ignoreCase = true) }
-        }
-        adapter.submitList(filtered.map { ChannelSheetRow(it, isPlaying = it.id == lastCurrentChannelId) })
+    /** 渲染已过滤且去重的行列表与空态，不在主线程遍历频道全集。 */
+    private fun renderRows(rows: List<ChannelSheetRow>) {
+        adapter.submitList(rows)
         val emptyTextRes = when {
-            filtered.isEmpty() && allChannels.isEmpty() -> R.string.empty_channel_list
-            filtered.isEmpty() -> R.string.empty_search_result
+            rows.isEmpty() && viewModel.allChannels.value.isEmpty() -> R.string.empty_channel_list
+            rows.isEmpty() -> R.string.empty_search_result
             else -> 0
         }
         binding.sheetEmptyText.isVisible = emptyTextRes != 0

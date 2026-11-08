@@ -28,11 +28,15 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        // 关于页展示当前构建的真实版本，不在文案中维护另一份版本号。
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    // 仅将面向用户的离线文档打入 APK，工程设计与开发记录仍放 project-docs。
+    sourceSets["main"].assets.directories.add(rootProject.file("docs").path)
 }
 
 dependencies {
@@ -40,6 +44,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.annotation)
     implementation(libs.material)
+    implementation(libs.markwon.core)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.lifecycle.runtime.ktx)
