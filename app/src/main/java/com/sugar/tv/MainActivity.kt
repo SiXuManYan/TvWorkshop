@@ -110,7 +110,7 @@ class MainActivity : BaseActivity() {
 
     /**
      * 「关于」对话框：向用户说明内置频道来源、版权归属、源失效的兜底方式与隐私边界。
-     * 内容为用户可感知的正式说明（与 README 免责节、上架文案同源同口径）。
+     * 简述参考项目与数据请求边界，详细来源记录及许可说明见项目 README。
      */
     private fun showAboutDialog() {
         MaterialAlertDialogBuilder(this)
@@ -275,7 +275,7 @@ class MainActivity : BaseActivity() {
     }
 
     /**
-     * 工具栏搜索：展开式 SearchView，输入变化交由 ViewModel 做 400ms 去抖；
+     * 工具栏搜索：展开式 SearchView，输入变化交由 ViewModel 做 250ms 去抖；
      * 收起搜索即清空查询，保持「无搜索框 = 全量列表」的一致状态；
      * 页面重建后恢复仍在生效的搜索词。
      */

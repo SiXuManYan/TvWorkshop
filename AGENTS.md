@@ -15,6 +15,7 @@
 |---|---|
 | 架构、数据流与播放器设计 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
 | 功能说明与免责边界 | [中文说明](README.zh-CN.md)、[English README](README.md) |
+| 内置地址出处与许可边界 | [技术设计 · 内置频道目录](project-docs/TECHNICAL_DESIGN.md#5-内置频道目录)：参考文件、固定版本与待补来源记录 |
 | 文档组织与维护范围 | [工程索引](project-docs/README.md) |
 
 ## 技术栈边界
@@ -47,7 +48,7 @@ Kotlin 取像素值用 `resources.getDimension(R.dimen.dp_N)`（浮点）或 `ge
 
 界面文案禁止字符串模板拼接后直接 `setText`（触发 Lint `SetTextI18n` 且无法本地化语序）。统一用占位符字符串资源＋位置参数，如 `source_count_format`（`%1$d 路信号`）、`switch_source_format`（`信号源 %1$d/%2$d`）、`import_success_format`（`成功导入 %1$d 个频道`）。
 
-- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 37 个 key 完全一致；提交前用 key 集合 diff 自查。
+- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 46 个 key；提交前用 key 集合 diff 自查。
 - 频道名称（如「CCTV-1 综合」「BBC World News」）属于**数据而非界面文案**，保持官方命名，不参与多语言，不放入 strings.xml。
 - 无文案词的纯数字 / 十六进制格式化注意 Locale（如 `M3uParser.importedChannelId` 的 `%02x`）；不用 `@Suppress` / `tools:ignore` 压制 `SetTextI18n`。
 
@@ -88,16 +89,16 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 
 ## 播放器边界
 
-- **ExoPlayer 实例归 `PlayerActivity` 所有**：`onStart` 创建或复用（`ensurePlayer`），`onStop` 与 `onDestroy` 释放（`releasePlayer`）——**直播不后台播放**，离开前台即释放，回到前台由状态重放重新装载当前信号源（`appliedPlayRequestId` 归零后随 UiState 重放）。例外：**画中画中仍属可见前台，不释放播放器**（`onStop` 以 `isInPictureInPictureMode` 判定）。
+- **ExoPlayer 实例归 `PlayerActivity` 所有**：`onStart` 创建或复用（`ensurePlayer`），`onStop` 与 `onDestroy` 释放（`releasePlayer`）——**直播不后台播放**，离开前台即释放，回到前台由状态重放重新装载当前信号源（`appliedPlayRequestId` 重置为未装载标记 -1 后随 UiState 重放）。例外：**画中画中仍属可见前台，不释放播放器**（`onStop` 以 `isInPictureInPictureMode` 判定）。
 - ViewModel 只决定「该播放哪一路」：`PlayerUiState.playRequestId` 递增驱动 UI 装载；同一实例 `setMediaItem + prepare + play` 平滑换源换频道，不重建播放器。
-- **直播起播调优**：`DefaultLoadControl` 压缩首包等待（起播 800ms / 重缓冲 1500ms，min 15s / max 30s），换台与卡顿恢复更快出画（`PlayerActivity.ensurePlayer`）。
-- **信号源自动轮换**：`Player.Listener.onPlayerError` 交 ViewModel 按下标顺序切下一路；全部失败进入 `allSourcesFailed` 错误态停止轮换，并做**有限自动重试**（延迟 8 秒、最多 2 次；换频道、手动重试或换源即取消并归零），不给确定失效的频道无限轮询耗电。手动换源（`nextSource`）循环切换且可从错误态恢复。
+- **直播缓冲配置**：`DefaultLoadControl` 起播阈值 800ms / 重缓冲 1500ms，min 15s / max 30s（`PlayerActivity.ensurePlayer`）；这些是媒体缓冲参数，不作为实际出画耗时或性能提升的实测结论。
+- **信号源自动轮换**：`Player.Listener.onPlayerError` 交 ViewModel 按下标顺序切下一路；末路失败进入 `allSourcesFailed` 错误态停止轮换，并做**有限自动重试**（延迟 8 秒、最多 2 次，重试当前源）。换频道、手动重试或换源取消待执行重试；当前只有换频道与手动重试归零计数，换源保留计数。手动换源（`nextSource`）循环切换且可从错误态恢复。
 - **播放区手势与换台 OSD**：单击确认（约 300ms 去抖）切换浮层显隐；双击左 / 右半区、横向轻扫（速度阈值 + 横纵比约束）按方向换台；频道变化时中央 OSD 显示频道名 2 秒淡出。触摸经手势识别后以 `performClick` 驱动点击监听，保证 TalkBack / 键盘激活与触摸行为一致。
 - **画中画**：播放页 `supportsPictureInPicture`，底栏入口以 16:9 画幅进入；进入后覆盖层整体隐藏、退出恢复并重新计时自动隐藏；设备不支持时静默忽略，不打断前台播放。
 - 旋转由 Manifest `configChanges`（orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden）接管，播放页 `sensorLandscape` + `singleTop` + `exported=false` + `supportsPictureInPicture`，不重建、不重复初始化。
 - m3u / m3u8 地址构造 `MediaItem` 时显式声明 `MimeTypes.APPLICATION_M3U8`，避免带查询串时按扩展名推断失败；其余地址交由 ExoPlayer 自动识别。
-- **清晰度选择**：`onTracksChanged` 上报视频档位（按高度去重、同高度取最高码率；不足两档的固定单码率源隐藏入口）；模式为 自动（带宽自适应）/ 锁最高（`setForceHighestSupportedBitrate`）/ 锁定高度（`setMaxVideoHeight`），锁定的前置顶高度在新频道不存在时自动回落自动档；切换经 `qualityRequestId` 序号驱动应用，`ensurePlayer` 新实例立即恢复当前偏好。
-- 播放器配置：`USAGE_MEDIA` 音频属性 + `handleAudioFocus=true` + `handleAudioBecomingNoisy=true`；**硬解优先**（`EXTENSION_RENDERER_MODE_OFF` + `setEnableDecoderFallback(true)`，硬解初始化失败回退软解避免黑屏）；`PlayerView use_controller=false`、`surface_type=surface_view`，控件全部自绘；`keepScreenOn=true`。
+- **清晰度选择**：`onTracksChanged` 上报视频档位（按高度去重、同高度取最高码率；不足两种高度时隐藏入口）；模式为 自动（带宽自适应）／最高（`setForceHighestSupportedBitrate`）／高度上限（`setMaxVideoSize` 限高，仍可在上限内自适应），所选高度在新选项中不存在时回落自动档；切换经 `qualityRequestId` 序号驱动应用，`ensurePlayer` 新实例立即恢复当前偏好。
+- 播放器配置：`USAGE_MEDIA` 音频属性 + `handleAudioFocus=true` + `handleAudioBecomingNoisy=true`；关闭扩展渲染器（`EXTENSION_RENDERER_MODE_OFF`），启用备用解码器尝试（`setEnableDecoderFallback(true)`）；备用解码器是否可用取决于设备，不承诺软解兜底或一定无黑屏。`PlayerView use_controller=false`、`surface_type=surface_view`，控件全部自绘；`keepScreenOn=true`。
 - 换频道走全集顺序 `prevChannel` / `nextChannel`（循环回绕）；同一频道重复加载不重新起播，新频道从第一路信号源开始；起始下标经 `resolveStartIndex` 写回恢复句柄。
 
 ## 性能与协程约定
@@ -122,16 +123,17 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 导入入口只有主页工具栏「导入频道源」对话框：粘贴订阅地址（`http(s)://` 开头走网络下载）或直接粘贴订阅正文。规则详见[技术设计](project-docs/TECHNICAL_DESIGN.md)，改动时保持：
 
 - 解析容错：兼容 BOM 与 `\r\n`；`#EXTINF` 读取 `tvg-id` / `tvg-name` / `group-title`，频道名取首个不被引号包裹的逗号之后内容；连续多条 EXTINF 共用一条 URL；裸 URL 行按无元数据条目解析。
-- 合并与去重：同名频道（去空白 + 忽略大小写）合并信号源并按序去重；与内置频道同名的条目剔除已固化地址，全部重复则跳过；导入 id = `m3u:` + SHA-256(名称\n首个 URL) 前 12 位，重复导入天然幂等。
+- 合并与去重：本次导入批次内的同名频道（去空白 + 忽略大小写）合并信号源并按序去重；与内置频道同名的条目剔除已固化地址，全部重复则跳过，有新地址则保存为独立导入频道；导入 id = `m3u:` + SHA-256(名称\n首个新 URL) 前 12 位。已有 id 直接跳过，不会更新其其他线路；名称写法或首个新地址变化可能新增记录。
+- 导入保存当次解析结果，不保存订阅 URL，不定时同步；导入频道按名称与分组分类，不保证全部位于「自定义」分类。「清空自定义频道」入口实际清空全部导入记录。
 - 分类推导：group 或名称含「央视/CCTV/CNTV/CGTN」→ 央视；含「卫视」→ 卫视；含 CJK → 自定义；其余 → 外国频道。
 - 错误归一：地址非法或无可播放频道 → `IllegalArgumentException`（提示格式错误）；下载失败 → `IOException`（提示网络不可用）；下载超时各 10 秒、非 2xx 抛错；字符集优先响应头，回退 UTF-8。
 - 清空自定义频道不影响收藏与观看记录（收藏 / 观看表按频道 id 弱关联，频道消失时列表自动跳过）。
 
 ## 隐私约束
 
-- **本机处理**：收藏、观看记录与导入频道只存本机 Room 库；应用无账号体系、无统计 / 崩溃 SDK、无任何数据上传。
-- **仅访问公开直播流**：网络访问只限于用户导入的订阅地址与播放的公开直播流地址；不做遥测、不做播放行为上报、不采集设备标识。
-- Manifest 仅申请 `INTERNET` 权限；`usesCleartextTraffic=true` 为播放公开直播源所需——内置与导入源大量为 `http://` 明文流且导入源不可枚举、无法用域白名单替代，流量仅限公开流地址、不含用户凭据；若后续加入登录 / 账号能力，必须改为 `networkSecurityConfig` 按域收紧。`allowBackup=true` 且备份规则为模板默认，若后续加入敏感配置需先收紧备份边界。
+- **本机处理**：收藏、观看记录与导入频道保存在本机 Room 库；应用无账号体系、无统计 / 崩溃 SDK、未配置开发者数据收集服务，不主动上报这些记录。`allowBackup=true` 且备份规则未排除 Room，数据可能进入系统云备份或设备迁移，文档不得承诺数据始终不离开设备。
+- **订阅与播放请求**：网络访问用于用户提供的订阅下载，以及播放列表、媒体分片和相关播放资源；不做遥测、不做播放行为上报、不采集设备标识。第三方服务仍会收到 IP、请求地址等网络信息，其日志政策不由应用控制。
+- Manifest 仅申请 `INTERNET` 权限；`usesCleartextTraffic=true` 用于兼容内置与导入的 HTTP 地址。导入源不可枚举，当前未按域设置白名单，也未剥离用户输入 URL 中的令牌等参数，不能保证请求不含凭据。若后续加入登录 / 账号能力，必须改为 `networkSecurityConfig` 按域收紧，加入敏感配置前需收紧备份边界。
 - 不实现应用内 WebView；如需打开外部网页，交给系统浏览器并另议交互。
 
 ## 验证
@@ -156,4 +158,5 @@ git diff --check
 - Markdown 使用 UTF-8、有语义的标题和正常换行；段落 / 列表 / 表格之间保留空行，代码用标注语言的代码块。仓库内引用用相对路径，避免绝对本机路径。
 - 当前文档体系：根目录 `AGENTS.md`（规范）、`README.md` / `README.zh-CN.md`（入口）、`project-docs/`（工程专题）；不随 APK 打包。后续新增专题先登记进[工程索引](project-docs/README.md)。
 - 内置频道目录、播放源出处与免责说明属于用户可见信息，更新源时同步 [README.zh-CN.md](README.zh-CN.md) 的对应章节。
+- 来源记录需区分列表整理项目、实际流服务与节目权利方；公开可访问、来源署名或学习用途不代替内容授权。新增或替换地址需记录频道 id、线路标签、上游文件与版本／获取日期及改写说明；无法核对的出处明确标为待补，不把整个内置目录归给单一项目。
 - 开发记录需说明触发原因、最终行为与实际检查范围；没有实测依据时不宣称可用性、性能或兼容性结论。

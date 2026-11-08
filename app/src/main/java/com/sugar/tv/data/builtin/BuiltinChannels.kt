@@ -7,13 +7,18 @@ import com.sugar.tv.data.model.ChannelSource
 /**
  * 内置频道目录：随应用分发的默认频道集合。
  *
- * 全部播放地址均固化自公开发布的 m3u 订阅列表（采集于 2026-11-08）：
- * - `live.fanmingming.com` IPv6 列表（央视主源、CGTN 主源，移动 OTT IPv6 流）
- * - `iptv-org.github.io`（cn / au / kr / news 分类，部分卫视频道与外国频道源）
- * - `Guovin/iptv-api` 聚合列表（央视与卫视备源）
- * - `iptv-org/iptv` 仓库韩国原始流文件（KBS World）
+ * 原目录注释记载整理日期为 2026-11-08，参考列表与本次可复核范围如下：
+ * - `https://github.com/fanmingming/live` 的 `tv/m3u/ipv6.m3u`：18 个 CCTV 主源
+ *   （IPv6，应用省略上游末尾的空 `?`）及 6 个 CGTN 主源（HTTPS 域名）。
+ * - `https://github.com/iptv-org/iptv` 的 cn / au / news 列表与韩国原始流文件：
+ *   部分国内频道、CGTN 备源及外国频道地址。
+ * - `https://github.com/Guovin/iptv-api` 的历史结果：部分地址仍可复核；
+ *   当前上游为工具框架，旧输出链接已停止更新。
  *
- * 直播源由第三方公益维护，可用性随时间变化；播放失败时按 sources 顺序切换。
+ * 当前共 66 个频道、169 个地址；2026-11-08 文本比对命中 81 个，88 个待补逐条出处，
+ * 固定文件版本与核对范围见 `project-docs/TECHNICAL_DESIGN.md` 第 5 节。
+ * 地址随应用发布，不自动同步上游；列表整理者不等于实际流服务或节目权利方。
+ * 可用性与内容授权未逐条验证；播放报错后按 sources 顺序尝试后续线路。
  * 频道名称属于数据而非界面文案，保持频道官方命名，不参与多语言。
  */
 object BuiltinChannels {

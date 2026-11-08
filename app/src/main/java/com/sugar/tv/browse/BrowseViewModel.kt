@@ -51,8 +51,8 @@ class BrowseViewModel(
     /**
      * 已生效（去抖后）的搜索词流。
      *
-     * 去抖实现在写入侧完成（见 [onQueryChanged]）：输入连续变化时延迟 400ms 提交，
-     * 清空与首值立即生效。这样 combine 的首次发射不被去抖延迟阻塞，
+     * 去抖实现在写入侧完成（见 [onQueryChanged]）：非空输入连续变化时延迟 250ms 提交，
+     * 清空立即生效，初始空查询不等待去抖。这样 combine 的首次发射不被去抖延迟阻塞，
      * 满足「loading 在首数据到达即结束」的状态契约。
      */
     private val queryFlow = MutableStateFlow("")

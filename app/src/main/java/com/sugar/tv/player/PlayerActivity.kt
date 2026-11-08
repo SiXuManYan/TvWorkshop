@@ -302,7 +302,7 @@ class PlayerActivity : BaseActivity() {
     }
 
     /**
-     * 清晰度选择对话框：自动（带宽自适应）/ 最高（锁最高档）/ 具体档位（按高度锁定）。
+     * 清晰度选择对话框：自动（带宽自适应）/ 最高 / 高度上限（上限内仍可自适应）。
      * 单档位信号源不提供入口（按钮隐藏），打开对话框前以当前状态兜底。
      */
     private fun showQualityDialog() {
@@ -450,8 +450,8 @@ class PlayerActivity : BaseActivity() {
     /** 获取可用的播放器实例；不存在时按直播播放配置创建并绑定到播放视图（PlayerView）。 */
     private fun ensurePlayer(): ExoPlayer {
         player?.let { return it }
-        // 直播调优：压缩起播 / 重缓冲所需的首包缓冲（默认 2500ms / 5000ms），
-        // 换台与卡顿恢复更快进入画面；稳定后的前进 / 后退缓冲维持默认水位
+        // 缩短起播 / 重缓冲阈值；这是媒体缓冲参数，实际出画时间还取决于网络和源，
+        // min / max 缓冲维持本页配置，不据参数值承诺实测性能。
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ MIN_BUFFER_MS,
@@ -460,7 +460,7 @@ class PlayerActivity : BaseActivity() {
                 /* bufferForPlaybackAfterRebufferMs = */ BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
             )
             .build()
-        // 硬解优先：关闭扩展渲染器；硬解初始化失败（罕见编解码 / 老设备）时回退软解避免黑屏
+        // 关闭扩展渲染器，初始化失败时尝试其他可用解码器；是否有软解取决于设备。
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
             .setEnableDecoderFallback(true)

@@ -18,7 +18,7 @@ data class QualityOption(
  * 清晰度选择模式。
  *
  * [AUTO] 交由 ExoPlayer 按带宽自适应；[HIGHEST] 强制锁最高档（不随带宽降档）；
- * [PINNED] 锁定指定高度及以下的最高档（跨频道保持偏好，新频道无该高度时自动回落）。
+ * [PINNED] 限制视频高度上限，仍可在上限内自适应；新选项无该高度时自动回落。
  */
 enum class QualityMode {
     AUTO,
@@ -33,7 +33,7 @@ enum class QualityMode {
  * @property sources 当前频道的信号源列表
  * @property currentSourceIndex 当前选中（正在 / 待播放）的信号源下标
  * @property isBuffering 是否处于缓冲中，驱动中央加载指示
- * @property allSourcesFailed 全部信号源按顺序尝试后仍失败：显示错误浮层并停止自动切换
+ * @property allSourcesFailed 当前已在末路且播放失败；前面的线路可能未尝试，随后有限重试当前源
  * @property channelMissing 频道不存在（如进程恢复后频道已被删除）：显示错误浮层
  * @property isFavorite 当前频道是否已收藏
  * @property playRequestId 播放请求序号：换频道、换源、重试时递增；UI 侧据此装载 / 重装播放源

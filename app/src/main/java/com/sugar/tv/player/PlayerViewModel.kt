@@ -92,7 +92,7 @@ class PlayerViewModel(
     /** 最新一次请求加载的频道 id（代次标记）：加载结果写回状态前核对，旧结果不得覆盖最新选择。 */
     private var latestRequestedChannelId: String? = null
 
-    /** 「全部失败」后的自动重试任务：有限次数，任何手动操作（重试 / 换源 / 换频道）取消。 */
+    /** 末路失败后的有限重试任务；手动重试、换源或换频道取消，收藏等操作不取消。 */
     private var autoRetryJob: Job? = null
 
     /** 当前「全部失败」回合内已执行的自动重试次数，换频道或手动重试时归零。 */
@@ -177,7 +177,7 @@ class PlayerViewModel(
 
     /**
      * 当前信号源播放失败（由播放器 `Player.Listener` 回调驱动）：自动切到下一路；
-     * 已到最后一路则停在「全部失败」错误态，并在有限次数内自动重试第一路
+     * 已到最后一路则停在「全部失败」错误态，并在有限次数内自动重试当前源
      * （见 [scheduleAutoRetry]），等待期间用户随时可以重试或手动换源。
      */
     fun onPlaybackError() {
@@ -203,8 +203,8 @@ class PlayerViewModel(
     /**
      * 「全部失败」后的有限自动重试：延迟 [AUTO_RETRY_DELAY_MS] 后仍处于错误态时，
      * 重新装载当前信号源一次（网络抖动 / 源短暂不可达的自愈）；最多 [MAX_AUTO_RETRY]
-     * 次，避免对确定失效的频道无限轮询耗电。用户的手动重试、换源、换频道都会取消
-     * 待执行的重试并把计数归零。
+     * 次，避免对确定失效的频道无限轮询耗电。手动重试、换源、换频道取消待执行任务；
+     * 当前只有手动重试与换频道归零计数，手动换源保留计数。
      */
     private fun scheduleAutoRetry() {
         if (autoRetryAttempts >= MAX_AUTO_RETRY) {
