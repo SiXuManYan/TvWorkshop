@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 播放页：全屏纯黑播放器，覆盖层为半透明顶栏 / 中央缓冲 / 错误浮层 / 底部操作条。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tv_player_background">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:surface_type="surface_view"
+        app:use_controller="false" />
+
+    <!-- 覆盖层根容器：自身不拦截点击，空白区域穿透到播放区用于切换浮层显隐 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/player_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 顶栏：返回、频道名、分类名、收藏 -->
+        <LinearLayout
+            android:id="@+id/player_top_bar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@color/tv_player_control_background"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/dp_4"
+            android:paddingTop="@dimen/dp_4"
+            android:paddingEnd="@dimen/dp_4"
+            android:paddingBottom="@dimen/dp_4"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/btn_player_back"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_back"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_back"
+                app:tint="@color/white" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/dp_8"
+                android:layout_marginEnd="@dimen/dp_8"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_player_channel_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/sp_18"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_player_category_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.7"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/sp_12" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_player_favorite"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/favorite_add"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_favorite_outline"
+                app:tint="@color/white" />
+        </LinearLayout>
+
+        <!-- 中央缓冲指示器：仅在缓冲且无错误时显示 -->
+        <ProgressBar
+            android:id="@+id/player_buffering"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateTint="@color/white"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 错误浮层：全部信号源失败 / 频道缺失 / 无信号源时显示 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/player_error_overlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/tv_player_control_background"
+            app:cardCornerRadius="@dimen/dp_16"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="@dimen/dp_24">
+
+                <ImageView
+                    android:id="@+id/iv_player_error_icon"
+                    android:layout_width="@dimen/dp_40"
+                    android:layout_height="@dimen/dp_40"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_player_error"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:id="@+id/tv_player_error_message"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_12"
+                    android:gravity="center"
+                    android:text="@string/play_error"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/sp_16" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_16"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_player_retry"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/action_retry" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_player_error_switch_source"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/dp_12" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 换台 OSD：频道变化时中央显示频道名，短暂停留后淡出 -->
+        <TextView
+            android:id="@+id/tv_player_osd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0"
+            android:background="@drawable/bg_player_osd"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:maxWidth="@dimen/dp_320"
+            android:paddingStart="@dimen/dp_24"
+            android:paddingTop="@dimen/dp_10"
+            android:paddingEnd="@dimen/dp_24"
+            android:paddingBottom="@dimen/dp_10"
+            android:textColor="@color/white"
+            android:textSize="@dimen/sp_20"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.35" />
+
+        <!-- 底部操作条：上一频道、频道列表、换源、清晰度、画中画、下一频道 -->
+        <LinearLayout
+            android:id="@+id/player_bottom_bar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@color/tv_player_control_background"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/dp_8"
+            android:paddingTop="@dimen/dp_4"
+            android:paddingEnd="@dimen/dp_8"
+            android:paddingBottom="@dimen/dp_4"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <ImageView
+                android:id="@+id/btn_player_prev"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/action_prev_channel"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_prev"
+                app:tint="@color/white" />
+
+            <ImageView
+                android:id="@+id/btn_player_channel_list"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_channel_list"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_channel_list"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/btn_player_switch_source"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawableStart="@drawable/ic_player_source"
+                android:drawablePadding="@dimen/dp_6"
+                android:drawableTint="@color/white"
+                android:gravity="center"
+                android:paddingStart="@dimen/dp_12"
+                android:paddingEnd="@dimen/dp_12"
+                android:textColor="@color/white"
+                android:textSize="@dimen/sp_14" />
+
+            <!-- 清晰度选择：仅信号源提供多档画质时显示（由代码按 UiState 控制） -->
+            <TextView
+                android:id="@+id/btn_player_quality"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_quality"
+                android:drawableStart="@drawable/ic_player_quality"
+                android:drawablePadding="@dimen/dp_4"
+                android:drawableTint="@color/white"
+                android:gravity="center"
+                android:paddingStart="@dimen/dp_12"
+                android:paddingEnd="@dimen/dp_12"
+                android:text="@string/quality_auto"
+                android:textColor="@color/white"
+                android:textSize="@dimen/sp_14"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/btn_player_pip"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_pip"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_pip"
+                app:tint="@color/white" />
+
+            <ImageView
+                android:id="@+id/btn_player_next"
+                android:layout_width="@dimen/dp_48"
+                android:layout_height="@dimen/dp_48"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/action_next_channel"
+                android:padding="@dimen/dp_12"
+                android:src="@drawable/ic_player_next"
+                app:tint="@color/white" />
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

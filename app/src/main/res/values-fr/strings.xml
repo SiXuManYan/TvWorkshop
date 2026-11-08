@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Application -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- Menus & catégories -->
+    <string name="menu_search">Rechercher des chaînes</string>
+    <string name="menu_import">Importer des sources de chaînes</string>
+    <string name="category_recent">Vus récemment</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">Chaînes satellite</string>
+    <string name="category_foreign">Chaînes étrangères</string>
+    <string name="category_custom">Personnalisé</string>
+
+    <!-- Recherche & états de la liste -->
+    <string name="search_hint">Saisir le nom de la chaîne</string>
+    <string name="empty_channel_list">Aucune chaîne pour l\'instant. Essayez d\'importer une source de chaînes ou de changer de catégorie</string>
+    <string name="empty_search_result">Aucune chaîne correspondante trouvée</string>
+    <string name="empty_favorites">Aucune chaîne favorite pour l\'instant. Essayez d\'activer l\'étoile à droite d\'une chaîne</string>
+    <string name="loading_channels">Chargement des chaînes…</string>
+    <string name="source_count_format">%1$d sources</string>
+
+    <!-- Favoris -->
+    <string name="favorite_add">Ajouter cette chaîne aux favoris</string>
+    <string name="favorite_remove">Retirer des favoris</string>
+    <string name="favorite_added">Ajouté aux favoris</string>
+    <string name="favorite_removed">Retiré des favoris</string>
+
+    <!-- Lecture -->
+    <string name="play_error">Échec de la lecture</string>
+    <string name="play_error_all_sources">Toutes les sources ont été essayées. Impossible de regarder cette chaîne pour le moment</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="switch_source_format">Source %1$d/%2$d</string>
+    <string name="action_prev_channel">Chaîne précédente</string>
+    <string name="action_next_channel">Chaîne suivante</string>
+    <string name="player_channel_list">Liste des chaînes</string>
+    <string name="player_back">Retour</string>
+
+    <!-- Import -->
+    <string name="import_title">Importer des sources de chaînes</string>
+    <string name="import_hint">Collez une URL d\'abonnement m3u / m3u8, ou collez directement le contenu de l\'abonnement</string>
+    <string name="import_confirm">Importer</string>
+    <string name="import_cancel">Annuler</string>
+    <string name="import_success_format">%1$d chaînes importées avec succès</string>
+    <string name="import_failed_format">Échec de l\'importation : %1$s</string>
+    <string name="import_invalid_url">Le format de l\'adresse ou du contenu est incorrect</string>
+
+    <!-- Réseau & nettoyage -->
+    <string name="network_unavailable">Réseau indisponible. Vérifiez le réseau et réessayez</string>
+    <string name="remove_custom_channels">Effacer les chaînes personnalisées</string>
+    <string name="remove_custom_confirm">Supprimer toutes les chaînes importées ? Les favoris et l\'historique de visionnage ne sont pas affectés</string>
+    <string name="remove_custom_done">Chaînes personnalisées effacées</string>
+    <string name="player_pip">Image dans l’image</string>
+    <string name="player_quality">Qualité</string>
+    <string name="quality_auto">Auto</string>
+    <string name="quality_highest">La plus haute</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="menu_about">À propos</string>
+    <string name="about_title">À propos des sources</string>
+    <string name="action_ok">OK</string>
+    <string name="about_body">Cette application est un lecteur local : la liste de chaînes intégrée et les adresses de flux proviennent d\u2019abonnements m3u publiés librement sur Internet (projets open source comme iptv-org et Guovin/iptv-api ; collectés le 2026-11-08).\n\nL\u2019application ne distribue, ne stocke et ne transcode aucun signal télévisé — la lecture va directement vers ces adresses publiques, et les droits appartiennent aux chaînes et ayants droit respectifs. Réservée à l\u2019apprentissage et à la recherche personnelle ; pas d\u2019usage commercial.\n\nLes sources publiques gratuites peuvent cesser de fonctionner à tout moment : en cas d\u2019échec, l\u2019application essaie automatiquement la source suivante ; vous pouvez ajouter vos propres abonnements via Importer des sources.\n\nL\u2019application ne téléverse aucune donnée : elle accède uniquement aux adresses que vous lisez ; favoris et historique restent sur cet appareil.</string>
+</resources>

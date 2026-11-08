@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    频道列表项背景：当前播放项（state_activated）用容器色高亮，其余透明并保留按压涟漪。
+    注意：嵌套在 ripple / selector 内部的 drawable item 一律使用直接颜色资源（@color/…），
+    不用 ?attr 主题引用——BottomSheet 等 LayoutInflater 包装路径下主题属性解析失败会直接崩溃。
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/tv_control_highlight">
+    <item>
+        <selector>
+            <item
+                android:drawable="@color/tv_secondary_container"
+                android:state_activated="true" />
+            <item android:drawable="@android:color/transparent" />
+        </selector>
+    </item>
+</ripple>

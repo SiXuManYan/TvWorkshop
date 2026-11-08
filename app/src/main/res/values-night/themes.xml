@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用基础主题：深色方案，深灰纯色背景（颜色由 values-night/colors.xml 覆盖） -->
+    <style name="Theme.TvWorkshop" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- 品牌色 -->
+        <item name="colorPrimary">@color/tv_primary</item>
+        <item name="colorOnPrimary">@color/tv_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tv_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/tv_on_primary_container</item>
+        <item name="colorSecondary">@color/tv_secondary</item>
+        <item name="colorOnSecondary">@color/tv_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/tv_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/tv_on_secondary_container</item>
+        <!-- 背景 / 表面 / 文字 / 描边 -->
+        <item name="android:colorBackground">@color/tv_background</item>
+        <item name="colorOnBackground">@color/tv_on_background</item>
+        <item name="colorSurface">@color/tv_surface</item>
+        <item name="colorOnSurface">@color/tv_on_surface</item>
+        <item name="colorSurfaceVariant">@color/tv_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/tv_on_surface_variant</item>
+        <item name="colorOutline">@color/tv_outline</item>
+        <!-- 错误色 -->
+        <item name="colorError">@color/tv_error</item>
+        <item name="colorOnError">@color/tv_on_error</item>
+        <item name="colorErrorContainer">@color/tv_error_container</item>
+        <item name="colorOnErrorContainer">@color/tv_on_error_container</item>
+        <!-- 系统栏透明，内容延伸到系统栏后方；深色下图标为浅色 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+
+    <!-- 播放页主题：深色下与浅色一致（纯黑背景、系统栏透明、浅色图标） -->
+    <style name="PlayerTheme" parent="Theme.TvWorkshop">
+        <item name="android:windowBackground">@color/tv_player_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

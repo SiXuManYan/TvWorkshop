@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="512" height="512">
+  <!-- 电视工坊启动器图标 · 设计原稿
+       与 app/src/main/res/drawable/ic_launcher_{background,foreground}.xml 同源：
+       背景为品牌蓝对角渐变 + 右上柔光圆；前景为白色电视机身 + 双天线 + 播放键。
+       108×108 视口，图形落在中央 66dp 安全区（r=33）内。 -->
+  <defs>
+    <linearGradient id="bg" x1="18" y1="14" x2="90" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2E6ED6"/>
+      <stop offset="1" stop-color="#153A69"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bg)"/>
+  <circle cx="82" cy="26" r="26" fill="#FFFFFF" opacity="0.08"/>
+  <g stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none">
+    <path d="M44.5 46.5 36 34"/>
+    <path d="M63.5 46.5 72 34"/>
+  </g>
+  <rect x="33" y="47" width="42" height="28" rx="8" fill="none" stroke="#FFFFFF" stroke-width="4.5"/>
+  <path d="M50 54.5 62 61 50 67.5Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+</svg>

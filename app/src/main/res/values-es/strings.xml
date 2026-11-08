@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aplicación -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- Menús y categorías -->
+    <string name="menu_search">Buscar canales</string>
+    <string name="menu_import">Importar fuentes de canales</string>
+    <string name="category_recent">Vistos recientemente</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">Canales vía satélite</string>
+    <string name="category_foreign">Canales extranjeros</string>
+    <string name="category_custom">Personalizado</string>
+
+    <!-- Búsqueda y estados de la lista -->
+    <string name="search_hint">Introduce el nombre del canal</string>
+    <string name="empty_channel_list">Aún no hay canales. Prueba a importar una fuente de canales o cambia de categoría</string>
+    <string name="empty_search_result">No se encontraron canales coincidentes</string>
+    <string name="empty_favorites">Aún no tienes canales favoritos. Prueba a tocar la estrella a la derecha de un canal</string>
+    <string name="loading_channels">Cargando canales…</string>
+    <string name="source_count_format">%1$d fuentes</string>
+
+    <!-- Favoritos -->
+    <string name="favorite_add">Añadir este canal a favoritos</string>
+    <string name="favorite_remove">Quitar de favoritos</string>
+    <string name="favorite_added">Añadido a favoritos</string>
+    <string name="favorite_removed">Quitado de favoritos</string>
+
+    <!-- Reproducción -->
+    <string name="play_error">Error de reproducción</string>
+    <string name="play_error_all_sources">Se probaron todas las fuentes. No se puede ver este canal por ahora</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="switch_source_format">Fuente %1$d/%2$d</string>
+    <string name="action_prev_channel">Canal anterior</string>
+    <string name="action_next_channel">Canal siguiente</string>
+    <string name="player_channel_list">Lista de canales</string>
+    <string name="player_back">Atrás</string>
+
+    <!-- Importación -->
+    <string name="import_title">Importar fuentes de canales</string>
+    <string name="import_hint">Pega una URL de suscripción m3u / m3u8, o pega el contenido de la suscripción directamente</string>
+    <string name="import_confirm">Importar</string>
+    <string name="import_cancel">Cancelar</string>
+    <string name="import_success_format">Se importaron %1$d canales correctamente</string>
+    <string name="import_failed_format">Error al importar: %1$s</string>
+    <string name="import_invalid_url">El formato de la dirección o del contenido no es válido</string>
+
+    <!-- Red y limpieza -->
+    <string name="network_unavailable">Red no disponible. Comprueba la red e inténtalo de nuevo</string>
+    <string name="remove_custom_channels">Borrar canales personalizados</string>
+    <string name="remove_custom_confirm">¿Eliminar todos los canales importados? Los favoritos y el historial de visualización no se ven afectados</string>
+    <string name="remove_custom_done">Canales personalizados borrados</string>
+    <string name="player_pip">Imagen en imagen</string>
+    <string name="player_quality">Calidad</string>
+    <string name="quality_auto">Automático</string>
+    <string name="quality_highest">La más alta</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="menu_about">Acerca de</string>
+    <string name="about_title">Sobre las fuentes de canales</string>
+    <string name="action_ok">Aceptar</string>
+    <string name="about_body">Esta aplicación es un reproductor local: la lista de canales integrada y las direcciones de emisión provienen de suscripciones m3u publicadas abiertamente en internet (proyectos de código abierto como iptv-org y Guovin/iptv-api; recopiladas el 2026-11-08).\n\nLa aplicación no distribuye, almacena ni transcodifica ninguna señal de televisión: la reproducción va directamente a esas direcciones públicas, y los derechos pertenecen a las emisoras y titulares correspondientes. Solo para aprendizaje e investigación personal; no la use con fines comerciales.\n\nLas fuentes públicas gratuitas pueden dejar de funcionar en cualquier momento: si la reproducción falla, la aplicación prueba automáticamente la siguiente fuente, y puede añadir sus propias suscripciones con Importar fuentes de canales.\n\nLa aplicación no sube ningún dato: solo accede a las direcciones que reproduce; los favoritos y el historial se quedan en este dispositivo.</string>
+</resources>

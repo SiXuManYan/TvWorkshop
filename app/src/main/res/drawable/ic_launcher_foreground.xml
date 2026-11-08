@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    启动器图标前景：「电视工坊」标识——白色电视机身 + 双天线 + 播放键。
+    108dp 视口，图形整体落在中央 66dp 安全区内（圆角遮罩裁切不受伤）。
+    全部为白色填充 / 描边，同一文件复用为 themed icon（monochrome）层。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 双天线：圆头线段，向左上 / 右上张开 -->
+    <path
+        android:pathData="M44.5,46.5L36,34"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="4.5" />
+    <path
+        android:pathData="M63.5,46.5L72,34"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="4.5" />
+
+    <!-- 电视机身：圆角矩形描边 -->
+    <path
+        android:pathData="M41,47L67,47A8,8 0 0 1 75,55L75,67A8,8 0 0 1 67,75L41,75A8,8 0 0 1 33,67L33,55A8,8 0 0 1 41,47Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4.5"
+        android:fillColor="#00000000" />
+
+    <!-- 播放键：三角形填充 + 圆角连接（描边同色，视觉圆角） -->
+    <path
+        android:pathData="M50,54.5L62,61L50,67.5Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineJoin="round"
+        android:strokeWidth="3" />
+</vector>

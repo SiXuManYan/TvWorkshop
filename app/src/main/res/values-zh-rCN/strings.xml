@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用 -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- 菜单与分类 -->
+    <string name="menu_search">搜索频道</string>
+    <string name="menu_import">导入频道源</string>
+    <string name="category_recent">最近观看</string>
+    <string name="category_cctv">央视</string>
+    <string name="category_satellite">卫视</string>
+    <string name="category_foreign">外国频道</string>
+    <string name="category_custom">自定义</string>
+
+    <!-- 搜索与列表状态 -->
+    <string name="search_hint">输入频道名称</string>
+    <string name="empty_channel_list">暂无频道，试试导入频道源或切换分类</string>
+    <string name="empty_search_result">未找到匹配的频道</string>
+    <string name="empty_favorites">还没有收藏的频道，点亮频道右侧的星标试试</string>
+    <string name="loading_channels">正在加载频道…</string>
+    <string name="source_count_format">%1$d 路信号</string>
+
+    <!-- 收藏 -->
+    <string name="favorite_add">收藏该频道</string>
+    <string name="favorite_remove">取消收藏</string>
+    <string name="favorite_added">已加入收藏</string>
+    <string name="favorite_removed">已取消收藏</string>
+
+    <!-- 播放 -->
+    <string name="play_error">播放失败</string>
+    <string name="play_error_all_sources">所有信号源都试过了，暂时看不了这个频道</string>
+    <string name="action_retry">重试</string>
+    <string name="switch_source_format">信号源 %1$d/%2$d</string>
+    <string name="action_prev_channel">上一频道</string>
+    <string name="action_next_channel">下一频道</string>
+    <string name="player_channel_list">频道列表</string>
+    <string name="player_back">返回</string>
+
+    <!-- 导入频道源 -->
+    <string name="import_title">导入频道源</string>
+    <string name="import_hint">粘贴 m3u / m3u8 订阅地址，或直接粘贴订阅内容</string>
+    <string name="import_confirm">导入</string>
+    <string name="import_cancel">取消</string>
+    <string name="import_success_format">成功导入 %1$d 个频道</string>
+    <string name="import_failed_format">导入失败：%1$s</string>
+    <string name="import_invalid_url">地址或内容格式不正确</string>
+
+    <!-- 网络与清理 -->
+    <string name="network_unavailable">网络不可用，请检查网络后重试</string>
+    <string name="remove_custom_channels">清空自定义频道</string>
+    <string name="remove_custom_confirm">确定删除全部导入的频道吗？收藏与观看记录不受影响</string>
+    <string name="remove_custom_done">已清空自定义频道</string>
+    <string name="player_pip">画中画</string>
+    <string name="player_quality">清晰度</string>
+    <string name="quality_auto">自动</string>
+    <string name="quality_highest">最高</string>
+    <string name="action_cancel">取消</string>
+    <string name="menu_about">关于</string>
+    <string name="about_title">关于频道来源</string>
+    <string name="action_ok">确定</string>
+    <string name="about_body">本应用是一个本地播放器：内置的频道名单与播放地址来自互联网上公开发布的第三方 m3u 订阅（iptv-org、Guovin/iptv-api 等开源项目，采集于 2026-11-08）。\n\n应用不分发、不存储、不转码任何电视信号，画面直接来自这些公开地址，版权归各电视台及权利方所有；仅供个人学习研究，请勿用于商业用途。\n\n免费公开源可能随时失效：播放失败时会自动尝试下一路信号源，也可以用「导入频道源」添加自己的订阅。\n\n应用不上传任何数据，仅访问您播放的流地址；收藏与观看记录只保存在本机。</string>
+</resources>

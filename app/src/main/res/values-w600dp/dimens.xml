@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 宽屏（≥600dp）浏览页列表与浮层内容限宽约 480dp 居中，避免大屏上横向拉伸。 -->
+    <dimen name="browse_list_max_width">@dimen/dp_480</dimen>
+</resources>

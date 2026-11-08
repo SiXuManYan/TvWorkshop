@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 應用 -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- 選單與分類 -->
+    <string name="menu_search">搜尋頻道</string>
+    <string name="menu_import">匯入頻道源</string>
+    <string name="category_recent">最近觀看</string>
+    <string name="category_cctv">央視</string>
+    <string name="category_satellite">衛視</string>
+    <string name="category_foreign">外國頻道</string>
+    <string name="category_custom">自訂</string>
+
+    <!-- 搜尋與列表狀態 -->
+    <string name="search_hint">輸入頻道名稱</string>
+    <string name="empty_channel_list">暫無頻道，試試匯入頻道源或切換分類</string>
+    <string name="empty_search_result">未找到符合的頻道</string>
+    <string name="empty_favorites">還沒有收藏的頻道，點亮頻道右側的星標試試</string>
+    <string name="loading_channels">正在載入頻道…</string>
+    <string name="source_count_format">%1$d 路訊號</string>
+
+    <!-- 收藏 -->
+    <string name="favorite_add">收藏該頻道</string>
+    <string name="favorite_remove">取消收藏</string>
+    <string name="favorite_added">已加入收藏</string>
+    <string name="favorite_removed">已取消收藏</string>
+
+    <!-- 播放 -->
+    <string name="play_error">播放失敗</string>
+    <string name="play_error_all_sources">所有訊號源都試過了，暫時看不了這個頻道</string>
+    <string name="action_retry">重試</string>
+    <string name="switch_source_format">訊號源 %1$d/%2$d</string>
+    <string name="action_prev_channel">上一頻道</string>
+    <string name="action_next_channel">下一頻道</string>
+    <string name="player_channel_list">頻道列表</string>
+    <string name="player_back">返回</string>
+
+    <!-- 匯入頻道源 -->
+    <string name="import_title">匯入頻道源</string>
+    <string name="import_hint">貼上 m3u / m3u8 訂閱地址，或直接貼上訂閱內容</string>
+    <string name="import_confirm">匯入</string>
+    <string name="import_cancel">取消</string>
+    <string name="import_success_format">成功匯入 %1$d 個頻道</string>
+    <string name="import_failed_format">匯入失敗：%1$s</string>
+    <string name="import_invalid_url">地址或內容格式不正確</string>
+
+    <!-- 網路與清理 -->
+    <string name="network_unavailable">網路不可用，請檢查網路後重試</string>
+    <string name="remove_custom_channels">清空自訂頻道</string>
+    <string name="remove_custom_confirm">確定刪除全部匯入的頻道嗎？收藏與觀看記錄不受影響</string>
+    <string name="remove_custom_done">已清空自訂頻道</string>
+    <string name="player_pip">子母畫面</string>
+    <string name="player_quality">畫質</string>
+    <string name="quality_auto">自動</string>
+    <string name="quality_highest">最高</string>
+    <string name="action_cancel">取消</string>
+    <string name="menu_about">關於</string>
+    <string name="about_title">關於頻道來源</string>
+    <string name="action_ok">確定</string>
+    <string name="about_body">本應用程式是一個本機播放器：內建的頻道名單與播放位址來自網際網路上公開發布的第三方 m3u 訂閱（iptv-org、Guovin/iptv-api 等開源專案，採集於 2026-11-08）。\n\n應用程式不分發、不儲存、不轉碼任何電視訊號，畫面直接來自這些公開位址，版權歸各電視台及權利方所有；僅供個人學習研究，請勿用於商業用途。\n\n免費公開源可能隨時失效：播放失敗時會自動嘗試下一路訊號源，也可以用「匯入頻道源」新增自己的訂閱。\n\n應用程式不上傳任何資料，僅存取您播放的串流位址；收藏與觀看記錄只儲存在本機。</string>
+</resources>

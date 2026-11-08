@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 基础色 -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- 品牌主色（浅色方案） -->
+    <color name="tv_primary">#FF1F5FBF</color>
+    <color name="tv_on_primary">#FFFFFFFF</color>
+    <color name="tv_primary_container">#FFD6E3FF</color>
+    <color name="tv_on_primary_container">#FF001B3F</color>
+
+    <!-- 品牌辅色（浅色方案） -->
+    <color name="tv_secondary">#FF565F71</color>
+    <color name="tv_on_secondary">#FFFFFFFF</color>
+    <color name="tv_secondary_container">#FFDBE2F9</color>
+    <color name="tv_on_secondary_container">#FF131C2B</color>
+
+    <!-- 语义色：背景 / 表面 / 文字 / 描边（浅色方案） -->
+    <color name="tv_background">#FFF7F8FB</color>
+    <color name="tv_on_background">#FF1A1C1E</color>
+    <color name="tv_surface">#FFFFFFFF</color>
+    <color name="tv_on_surface">#FF1A1C1E</color>
+    <color name="tv_surface_variant">#FFE1E2EC</color>
+    <color name="tv_on_surface_variant">#FF44474E</color>
+    <color name="tv_outline">#FF75777F</color>
+
+    <!-- 语义色：错误（浅色方案） -->
+    <color name="tv_error">#FFBA1A1A</color>
+    <color name="tv_on_error">#FFFFFFFF</color>
+    <color name="tv_error_container">#FFFFDAD6</color>
+    <color name="tv_on_error_container">#FF410002</color>
+
+    <!-- 浮层遮罩与播放器（浅深两套保持一致，覆盖内容时保证对比度） -->
+    <color name="tv_scrim">#66000000</color>
+    <color name="tv_player_background">#FF000000</color>
+    <color name="tv_player_control_background">#80000000</color>
+
+    <!-- 列表按压涟漪高亮：drawable 内嵌套 selector / ripple 不允许 ?attr 引用（BottomSheet
+         等 LayoutInflater 包装路径下解析不到会直接崩溃），必须引用直接颜色资源 -->
+    <color name="tv_control_highlight">#1F000000</color>
+</resources>

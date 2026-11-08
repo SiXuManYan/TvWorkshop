@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- Menus & categories -->
+    <string name="menu_search">Search channels</string>
+    <string name="menu_import">Import channel sources</string>
+    <string name="category_recent">Recently watched</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">Satellite TV</string>
+    <string name="category_foreign">Foreign channels</string>
+    <string name="category_custom">Custom</string>
+
+    <!-- Search & list states -->
+    <string name="search_hint">Enter channel name</string>
+    <string name="empty_channel_list">No channels yet. Try importing a channel source or switching categories</string>
+    <string name="empty_search_result">No matching channels found</string>
+    <string name="empty_favorites">No favorite channels yet. Tap the star on the right of a channel to try it</string>
+    <string name="loading_channels">Loading channels…</string>
+    <string name="source_count_format">%1$d sources</string>
+
+    <!-- Favorites -->
+    <string name="favorite_add">Add this channel to favorites</string>
+    <string name="favorite_remove">Remove from favorites</string>
+    <string name="favorite_added">Added to favorites</string>
+    <string name="favorite_removed">Removed from favorites</string>
+
+    <!-- Playback -->
+    <string name="play_error">Playback failed</string>
+    <string name="play_error_all_sources">All sources have been tried. This channel cannot be watched right now</string>
+    <string name="action_retry">Retry</string>
+    <string name="switch_source_format">Source %1$d/%2$d</string>
+    <string name="action_prev_channel">Previous channel</string>
+    <string name="action_next_channel">Next channel</string>
+    <string name="player_channel_list">Channel list</string>
+    <string name="player_back">Back</string>
+
+    <!-- Import -->
+    <string name="import_title">Import channel sources</string>
+    <string name="import_hint">Paste an m3u / m3u8 subscription URL, or paste the subscription content directly</string>
+    <string name="import_confirm">Import</string>
+    <string name="import_cancel">Cancel</string>
+    <string name="import_success_format">Imported %1$d channels successfully</string>
+    <string name="import_failed_format">Import failed: %1$s</string>
+    <string name="import_invalid_url">The URL or content format is invalid</string>
+
+    <!-- Network & cleanup -->
+    <string name="network_unavailable">Network unavailable. Please check your network and try again</string>
+    <string name="remove_custom_channels">Clear custom channels</string>
+    <string name="remove_custom_confirm">Delete all imported channels? Favorites and watch history are not affected</string>
+    <string name="remove_custom_done">Custom channels cleared</string>
+    <string name="player_pip">Picture-in-picture</string>
+    <string name="player_quality">Quality</string>
+    <string name="quality_auto">Auto</string>
+    <string name="quality_highest">Highest</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="menu_about">About</string>
+    <string name="about_title">About channel sources</string>
+    <string name="action_ok">OK</string>
+    <string name="about_body">This app is a local player: the built-in channel list and stream URLs come from third-party m3u subscriptions published openly on the internet (open-source projects such as iptv-org and Guovin/iptv-api; collected on 2026-11-08).\n\nThe app does not distribute, store, or transcode any TV signal — playback goes directly to these public URLs, and copyright belongs to the respective broadcasters and rights holders. For personal learning and research only; not for commercial use.\n\nFree public sources may stop working at any time: when playback fails, the app automatically tries the next source, and you can add your own subscriptions via Import channel sources.\n\nThe app uploads no data. It only accesses the stream URLs you play; favorites and watch history stay on this device.</string>
+</resources>

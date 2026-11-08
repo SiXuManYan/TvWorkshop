@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aplicativo -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- Menus e categorias -->
+    <string name="menu_search">Pesquisar canais</string>
+    <string name="menu_import">Importar fontes de canais</string>
+    <string name="category_recent">Assistidos recentemente</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">Canais via satélite</string>
+    <string name="category_foreign">Canais estrangeiros</string>
+    <string name="category_custom">Personalizado</string>
+
+    <!-- Pesquisa e estados da lista -->
+    <string name="search_hint">Digite o nome do canal</string>
+    <string name="empty_channel_list">Ainda não há canais. Tente importar uma fonte de canais ou mudar de categoria</string>
+    <string name="empty_search_result">Nenhum canal correspondente encontrado</string>
+    <string name="empty_favorites">Ainda não há canais favoritos. Toque na estrela à direita de um canal para experimentar</string>
+    <string name="loading_channels">Carregando canais…</string>
+    <string name="source_count_format">%1$d fontes</string>
+
+    <!-- Favoritos -->
+    <string name="favorite_add">Adicionar este canal aos favoritos</string>
+    <string name="favorite_remove">Remover dos favoritos</string>
+    <string name="favorite_added">Adicionado aos favoritos</string>
+    <string name="favorite_removed">Removido dos favoritos</string>
+
+    <!-- Reprodução -->
+    <string name="play_error">Falha na reprodução</string>
+    <string name="play_error_all_sources">Todas as fontes foram testadas. Não é possível assistir a este canal no momento</string>
+    <string name="action_retry">Tentar novamente</string>
+    <string name="switch_source_format">Fonte %1$d/%2$d</string>
+    <string name="action_prev_channel">Canal anterior</string>
+    <string name="action_next_channel">Próximo canal</string>
+    <string name="player_channel_list">Lista de canais</string>
+    <string name="player_back">Voltar</string>
+
+    <!-- Importação -->
+    <string name="import_title">Importar fontes de canais</string>
+    <string name="import_hint">Cole um URL de assinatura m3u / m3u8, ou cole o conteúdo da assinatura diretamente</string>
+    <string name="import_confirm">Importar</string>
+    <string name="import_cancel">Cancelar</string>
+    <string name="import_success_format">%1$d canais importados com sucesso</string>
+    <string name="import_failed_format">Falha na importação: %1$s</string>
+    <string name="import_invalid_url">O formato do endereço ou do conteúdo é inválido</string>
+
+    <!-- Rede e limpeza -->
+    <string name="network_unavailable">Rede indisponível. Verifique a rede e tente novamente</string>
+    <string name="remove_custom_channels">Limpar canais personalizados</string>
+    <string name="remove_custom_confirm">Excluir todos os canais importados? Os favoritos e o histórico de visualização não são afetados</string>
+    <string name="remove_custom_done">Canais personalizados limpos</string>
+    <string name="player_pip">Imagem em imagem</string>
+    <string name="player_quality">Qualidade</string>
+    <string name="quality_auto">Automático</string>
+    <string name="quality_highest">A mais alta</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="menu_about">Sobre</string>
+    <string name="about_title">Sobre as fontes de canais</string>
+    <string name="action_ok">OK</string>
+    <string name="about_body">Este aplicativo é um player local: a lista de canais integrada e os endereços de transmissão vêm de assinaturas m3u publicadas abertamente na internet (projetos de código aberto como iptv-org e Guovin/iptv-api; coletadas em 2026-11-08).\n\nO aplicativo não distribui, armazena nem transcodifica nenhum sinal de TV — a reprodução vai direto a esses endereços públicos, e os direitos pertencem às emissoras e titulares correspondentes. Somente para estudo e pesquisa pessoal; não use comercialmente.\n\nFontes públicas gratuitas podem sair do ar a qualquer momento: se a reprodução falhar, o aplicativo tenta automaticamente a próxima fonte, e você pode adicionar suas próprias assinaturas em Importar fontes de canais.\n\nO aplicativo não envia nenhum dado: acessa apenas os endereços que você reproduz; favoritos e histórico ficam neste dispositivo.</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 换台 OSD 胶囊背景：半透明控制面色 + 圆角。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/tv_player_control_background" />
+    <corners android:radius="@dimen/dp_16" />
+</shape>

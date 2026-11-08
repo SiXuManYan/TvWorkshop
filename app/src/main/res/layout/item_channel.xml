@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    频道列表条目：频道名 + 分类小标签 / 信号源数 + 收藏星标。
+    星标图标由 selector_favorite_star 按 selected 状态切换实心 / 描边，
+    选中态颜色与无障碍文案（favorite_add / favorite_remove）由列表适配器绑定。
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:minHeight="@dimen/dp_72"
+    android:paddingStart="@dimen/dp_16"
+    android:paddingTop="@dimen/dp_12"
+    android:paddingEnd="@dimen/dp_16"
+    android:paddingBottom="@dimen/dp_12">
+
+    <TextView
+        android:id="@+id/channel_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/dp_12"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="@dimen/sp_16"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/channel_favorite_star"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 分类小标签：文案为频道自身分类（category_* 资源），由适配器绑定 -->
+    <TextView
+        android:id="@+id/channel_category_tag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_4"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="@dimen/sp_12"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/channel_name" />
+
+    <TextView
+        android:id="@+id/channel_source_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/dp_12"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="@dimen/sp_12"
+        app:layout_constraintBaseline_toBaselineOf="@id/channel_category_tag"
+        app:layout_constraintStart_toEndOf="@id/channel_category_tag" />
+
+    <ImageButton
+        android:id="@+id/channel_favorite_star"
+        android:layout_width="@dimen/dp_48"
+        android:layout_height="@dimen/dp_48"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/favorite_add"
+        android:scaleType="centerInside"
+        android:src="@drawable/selector_favorite_star"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- アプリ -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- メニューとカテゴリ -->
+    <string name="menu_search">チャンネルを検索</string>
+    <string name="menu_import">チャンネルソースをインポート</string>
+    <string name="category_recent">最近見たチャンネル</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">衛星放送</string>
+    <string name="category_foreign">海外チャンネル</string>
+    <string name="category_custom">カスタム</string>
+
+    <!-- 検索とリストの状態 -->
+    <string name="search_hint">チャンネル名を入力</string>
+    <string name="empty_channel_list">チャンネルがありません。ソースをインポートするかカテゴリを切り替えてください</string>
+    <string name="empty_search_result">一致するチャンネルが見つかりません</string>
+    <string name="empty_favorites">お気に入りのチャンネルはまだありません。チャンネル右側のスターをタップしてみましょう</string>
+    <string name="loading_channels">チャンネルを読み込み中…</string>
+    <string name="source_count_format">%1$d 件のソース</string>
+
+    <!-- お気に入り -->
+    <string name="favorite_add">このチャンネルをお気に入りに追加</string>
+    <string name="favorite_remove">お気に入りから削除</string>
+    <string name="favorite_added">お気に入りに追加しました</string>
+    <string name="favorite_removed">お気に入りから削除しました</string>
+
+    <!-- 再生 -->
+    <string name="play_error">再生に失敗しました</string>
+    <string name="play_error_all_sources">すべてのソースを試しましたが、現在このチャンネルは視聴できません</string>
+    <string name="action_retry">再試行</string>
+    <string name="switch_source_format">ソース %1$d/%2$d</string>
+    <string name="action_prev_channel">前のチャンネル</string>
+    <string name="action_next_channel">次のチャンネル</string>
+    <string name="player_channel_list">チャンネルリスト</string>
+    <string name="player_back">戻る</string>
+
+    <!-- インポート -->
+    <string name="import_title">チャンネルソースをインポート</string>
+    <string name="import_hint">m3u / m3u8 の購読 URL を貼り付けるか、購読内容を直接貼り付けてください</string>
+    <string name="import_confirm">インポート</string>
+    <string name="import_cancel">キャンセル</string>
+    <string name="import_success_format">%1$d 件のチャンネルをインポートしました</string>
+    <string name="import_failed_format">インポートに失敗しました：%1$s</string>
+    <string name="import_invalid_url">アドレスまたは内容の形式が正しくありません</string>
+
+    <!-- ネットワークと削除 -->
+    <string name="network_unavailable">ネットワークを利用できません。接続を確認して再試行してください</string>
+    <string name="remove_custom_channels">カスタムチャンネルを削除</string>
+    <string name="remove_custom_confirm">インポートしたすべてのチャンネルを削除しますか？お気に入りと視聴履歴には影響しません</string>
+    <string name="remove_custom_done">カスタムチャンネルを削除しました</string>
+    <string name="player_pip">ピクチャーインピクチャー</string>
+    <string name="player_quality">画質</string>
+    <string name="quality_auto">自動</string>
+    <string name="quality_highest">最高</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="menu_about">このアプリについて</string>
+    <string name="about_title">チャンネルソースについて</string>
+    <string name="action_ok">OK</string>
+    <string name="about_body">このアプリはローカルプレーヤーです。内蔵のチャンネルリストとストリーム URL は、インターネット上で公開されているサードパーティの m3u 購読リスト（iptv-org・Guovin/iptv-api などのオープンソースプロジェクト、2026-11-08 収集）から取得しています。\n\nアプリはテレビ信号を配信・保存・再エンコードしません。再生はこれらの公開 URL に直接アクセスするのみで、著作権は各テレビ局および権利者に帰属します。個人の学習・研究用に限り、商用には使用しないでください。\n\n無料の公開ソースはいつでも利用できなくなる可能性があります。再生に失敗した場合は次のソースを自動的に試し、「チャンネルソースの取り込み」から自分の購読を追加することもできます。\n\nアプリはデータをアップロードしません。再生するストリーム URL にアクセスするだけで、お気に入りと視聴履歴は端末内に保存されます。</string>
+</resources>

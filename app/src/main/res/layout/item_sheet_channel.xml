@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 频道抽屉列表项：当前播放项通过 state_activated 驱动高亮背景与播放图标。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/sheet_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_channel_item"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/dp_48"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/dp_16"
+    android:paddingEnd="@dimen/dp_16">
+
+    <ImageView
+        android:id="@+id/sheet_item_playing_icon"
+        android:layout_width="@dimen/dp_18"
+        android:layout_height="@dimen/dp_18"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_sheet_playing"
+        android:visibility="invisible"
+        app:tint="?attr/colorPrimary" />
+
+    <TextView
+        android:id="@+id/sheet_item_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/dp_10"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingTop="@dimen/dp_12"
+        android:paddingBottom="@dimen/dp_12"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="@dimen/sp_16" />
+</LinearLayout>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- التطبيق -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- القوائم والتصنيفات -->
+    <string name="menu_search">ابحث عن القنوات</string>
+    <string name="menu_import">استيراد مصادر القنوات</string>
+    <string name="category_recent">شوهدت مؤخرًا</string>
+    <string name="category_cctv">سي سي تي في</string>
+    <string name="category_satellite">القنوات الفضائية</string>
+    <string name="category_foreign">القنوات الأجنبية</string>
+    <string name="category_custom">مخصص</string>
+
+    <!-- البحث وحالة القائمة -->
+    <string name="search_hint">أدخل اسم القناة</string>
+    <string name="empty_channel_list">لا توجد قنوات بعد، جرّب استيراد مصدر قنوات أو تبديل التصنيف</string>
+    <string name="empty_search_result">لم يتم العثور على قنوات مطابقة</string>
+    <string name="empty_favorites">لا توجد قنوات مفضلة بعد، جرّب تفعيل النجمة على يمين القناة</string>
+    <string name="loading_channels">جارٍ تحميل القنوات…</string>
+    <string name="source_count_format">%1$d من المصادر</string>
+
+    <!-- المفضلة -->
+    <string name="favorite_add">أضف هذه القناة إلى المفضلة</string>
+    <string name="favorite_remove">إزالة من المفضلة</string>
+    <string name="favorite_added">تمت الإضافة إلى المفضلة</string>
+    <string name="favorite_removed">تمت الإزالة من المفضلة</string>
+
+    <!-- التشغيل -->
+    <string name="play_error">فشل التشغيل</string>
+    <string name="play_error_all_sources">تم تجربة جميع المصادر، لا يمكن مشاهدة هذه القناة حاليًا</string>
+    <string name="action_retry">إعادة المحاولة</string>
+    <string name="switch_source_format">المصدر %1$d/%2$d</string>
+    <string name="action_prev_channel">القناة السابقة</string>
+    <string name="action_next_channel">القناة التالية</string>
+    <string name="player_channel_list">قائمة القنوات</string>
+    <string name="player_back">رجوع</string>
+
+    <!-- استيراد مصادر القنوات -->
+    <string name="import_title">استيراد مصادر القنوات</string>
+    <string name="import_hint">الصق عنوان اشتراك m3u / m3u8، أو الصق محتوى الاشتراك مباشرة</string>
+    <string name="import_confirm">استيراد</string>
+    <string name="import_cancel">إلغاء</string>
+    <string name="import_success_format">تم استيراد %1$d من القنوات بنجاح</string>
+    <string name="import_failed_format">فشل الاستيراد: %1$s</string>
+    <string name="import_invalid_url">تنسيق العنوان أو المحتوى غير صحيح</string>
+
+    <!-- الشبكة والتنظيف -->
+    <string name="network_unavailable">الشبكة غير متاحة، يرجى التحقق من الشبكة والمحاولة مرة أخرى</string>
+    <string name="remove_custom_channels">محو القنوات المخصصة</string>
+    <string name="remove_custom_confirm">هل تريد حذف جميع القنوات المستوردة؟ المفضلة وسجل المشاهدة لن يتأثرا</string>
+    <string name="remove_custom_done">تم محو القنوات المخصصة</string>
+    <string name="player_pip">صورة داخل صورة</string>
+    <string name="player_quality">جودة الفيديو</string>
+    <string name="quality_auto">تلقائي</string>
+    <string name="quality_highest">الأعلى</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="menu_about">حول</string>
+    <string name="about_title">حول مصادر القنوات</string>
+    <string name="action_ok">حسنًا</string>
+    <string name="about_body">هذا التطبيق مشغّل محلي: قائمة القنوات المدمجة وعناوين البث مأخوذة من اشتراكات m3u منشورة علنًا على الإنترنت (مشاريع مفتوحة المصدر مثل iptv-org و Guovin/iptv-api؛ جُمعت في 2026-11-08).\n\nلا يوزّع التطبيق أي إشارة تلفزيونية ولا يخزّنها ولا يعيد ترميزها؛ يتم التشغيل مباشرة من هذه العناوين العامة، وحقوق النشر محفوظة لكل محطة وأصحاب الحقوق. للاستخدام الشخصي والتعلم والبحث فقط، وليس للاستخدام التجاري.\n\nقد تتوقف المصادر العامة المجانية في أي وقت: عند فشل التشغيل يجرّب التطبيق المصدر التالي تلقائيًا، ويمكنك إضافة اشتراكاتك عبر استيراد مصادر القنوات.\n\nلا يرفع التطبيق أي بيانات؛ يصل فقط إلى عناوين البث التي تشاهدها، وتُحفظ المفضلة وسجل المشاهدة على هذا الجهاز فقط.</string>
+</resources>

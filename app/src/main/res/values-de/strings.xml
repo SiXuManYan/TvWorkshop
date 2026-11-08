@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">TV Workshop</string>
+
+    <!-- Menüs & Kategorien -->
+    <string name="menu_search">Sender suchen</string>
+    <string name="menu_import">Senderquellen importieren</string>
+    <string name="category_recent">Zuletzt gesehen</string>
+    <string name="category_cctv">CCTV</string>
+    <string name="category_satellite">Satellitensender</string>
+    <string name="category_foreign">Ausländische Sender</string>
+    <string name="category_custom">Benutzerdefiniert</string>
+
+    <!-- Suche & Listenstatus -->
+    <string name="search_hint">Sendernamen eingeben</string>
+    <string name="empty_channel_list">Noch keine Sender. Importiere eine Senderquelle oder wechsle die Kategorie</string>
+    <string name="empty_search_result">Keine passenden Sender gefunden</string>
+    <string name="empty_favorites">Noch keine favorisierten Sender. Tippe auf den Stern rechts neben einem Sender</string>
+    <string name="loading_channels">Sender werden geladen…</string>
+    <string name="source_count_format">%1$d Quellen</string>
+
+    <!-- Favoriten -->
+    <string name="favorite_add">Diesen Sender zu Favoriten hinzufügen</string>
+    <string name="favorite_remove">Aus Favoriten entfernen</string>
+    <string name="favorite_added">Zu Favoriten hinzugefügt</string>
+    <string name="favorite_removed">Aus Favoriten entfernt</string>
+
+    <!-- Wiedergabe -->
+    <string name="play_error">Wiedergabe fehlgeschlagen</string>
+    <string name="play_error_all_sources">Alle Quellen wurden ausprobiert. Dieser Sender ist momentan nicht verfügbar</string>
+    <string name="action_retry">Erneut versuchen</string>
+    <string name="switch_source_format">Quelle %1$d/%2$d</string>
+    <string name="action_prev_channel">Vorheriger Sender</string>
+    <string name="action_next_channel">Nächster Sender</string>
+    <string name="player_channel_list">Senderliste</string>
+    <string name="player_back">Zurück</string>
+
+    <!-- Import -->
+    <string name="import_title">Senderquellen importieren</string>
+    <string name="import_hint">Füge eine m3u-/m3u8-Abonnement-URL ein oder füge den Abonnementinhalt direkt ein</string>
+    <string name="import_confirm">Importieren</string>
+    <string name="import_cancel">Abbrechen</string>
+    <string name="import_success_format">%1$d Sender erfolgreich importiert</string>
+    <string name="import_failed_format">Import fehlgeschlagen: %1$s</string>
+    <string name="import_invalid_url">Das Format der Adresse oder des Inhalts ist ungültig</string>
+
+    <!-- Netzwerk & Aufräumen -->
+    <string name="network_unavailable">Netzwerk nicht verfügbar. Bitte überprüfe das Netzwerk und versuche es erneut</string>
+    <string name="remove_custom_channels">Benutzerdefinierte Sender löschen</string>
+    <string name="remove_custom_confirm">Alle importierten Sender löschen? Favoriten und Wiedergabeverlauf bleiben unverändert</string>
+    <string name="remove_custom_done">Benutzerdefinierte Sender gelöscht</string>
+    <string name="player_pip">Bild-in-Bild</string>
+    <string name="player_quality">Qualität</string>
+    <string name="quality_auto">Automatisch</string>
+    <string name="quality_highest">Höchste</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="menu_about">Info</string>
+    <string name="about_title">Über die Kanalquellen</string>
+    <string name="action_ok">OK</string>
+    <string name="about_body">Diese App ist ein lokaler Player: Die integrierte Kanalliste und die Stream-Adressen stammen aus öffentlich im Internet veröffentlichten m3u-Abonnements (Open-Source-Projekte wie iptv-org und Guovin/iptv-api; erhoben am 2026-11-08).\n\nDie App verbreitet, speichert oder transkodiert keinerlei TV-Signal — die Wiedergabe erfolgt direkt über diese öffentlichen Adressen; die Rechte liegen bei den jeweiligen Sendern und Rechteinhabern. Nur für persönliches Lernen und Forschung, nicht für kommerzielle Zwecke.\n\nKostenlose öffentliche Quellen können jederzeit ausfallen: Bei Wiedergabefehlern wird automatisch die nächste Quelle versucht; eigene Abonnements lassen sich über „Kanalquellen importieren“ hinzufügen.\n\nDie App lädt keine Daten hoch und greift nur auf die von Ihnen abgespielten Stream-Adressen zu; Favoriten und Verlauf bleiben auf diesem Gerät.</string>
+</resources>

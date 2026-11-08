@@ -1,0 +1,32 @@
+# Gradle 与构建产物
+.gradle/
+/build
+app/build/
+/captures
+.externalNativeBuild
+.cxx
+
+# 本机构建配置：SDK 路径等因机器而异，不进版本库
+local.properties
+
+# Android Studio / IntelliJ 本地配置：由 IDE 生成，整个目录不入库
+.idea/
+*.iml
+
+# Kotlin / 构建工具本地数据
+.kotlin/
+
+# 签名与发布：密钥、口令与本地打包产物一律不入库（后续接入正式签名时，
+# 如需把 jks 随仓库保存，参照 CollageWorkshop 的做法用 ! 放行并注明理由）
+*.jks
+*.keystore
+keystore.properties
+/app/release/
+
+# 工具工作目录与临时产物
+.scratch/
+.zcode/
+output/
+
+# 系统杂项
+.DS_Store
