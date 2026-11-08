@@ -49,8 +49,8 @@ Kotlin 取像素值用 `resources.getDimension(R.dimen.dp_N)`（浮点）或 `ge
 
 界面文案禁止字符串模板拼接后直接 `setText`（触发 Lint `SetTextI18n` 且无法本地化语序）。统一用占位符字符串资源＋位置参数，如 `source_count_format`（`%1$d 路信号`）、`switch_source_format`（`信号源 %1$d/%2$d`）、`import_success_format`（`成功导入 %1$d 个频道`）。
 
-- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 47 个 key；提交前用 key 集合 diff 自查。
-- **2026-11-09 用户明确指定的例外**：关于页、版本更新日志、用户协议、隐私政策本轮仅提供简体中文；新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`。既有 47 个通用 key 继续保持 11 目录一致，不复制中文到各语言目录假作翻译。
+- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 53 个 key；提交前用 key 集合 diff 自查。
+- **2026-11-09 用户明确指定的例外**：关于页、版本更新日志、用户协议、隐私政策本轮仅提供简体中文；新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`。通用 key 继续保持 11 目录一致，不复制中文到各语言目录假作翻译。
 - 频道名称（如「CCTV-1 综合」「BBC World News」）属于**数据而非界面文案**，保持官方命名，不参与多语言，不放入 strings.xml。
 - 无文案词的纯数字 / 十六进制格式化注意 Locale（如 `M3uParser.importedChannelId` 的 `%02x`）；不用 `@Suppress` / `tools:ignore` 压制 `SetTextI18n`。
 
@@ -83,13 +83,14 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 
 | 页面 | 外观 | Insets 责任 |
 |---|---|---|
-| 主页 | 列表铺满全屏，`clipToPadding=false`；「Toolbar + 分类 Chip」为半透明浮层，背景 alpha 230/255 | 浮层 padding 顶 = 状态栏∪挖孔；列表顶部 padding = 浮层实测高度（doOnLayout 后同步）；列表底部 padding = max(导航栏, IME) + 16dp 留白 |
-| 播放页 | 纯黑背景，固定深色系统栏样式（`SystemBarStyle.dark`，不随浅深色翻转）；顶栏 / 底栏半透明遮罩 `#80000000` | 顶栏避让状态栏∪挖孔、底栏避让手势条，以 XML 初始 padding 为基准、重复分发不累加，消费后返回 `CONSUMED` |
+| 主页 | 列表铺满全屏，`clipToPadding=false`；「Toolbar + 分类 Chip」为半透明浮层，背景 alpha 230/255；加载 / 空态在浮层下方可滚动 | 根容器避让左右系统栏∪挖孔；浮层 padding 顶 = 状态栏∪挖孔；列表顶部 padding 随浮层实测高度变化同步；列表与状态区底部 padding = max(导航栏, IME) + 16dp 留白 |
+| 播放页 | 纯黑背景，固定深色系统栏样式（`SystemBarStyle.dark`，不随浅深色翻转）；顶栏 / 底栏半透明遮罩 `#80000000`；错误内容在操作条之间可滚动 | 顶栏避让状态栏∪挖孔、底栏避让手势条，错误内容避让左右系统栏∪挖孔；以 XML 初始值为基准、重复分发不累加，消费后返回 `CONSUMED` |
 | 关于 / 本地文档页 | DayNight 信息卡与阅读卡片，内容最大宽度 500dp；文档章节导航固定在顶部 | 根容器按系统栏∪挖孔∪IME 设置绝对 padding，消费后返回 `CONSUMED`；列表与正文不再重复避让 |
 
 - 避让量按绝对值设置，不重复累加同一段系统栏高度；浮层只调背景透明度，不降低控件 alpha。
 - 覆盖内容的浮层保证对比度：主页浮层用 `colorSurface`，播放页控件用白色前景＋半透明黑遮罩。
-- 播放页操作区 5 秒无操作自动隐藏（淡出 200ms），错误浮层显示期间保持常显；完全隐藏后退出 TalkBack 遍历，恢复时还原。
+- 播放页操作区 5 秒无操作自动隐藏（淡出 200ms）；错误浮层显示、持续触摸、键盘 / 遥控器焦点停在按钮上或读屏触摸浏览启用时不自动隐藏，窗口失焦暂停计时。完全隐藏后退出 TalkBack 遍历，方向键可唤出，恢复时还原。
+- 播放页上下频道入口固定在底栏两端，中部操作横向滚动；图标触达区至少 48dp，文字按钮允许随字号增高。无信号源时隐藏计数，单路弱化并禁用底栏换源，错误区仅在至少两路时显示换源。
 
 ## 播放器边界
 
@@ -98,7 +99,7 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 - **直播缓冲配置**：`DefaultLoadControl` 起播阈值 800ms / 重缓冲 1500ms，min 15s / max 30s（`PlayerActivity.ensurePlayer`）；这些是媒体缓冲参数，不作为实际出画耗时或性能提升的实测结论。
 - **信号源自动轮换**：`Player.Listener.onPlayerError` 交 ViewModel 按下标顺序切下一路；末路失败进入 `allSourcesFailed` 错误态停止轮换，并做**有限自动重试**（延迟 8 秒、最多 2 次，重试当前源）。换频道、手动重试或换源取消待执行重试；当前只有换频道与手动重试归零计数，换源保留计数。手动换源（`nextSource`）循环切换且可从错误态恢复。
 - **播放区手势与换台 OSD**：单击确认（约 300ms 去抖）切换浮层显隐；双击左 / 右半区、横向轻扫（速度阈值 + 横纵比约束）按方向换台；频道变化时中央 OSD 显示频道名 2 秒淡出。触摸经手势识别后以 `performClick` 驱动点击监听，保证 TalkBack / 键盘激活与触摸行为一致。
-- **画中画**：播放页 `supportsPictureInPicture`，底栏入口以 16:9 画幅进入；进入后覆盖层整体隐藏、退出恢复并重新计时自动隐藏；设备不支持时静默忽略，不打断前台播放。
+- **画中画**：播放页 `supportsPictureInPicture`，底栏入口以 16:9 画幅进入；进入后覆盖层整体隐藏、退出恢复并重新计时自动隐藏；设备不支持时隐藏入口，调用仍做能力检查，不打断前台播放。
 - 旋转由 Manifest `configChanges`（orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden）接管，播放页 `sensorLandscape` + `singleTop` + `exported=false` + `supportsPictureInPicture`，不重建、不重复初始化。
 - m3u / m3u8 地址构造 `MediaItem` 时显式声明 `MimeTypes.APPLICATION_M3U8`，避免带查询串时按扩展名推断失败；其余地址交由 ExoPlayer 自动识别。
 - **清晰度选择**：`onTracksChanged` 逐轨道过滤支持的视频格式（按高度去重、同高度取最高码率；保留单档信息，不足两种高度时隐藏入口），跳过装载时临时的空轨道；模式为 自动（带宽自适应）／最高（`setForceHighestSupportedBitrate`）／高度上限（`setMaxVideoSize` 限高，仍可在上限内自适应），所选高度在真实新选项中不存在时回落自动档；用户切换与自动回落均递增 `qualityRequestId` 驱动参数应用，`ensurePlayer` 新实例立即恢复当前偏好。
@@ -110,7 +111,7 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 - 网络、Room、m3u 解析与文件访问放 IO 调度器（Repository 内 `withContext(Dispatchers.IO)` / `flowOn`）；频道合并、状态合成等 CPU 轻量操作放 Default；主线程只做 View 操作与轻量渲染，不用 `runBlocking`。
 - 搜索输入在写入侧 250ms 去抖（`BrowseViewModel.onQueryChanged`），清空立即生效；浏览页状态流 `WhileSubscribed(5000)`，短暂跳播放页不打断上游，5 秒无订阅自动停采。
 - 订阅导入流式衔接：下载逐行喂给 `M3uParser.parse(BufferedReader)`，不把整份订阅文本驻留内存；与内置目录的重名比对按「空白归一化 + 小写名称 → 地址」预建索引，大体积订阅的重名过滤由 O(订阅数 × 内置数) 降为 O(订阅数)（`ChannelRepository.importEntries`）。
-- 浏览页列表调优：条目高度统一时启用 `setHasFixedSize`；离屏缓存加大到 4 条；关闭变更动画（仅保留增删 / 移动动画）；分类切换时列表回顶；Snackbar 同一时刻仅保留最新一条；收藏星点击带触感反馈（`CONTEXT_CLICK`）。
+- 浏览页列表调优：列表自身尺寸不依赖条目内容，启用 `setHasFixedSize`（不要求各条目等高）；离屏缓存加大到 4 条；关闭变更动画（仅保留增删 / 移动动画）；后续分类切换才回顶，首次渲染保留恢复位置，异步目录使用 `PREVENT_WHEN_EMPTY`；Snackbar 同一时刻仅保留最新一条；收藏星点击带触感反馈（`CONTEXT_CLICK`）。频道名最多两行，分类与信号数摘要可换行，避免挤占收藏触达区。
 - 播放页快速连续换频道：以上次请求目标为基准继续换台，先取消上一次加载 Job，结果写回前再核对「是否仍是最新请求」，观看记录跟随核对后的结果落库。媒体回调携带 `MediaItem.mediaId` 中的请求序号并核对当前代次。
 - 收藏写入收敛为 DAO 单条事务（`FavoriteChannelDao.toggle`）；浏览页按点击顺序写入，乐观覆盖同步取值且仅由相同代次释放（1 秒宽限），播放页星标统一由仓库流驱动。
 - 浏览页状态合成与抽屉过滤在 Default 调度器执行，频道 id 索引只在全集变化时重建。导入地址用集合保序去重，DAO `INSERT IGNORE` 原子跳过已有 id 并据实际 rowid 计数，不先加载旧频道正文。
@@ -127,6 +128,7 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 
 导入入口只有主页工具栏「导入频道源」对话框：粘贴订阅地址（单行 `http(s)://` 地址，前缀不区分大小写）或直接粘贴订阅正文（含多行裸 URL）。规则详见[技术设计](project-docs/TECHNICAL_DESIGN.md)，改动时保持：
 
+- 输入说明独立换行，浮动标签保持简短；输入区显示 4～6 行并可滚动，不截断正文，对话框内容也支持短窗口滚动。
 - 解析容错：兼容 BOM 与 `\r\n`；`#EXTINF` 读取 `tvg-id` / `tvg-name` / `group-title`，频道名取首个不被引号包裹的逗号之后内容；连续多条 EXTINF 共用一条 URL；裸 URL 行按无元数据条目解析。
 - 合并与去重：本次导入批次内的同名频道（去空白 + 忽略大小写）合并信号源并按序去重；与内置频道同名的条目剔除已固化地址，全部重复则跳过，有新地址则保存为独立导入频道；导入 id = `m3u:` + SHA-256(名称\n首个新 URL) 前 12 位。已有 id 直接跳过，不会更新其其他线路；名称写法或首个新地址变化可能新增记录。
 - 导入保存当次解析结果，不保存订阅 URL，不定时同步；导入频道按名称与分组分类，不保证全部位于「自定义」分类。「清空自定义频道」入口实际清空全部导入记录。

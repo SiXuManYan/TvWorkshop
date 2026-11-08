@@ -3,9 +3,11 @@ package com.sugar.tv.player
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.sugar.tv.R
 import com.sugar.tv.data.model.Channel
 import com.sugar.tv.databinding.ItemSheetChannelBinding
 
@@ -40,6 +42,11 @@ class ChannelSheetAdapter(
     private val onChannelClick: (Channel) -> Unit,
 ) : ListAdapter<ChannelSheetRow, ChannelSheetAdapter.ChannelViewHolder>(CHANNEL_SHEET_DIFF) {
 
+    init {
+        // 目录异步到达前先保留系统保存的滚动位置。
+        stateRestorationPolicy = StateRestorationPolicy.PREVENT_WHEN_EMPTY
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChannelViewHolder {
         val binding = ItemSheetChannelBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ChannelViewHolder(binding, onChannelClick)
@@ -63,10 +70,14 @@ class ChannelSheetAdapter(
             }
         }
 
-        /** 绑定一行数据；非当前播放项的图标以 INVISIBLE 占位，保持行内对齐稳定。 */
+        /** 绑定高亮、图标与读屏状态；非播放项的图标以 INVISIBLE 占位，保持对齐。 */
         fun bind(item: ChannelSheetRow) {
             row = item
             binding.sheetItemRoot.isActivated = item.isPlaying
+            ViewCompat.setStateDescription(
+                binding.sheetItemRoot,
+                if (item.isPlaying) binding.root.context.getString(R.string.channel_now_playing) else null,
+            )
             binding.sheetItemPlayingIcon.visibility =
                 if (item.isPlaying) View.VISIBLE else View.INVISIBLE
             binding.sheetItemName.text = item.channel.name

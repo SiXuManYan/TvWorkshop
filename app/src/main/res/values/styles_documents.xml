@@ -8,7 +8,7 @@
         <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:padding">@dimen/dp_20</item>
-        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:background">@drawable/bg_focusable_item</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
         <item name="android:screenReaderFocusable">true</item>

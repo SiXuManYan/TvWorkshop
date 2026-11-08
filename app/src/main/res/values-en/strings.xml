@@ -25,6 +25,9 @@
     <string name="favorite_remove">Remove from favorites</string>
     <string name="favorite_added">Added to favorites</string>
     <string name="favorite_removed">Removed from favorites</string>
+    <string name="channel_favorite_description_format">%1$s, %2$s</string>
+    <string name="channel_metadata_format">%1$s · %2$s</string>
+    <string name="player_toggle_controls">Show or hide playback controls</string>
 
     <!-- Playback -->
     <string name="play_error">Playback failed</string>
@@ -35,10 +38,13 @@
     <string name="action_next_channel">Next channel</string>
     <string name="player_channel_list">Channel list</string>
     <string name="player_back">Back</string>
+    <string name="channel_now_playing">Now playing</string>
+    <string name="player_quality_current_format">Quality: %1$s</string>
 
     <!-- Import -->
     <string name="import_title">Import channel sources</string>
     <string name="import_hint">Paste an m3u / m3u8 subscription URL, or paste the subscription content directly</string>
+    <string name="import_input_label">Subscription URL or playlist text</string>
     <string name="import_confirm">Import</string>
     <string name="import_cancel">Cancel</string>
     <string name="import_success_format">Imported %1$d channels successfully</string>

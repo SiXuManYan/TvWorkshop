@@ -10,6 +10,8 @@
         android:id="@+id/player_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@string/player_toggle_controls"
+        android:focusable="true"
         app:surface_type="surface_view"
         app:use_controller="false" />
 
@@ -35,13 +37,10 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <ImageView
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btn_player_back"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.TvWorkshop.PlayerIconButton"
                 android:contentDescription="@string/player_back"
-                android:padding="@dimen/dp_12"
                 android:src="@drawable/ic_player_back"
                 app:tint="@color/white" />
 
@@ -74,13 +73,10 @@
                     android:textSize="@dimen/sp_12" />
             </LinearLayout>
 
-            <ImageView
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btn_player_favorite"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.TvWorkshop.PlayerIconButton"
                 android:contentDescription="@string/favorite_add"
-                android:padding="@dimen/dp_12"
                 android:src="@drawable/ic_player_favorite_outline"
                 app:tint="@color/white" />
         </LinearLayout>
@@ -97,65 +93,76 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- 错误浮层：全部信号源失败 / 频道缺失 / 无信号源时显示 -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- 错误内容在上下操作条之间独立滚动，大字体与短窗口下仍能触达重试。 -->
+        <androidx.core.widget.NestedScrollView
             android:id="@+id/player_error_overlay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="@dimen/dp_16"
+            android:layout_marginVertical="@dimen/dp_8"
+            android:fillViewport="true"
             android:visibility="gone"
-            app:cardBackgroundColor="@color/tv_player_control_background"
-            app:cardCornerRadius="@dimen/dp_16"
-            app:cardElevation="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/player_bottom_bar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/player_top_bar"
+            app:layout_constraintWidth_max="@dimen/dp_400">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:padding="@dimen/dp_24">
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-                <ImageView
-                    android:id="@+id/iv_player_error_icon"
-                    android:layout_width="@dimen/dp_40"
-                    android:layout_height="@dimen/dp_40"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_player_error"
-                    app:tint="@color/white" />
-
-                <TextView
-                    android:id="@+id/tv_player_error_message"
-                    android:layout_width="wrap_content"
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/dp_12"
-                    android:gravity="center"
-                    android:text="@string/play_error"
-                    android:textColor="@color/white"
-                    android:textSize="@dimen/sp_16" />
+                    android:layout_gravity="center"
+                    app:cardBackgroundColor="@color/tv_player_control_background"
+                    app:cardCornerRadius="@dimen/dp_16"
+                    app:cardElevation="0dp">
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/dp_16"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_player_retry"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/action_retry" />
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical"
+                        android:padding="@dimen/dp_16">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_player_error_switch_source"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/dp_12" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                        <ImageView
+                            android:id="@+id/iv_player_error_icon"
+                            android:layout_width="@dimen/dp_32"
+                            android:layout_height="@dimen/dp_32"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_player_error"
+                            app:tint="@color/white" />
+
+                        <TextView
+                            android:id="@+id/tv_player_error_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/dp_12"
+                            android:gravity="center"
+                            android:text="@string/play_error"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/sp_16" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_player_retry"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/dp_16"
+                            android:minHeight="@dimen/dp_48"
+                            android:text="@string/action_retry" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btn_player_error_switch_source"
+                            style="@style/Widget.TvWorkshop.PlayerTextButton"
+                            android:layout_width="match_parent"
+                            android:layout_marginTop="@dimen/dp_4"
+                            android:maxLines="2" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
+        </androidx.core.widget.NestedScrollView>
 
         <!-- 换台 OSD：频道变化时中央显示频道名，短暂停留后淡出 -->
         <TextView
@@ -181,7 +188,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.35" />
 
-        <!-- 底部操作条：上一频道、频道列表、换源、清晰度、画中画、下一频道 -->
+        <!-- 上下频道固定在两端，中部操作可横向滚动，窄窗口与大字体下仍可到达所有入口。 -->
         <LinearLayout
             android:id="@+id/player_bottom_bar"
             android:layout_width="0dp"
@@ -197,75 +204,63 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <ImageView
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btn_player_prev"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.TvWorkshop.PlayerIconButton"
                 android:contentDescription="@string/action_prev_channel"
-                android:padding="@dimen/dp_12"
                 android:src="@drawable/ic_player_prev"
                 app:tint="@color/white" />
 
-            <ImageView
-                android:id="@+id/btn_player_channel_list"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_channel_list"
-                android:padding="@dimen/dp_12"
-                android:src="@drawable/ic_player_channel_list"
-                app:tint="@color/white" />
+            <HorizontalScrollView
+                android:id="@+id/player_actions_scroll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fillViewport="true"
+                android:scrollbars="horizontal">
 
-            <TextView
-                android:id="@+id/btn_player_switch_source"
-                android:layout_width="wrap_content"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:drawableStart="@drawable/ic_player_source"
-                android:drawablePadding="@dimen/dp_6"
-                android:drawableTint="@color/white"
-                android:gravity="center"
-                android:paddingStart="@dimen/dp_12"
-                android:paddingEnd="@dimen/dp_12"
-                android:textColor="@color/white"
-                android:textSize="@dimen/sp_14" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
-            <!-- 清晰度选择：仅信号源提供多档画质时显示（由代码按 UiState 控制） -->
-            <TextView
-                android:id="@+id/btn_player_quality"
-                android:layout_width="wrap_content"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_quality"
-                android:drawableStart="@drawable/ic_player_quality"
-                android:drawablePadding="@dimen/dp_4"
-                android:drawableTint="@color/white"
-                android:gravity="center"
-                android:paddingStart="@dimen/dp_12"
-                android:paddingEnd="@dimen/dp_12"
-                android:text="@string/quality_auto"
-                android:textColor="@color/white"
-                android:textSize="@dimen/sp_14"
-                android:visibility="gone" />
+                    <androidx.appcompat.widget.AppCompatImageButton
+                        android:id="@+id/btn_player_channel_list"
+                        style="@style/Widget.TvWorkshop.PlayerIconButton"
+                        android:contentDescription="@string/player_channel_list"
+                        android:src="@drawable/ic_player_channel_list"
+                        app:tint="@color/white" />
 
-            <ImageView
-                android:id="@+id/btn_player_pip"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_pip"
-                android:padding="@dimen/dp_12"
-                android:src="@drawable/ic_player_pip"
-                app:tint="@color/white" />
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn_player_switch_source"
+                        style="@style/Widget.TvWorkshop.PlayerTextButton"
+                        android:drawableStart="@drawable/ic_player_source"
+                        android:drawablePadding="@dimen/dp_6" />
 
-            <ImageView
+                    <!-- 清晰度选择仅在提供多档画质时显示。 -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn_player_quality"
+                        style="@style/Widget.TvWorkshop.PlayerTextButton"
+                        android:contentDescription="@string/player_quality"
+                        android:drawableStart="@drawable/ic_player_quality"
+                        android:drawablePadding="@dimen/dp_4"
+                        android:text="@string/quality_auto"
+                        android:visibility="gone" />
+
+                    <androidx.appcompat.widget.AppCompatImageButton
+                        android:id="@+id/btn_player_pip"
+                        style="@style/Widget.TvWorkshop.PlayerIconButton"
+                        android:contentDescription="@string/player_pip"
+                        android:src="@drawable/ic_player_pip"
+                        app:tint="@color/white" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btn_player_next"
-                android:layout_width="@dimen/dp_48"
-                android:layout_height="@dimen/dp_48"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.TvWorkshop.PlayerIconButton"
                 android:contentDescription="@string/action_next_channel"
-                android:padding="@dimen/dp_12"
                 android:src="@drawable/ic_player_next"
                 app:tint="@color/white" />
         </LinearLayout>

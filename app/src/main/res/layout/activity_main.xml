@@ -63,46 +63,62 @@
         </HorizontalScrollView>
     </LinearLayout>
 
-    <!-- 加载态：首数据到达前展示 -->
-    <LinearLayout
-        android:id="@+id/browse_loading_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical"
+    <!-- 状态区以浮层下方的可用空间居中，短窗口或 IME 弹出时正文仍可滚动。 -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/browse_status_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingTop="@dimen/dp_16"
+        android:paddingBottom="@dimen/dp_16"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/browse_overlay_container"
+        app:layout_constraintWidth_max="@dimen/browse_list_max_width">
 
-        <ProgressBar
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminate="true" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/dp_12"
-            android:text="@string/loading_channels"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="@dimen/sp_14" />
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/browse_loading_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/dp_24"
+                android:visibility="gone">
 
-    <!-- 空态文案：原因（搜索无结果 / 暂无收藏 / 频道列表为空）由 ViewModel 下发 -->
-    <TextView
-        android:id="@+id/browse_empty_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingStart="@dimen/dp_24"
-        android:paddingEnd="@dimen/dp_24"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="@dimen/sp_14"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dp_12"
+                    android:gravity="center"
+                    android:text="@string/loading_channels"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="@dimen/sp_14" />
+            </LinearLayout>
+
+            <!-- 空态原因由 ViewModel 下发；上下留白随内容参与滚动。 -->
+            <TextView
+                android:id="@+id/browse_empty_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="@dimen/dp_24"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="@dimen/sp_14"
+                android:visibility="gone" />
+        </FrameLayout>
+    </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

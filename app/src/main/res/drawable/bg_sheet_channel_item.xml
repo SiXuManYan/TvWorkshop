@@ -6,8 +6,21 @@
 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     android:color="@color/tv_control_highlight">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/white" />
+            <corners android:radius="@dimen/dp_12" />
+        </shape>
+    </item>
     <item>
         <selector>
+            <item android:state_focused="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/tv_primary_container" />
+                    <stroke android:width="@dimen/dp_2" android:color="@color/tv_primary" />
+                    <corners android:radius="@dimen/dp_12" />
+                </shape>
+            </item>
             <item
                 android:drawable="@color/tv_secondary_container"
                 android:state_activated="true" />

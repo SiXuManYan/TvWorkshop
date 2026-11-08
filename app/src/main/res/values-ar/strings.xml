@@ -25,6 +25,9 @@
     <string name="favorite_remove">إزالة من المفضلة</string>
     <string name="favorite_added">تمت الإضافة إلى المفضلة</string>
     <string name="favorite_removed">تمت الإزالة من المفضلة</string>
+    <string name="channel_favorite_description_format">%1$s، %2$s</string>
+    <string name="channel_metadata_format">%1$s · %2$s</string>
+    <string name="player_toggle_controls">إظهار عناصر التحكم في التشغيل أو إخفاؤها</string>
 
     <!-- التشغيل -->
     <string name="play_error">فشل التشغيل</string>
@@ -35,10 +38,13 @@
     <string name="action_next_channel">القناة التالية</string>
     <string name="player_channel_list">قائمة القنوات</string>
     <string name="player_back">رجوع</string>
+    <string name="channel_now_playing">قيد التشغيل</string>
+    <string name="player_quality_current_format">الجودة: %1$s</string>
 
     <!-- استيراد مصادر القنوات -->
     <string name="import_title">استيراد مصادر القنوات</string>
     <string name="import_hint">الصق عنوان اشتراك m3u / m3u8، أو الصق محتوى الاشتراك مباشرة</string>
+    <string name="import_input_label">رابط الاشتراك أو محتوى قائمة التشغيل</string>
     <string name="import_confirm">استيراد</string>
     <string name="import_cancel">إلغاء</string>
     <string name="import_success_format">تم استيراد %1$d من القنوات بنجاح</string>

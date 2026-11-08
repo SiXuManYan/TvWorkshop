@@ -1,6 +1,6 @@
 # 技术设计
 
-更新日期：2026-11-09。本文按当前源码静态梳理电视工坊的实现；频道来源与许可保留 2026-11-08 的核对记录，2026-11-09 补充性能与正确性审查修正、关于页与中文离线文档。本轮未运行构建、测试、Lint、模拟器或真机验证，未请求直播地址，检查范围见[第 10 节](#10-已知限制与未验证边界)与[第 12 节](#12-关于与本地文档)。文中代码路径均相对仓库根目录。
+更新日期：2026-11-09。本文按当前源码静态梳理电视工坊的实现；频道来源与许可保留 2026-11-08 的核对记录，2026-11-09 补充性能与正确性审查修正、关于页与中文离线文档，以及界面与操作可达性调整。本轮未运行构建、测试、Lint、模拟器或真机验证，未请求直播地址，检查范围见[第 10 节](#10-已知限制与未验证边界)、[第 12 节](#12-关于与本地文档)和 [UI 审查记录](#13-ui-审查与调整2026-11-09)。文中代码路径均相对仓库根目录。
 
 ## 1. 总体架构与模块
 
@@ -63,7 +63,7 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 | `com.sugar.tv` | `TvApplication`、`MainActivity` | 应用级依赖入口；主页（分类、搜索、收藏、导入） |
 | `com.sugar.tv.base` | `BaseActivity` | 统一 edge-to-edge 开关 |
 | `com.sugar.tv.about` | `AboutActivity`、`LocalDocumentActivity`、`LocalDocumentViewModel`、`LocalDocumentRepository`、`LocalDocumentAdapter`、`LocalDocument`、`DocumentUi` | 关于与中文离线文档、后台读取与排版、版本展开恢复、章节导航与链接出口 |
-| `com.sugar.tv.browse` | `BrowseModels`、`BrowseViewModel`、`ChannelListAdapter` | 主页状态契约（分类、UiState、事件）、业务状态、列表渲染 |
+| `com.sugar.tv.browse` | `BrowseModels`、`BrowseViewModel`、`ChannelListAdapter`、`PlaylistInputEditText` | 主页状态契约（分类、UiState、事件）、业务状态、列表渲染与导入输入框滚动协调 |
 | `com.sugar.tv.data` | `ChannelRepository`、`SourceCodec`、`HttpUrl` | 数据仓库（Room + 下载 + 导入编排）；信号源 JSON 编解码；共用 HTTP(S) 地址校验 |
 | `com.sugar.tv.data.builtin` | `BuiltinChannels` | 内置频道目录（66 个频道） |
 | `com.sugar.tv.data.db` | `AppDatabase`、`ChannelEntities`、`ChannelDaos` | Room 数据库、三张表实体、DAO |
@@ -82,8 +82,9 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 3. **UI 状态**：快照再与「已生效搜索词 × 当前分类」`combine`，合成与过滤统一经 `flowOn(Dispatchers.Default)` 离开主线程，然后 `stateIn(WhileSubscribed(5_000))`；首数据到达即把 `loading` 置为 `false`。搜索词在写入侧 250ms 去抖，清空立即生效。
 4. **过滤规则**：最近观看按 `recentIds` 顺序经 `channelsById` 映射（已删除频道自动跳过）；其余分类按频道实体分类过滤；搜索词忽略大小写包含匹配（`BrowseViewModel.buildUiState`）。
 5. **收藏乐观更新**：点击优先读取同步写入的 `favoriteOverrides`，不等待 UiState 下一帧；覆盖携带点击代次。数据库写入由 Mutex 按点击顺序提交（锁不包含同步等待），成功后等待仓库流反映实际值（1 秒宽限超时兜底）。仅创建该覆盖的请求可以释放它，旧请求完成或失败不会清掉后续点击的目标态；失败静默回滚。
-6. **渲染**：`MainActivity` 在 `repeatOnLifecycle(STARTED)` 中收集 UiState、导入进行中状态与事件通道；加载 / 空态 / 列表三态互斥，列表内容变化才 `submitList`。Chip 按布尔绝对值同步，程序化同步期间不回写用户意图，避免异步旧状态覆盖新分类。分类切换时列表回顶；Snackbar 同一时刻仅保留最新一条。
-7. **恢复**：`SavedStateHandle` 键 `browse_selected_category`（枚举名）与 `browse_active_query`（去抖后搜索词）；UiState 初始值即包含恢复值，菜单无需等待 Room 首次发射即可展开搜索。SearchView 恢复词后才绑定查询监听，避免展开时的清空回调覆盖恢复词。
+6. **渲染**：`MainActivity` 在 `repeatOnLifecycle(STARTED)` 中收集 UiState、导入进行中状态与事件通道；加载 / 空态 / 列表三态互斥，列表内容变化才 `submitList`。Chip 按布尔绝对值同步，程序化同步期间不回写用户意图，分类变化时揭示选中项。首次渲染不回顶，后续切分类才回顶；Snackbar 同一时刻仅保留最新一条。频道名最多两行，分类与信号数经本地化格式资源合成可换行摘要，宽度约束在收藏按钮之前。
+7. **恢复**：`SavedStateHandle` 键 `browse_selected_category`（枚举名）与 `browse_active_query`（去抖后搜索词）；UiState 初始值即包含恢复值，菜单无需等待 Room 首次发射即可展开搜索。SearchView 恢复词后才绑定查询监听；Chip 不单独保存选中态。`ChannelListAdapter` 使用 `PREVENT_WHEN_EMPTY`，异步目录到达后才消费 RecyclerView 保存的滚动位置。
+8. **窗口与状态区**：根容器统一处理左右系统栏 / 挖孔，浮层负责顶部避让，列表顶部 padding 随浮层每次高度变化同步。加载 / 空态放在浮层下方的可滚动区域，列表与状态区底部均避让系统栏 / IME 并保留 16dp 留白。
 
 ### 3.2 播放页（PlayerActivity ← PlayerViewModel）
 
@@ -92,7 +93,7 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 3. **装载**：`PlayerActivity.render` 发现 `playRequestId` 变化且播放器就绪时 `setMediaItem + prepare + play`，并把序号写入 `MediaItem.mediaId`；应用请求后推进 `appliedPlayRequestId`。频道缺失或无源时清空旧媒体，避免错误态下继续播旧频道。重试当前源是「下标不变、序号递增」，因此以序号判断重装。
 4. **换频道 / 换源**：上 / 下频道按全集顺序循环回绕，连续点击以最新请求频道为基准，即使上次查询还没完成也能继续前进；手动换源循环切换并从 `allSourcesFailed` 恢复；同频道重复加载不重新起播，新频道从第一路开始，起始下标经 `resolveStartIndex` 写回恢复句柄。
 5. **回调与失败轮换**：缓冲、档位与错误回调携带已装载媒体的请求序号，ViewModel 拒绝与当前请求不匹配的回调；`onPlaybackError` 自动切下一路，末路失败后进入错误态并有限自动重试。
-6. **频道抽屉**：`PlayerChannelsSheetFragment` 与播放页共享 Activity 作用域 ViewModel，输入只更新本地查询流；`channelSheetRows` 在 Default 调度器组合全集、查询词与播放频道，过滤、映射与列表相等性检查均在后台执行。`ChannelSheetRow.isPlaying` 参与 Diff 使高亮行单独重绑；抽屉同步提交并按 tag 去重，快速连点不会叠加抽屉。
+6. **频道抽屉**：`PlayerChannelsSheetFragment` 与播放页共享 Activity 作用域 ViewModel，输入只更新本地查询流；`channelSheetRows` 在 Default 调度器组合全集、查询词与播放频道，过滤、映射与列表相等性检查均在后台执行。`ChannelSheetRow.isPlaying` 参与 Diff 并设置读屏状态描述；关闭条目动画，使用 `PREVENT_WHEN_EMPTY` 保留恢复位置。抽屉打开即展开，新打开且未搜索时在列表提交后定位当前频道一次；重建不重新定位，搜索有清空入口与 IME Search 收键盘处理。提交回调核对 Binding 和当前 Adapter，销毁后不访问旧视图。抽屉同步提交并按 tag 去重，快速连点不会叠加抽屉。
 7. **手势与画中画**：单击确认经 `performClick` 切换浮层、双击左右半区与横向轻扫换台；频道变化时中央 OSD 显示频道名 2 秒淡出。画中画以 16:9 进入，覆盖层隐藏且 `onStop` 不释放播放器；退出时显式恢复操作区并重新计时。
 8. **收藏**：播放页星标统一由仓库观察流驱动，写入返回值只用于提示，不直接覆盖状态，避免旧操作完成值反写新状态；写入异常不终止播放。
 
@@ -160,6 +161,8 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 
 入口为主页工具栏「导入频道源」对话框（`MainActivity.showImportDialog`）：单行且以 `http://` / `https://` 开头（忽略大小写）走订阅地址下载，多行输入按订阅正文解析，包含多行裸 URL 的正文不会被误当成一个下载地址。进行中 `importInFlight` 拒绝重复触发，对话框禁用按钮并显示进度。
 
+浮动标签用简短的“订阅地址或列表正文”，原有长说明独立换行。输入区显示 4～6 行并启用内部滚动，不设置正文长度上限；`PlaylistInputEditText` 仅在正文可滚动时阻止外层截走滑动，不接管点击、选择与编辑。关闭此混合输入区的自动填充与拼写建议，对话框内容在短窗口也可滚动。
+
 ```
 输入 ──单行 http(s)://──► importFromUrl ──► requireValidHttpUrl ──► downloadAndParse ─┐
      └─否则──────────────► importFromText ──► M3uParser.parse(text) ──────────────────┤
@@ -205,21 +208,21 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 | `channelMissing` | 频道不存在（如恢复后频道已删除）或未传入频道 id：显示错误浮层 |
 | `isBuffering` | 由播放器 `STATE_BUFFERING` 回调同步，驱动中央加载指示；错误浮层显示时不叠加 |
 
-手动换源 `nextSource` 循环切换（少于 2 路时按钮禁用）且可从「全部失败」恢复；`retry` 在频道缺失／无信号源时重新查询频道，否则保持下标重试当前源。自动轮换由 `onPlayerError` 触发，只尝试当前下标之后的线路，不保证恢复到中间线路时再从第一路遍历。**有限自动重试**（`PlayerViewModel.scheduleAutoRetry`）：末路失败后延迟 8 秒、仍处错误态时重新装载当前源一次，最多 2 次；换频道、手动重试或换源都会取消待执行的重试，其中换频道和手动重试会归零计数，当前手动换源保留计数。收藏等其他操作不取消重试。错误态会取消自动隐藏计时并显示操作区，用户仍可点击播放区切换显隐。
+手动换源 `nextSource` 循环切换且可从「全部失败」恢复；无源时不显示计数，只有一路时底栏入口禁用并弱化，错误区只在至少两路时显示换源按钮。`retry` 在频道缺失／无信号源时重新查询频道，否则保持下标重试当前源。自动轮换由 `onPlayerError` 触发，只尝试当前下标之后的线路，不保证恢复到中间线路时再从第一路遍历。**有限自动重试**（`PlayerViewModel.scheduleAutoRetry`）：末路失败后延迟 8 秒、仍处错误态时重新装载当前源一次，最多 2 次；换频道、手动重试或换源都会取消待执行的重试，其中换频道和手动重试会归零计数，当前手动换源保留计数。收藏等其他操作不取消重试。错误态会取消自动隐藏计时并显示操作区，用户仍可点击播放区切换显隐；错误内容在上下操作条之间滚动，按钮纵向排列，最大宽度 400dp。
 
 **清晰度选择**（`PlayerViewModel.onVideoQualityOptionsChanged`、`PlayerActivity.applyQualityParameters`）：`onTracksChanged` 按每条轨道的 `isTrackSupported` 过滤视频格式，按高度去重（同高度取最高码率）并降序；保留单档信息用于校验偏好，少于两档只隐藏入口。换源时先清空旧选项，忽略装载过程的 `Tracks.EMPTY`，等真实轨道到达后再验证高度。模式三档：AUTO（带宽自适应）／HIGHEST（优先最高码率）／PINNED（高度上限内自适应）。所选高度在新选项中不存在时回落 AUTO，同时递增 `qualityRequestId` 让播放器解除旧限制；用户选择同样递增序号，旧对话框中已失效的高度会被拒绝。新播放器立即恢复当前偏好，高度标签如 `1080p` 经 `Locale.US` 格式化。
 
 **手势与换台 OSD**：播放区触摸交给 `ChannelGestureListener`：单击确认（约 300ms 去抖）经 `performClick` 切换浮层显隐（TalkBack / 键盘行为一致）、双击左 / 右半区换台、横向轻扫按速度阈值与横纵比约束换台（右扫上一台、左扫下一台）；频道变化时中央 OSD 显示频道名 2 秒淡出，进页首帧与每次换台都会展示。
 
-**画中画**：底栏入口以 16:9 画幅进入（设备不支持时静默忽略）；进入后覆盖层整体隐藏，退出时显式显示顶栏与底栏，再开始自动隐藏计时；期间信号源轮换照常工作（播放器未释放）。
+**画中画**：底栏入口以 16:9 画幅进入（设备不支持时隐藏入口，调用仍检查能力）；进入后覆盖层整体隐藏，退出时显式显示顶栏与底栏，再开始自动隐藏计时；期间信号源轮换照常工作（播放器未释放）。
 
-**窗口与交互**：系统栏图标固定为亮色（`SystemBarStyle.dark(TRANSPARENT)`，适配深色背景，不随浅深色翻转）；顶栏 / 底栏按状态栏∪挖孔与手势条避让，消费后返回 `CONSUMED`；5 秒无操作自动隐藏（淡出 200ms，完全隐藏后 GONE 退出无障碍遍历）。
+**窗口与交互**：系统栏图标固定为亮色（`SystemBarStyle.dark(TRANSPARENT)`，适配深色背景，不随浅深色翻转）；顶栏 / 底栏按状态栏∪挖孔与手势条避让，错误区同样处理左右安全边距，消费后返回 `CONSUMED`。上下频道固定在底栏两端，中部操作横向滚动；文字按钮随字号增高，图标保留 48dp 触达区与白色焦点描边。通常 5 秒无操作隐藏（淡出 200ms，完全隐藏后 GONE 退出无障碍遍历）；错误态、持续触摸、按钮持有键盘 / 遥控器焦点、读屏触摸浏览时不自动隐藏，窗口失焦暂停。用户操作和焦点 / 窗口变化重算倒计时，任务执行前再次核对条件，不轮询。方向键可唤出隐藏操作条；显式隐藏把按钮焦点还给视频。无频道时禁用收藏，收藏描述带频道名，清晰度描述带当前模式。
 
 ## 9. 尺寸、主题与多语言资源
 
 - **尺寸**：`values/dimens.xml` 提供 `dp_1`~`dp_500` 与 `sp_1`~`sp_500`（脚本生成，各 500 项）及语义别名 `browse_list_max_width`（默认 500dp，`values-w600dp` 覆盖为 480dp，主页列表与浮层在 ≥600dp 宽屏居中限宽）。
 - **主题**：`Theme.TvWorkshop` 基于 Material 3 DayNight NoActionBar，完整映射品牌色 / 表面色 / 错误色语义属性，`values-night/colors.xml` 提供深色方案；`PlayerTheme` 覆盖为纯黑窗口背景 + 浅色系统栏图标。系统栏在主题中透明，配合 `BaseActivity` 的 `enableEdgeToEdge`。
-- **文案**：47 个通用 string key 同步维护在 11 个目录（`values` 简中基准 + `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`）。格式化文案统一占位符（`source_count_format`、`switch_source_format`、`import_success_format`、`import_failed_format`）；`import_unexpected_error` 承接非格式、非网络的导入异常；`about_body` 仍由关于页来源说明展示。按用户本轮明确要求，关于与三份离线文档新增文案独立放在 `values/strings_documents.xml`，标记 `translatable=false`，所有语言环境统一读简体中文。详细来源以第 5 节为准。仓库未提供可对照的上架说明，不能宣称已与商店文案核对一致。
+- **文案**：53 个通用 string key 同步维护在 11 个目录（`values` 简中基准 + `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`）；UI 调整新增 6 个标签、摘要与操作描述 key。格式化文案统一占位符；`import_unexpected_error` 承接非格式、非网络的导入异常；`about_body` 仍由关于页来源说明展示。按用户本轮明确要求，关于与三份离线文档新增文案独立放在 `values/strings_documents.xml`，标记 `translatable=false`，所有语言环境统一读简体中文。详细来源以第 5 节为准。仓库未提供可对照的上架说明，不能宣称已与商店文案核对一致。
 - **图标**：「电视工坊」自定义自适应图标——品牌蓝对角渐变背景（`ic_launcher_background`，#2E6ED6→#153A69＋右上柔光圆）＋白色「电视机身＋双天线＋播放键」前景（`ic_launcher_foreground`，图形收在中央 66dp 安全区内）；`monochrome` 层复用同一前景供 Android 13+ themed icon。minSdk 29 纯自适应实现，无密度 PNG。设计原稿（SVG）见 [project-docs/design/tv-workshop-logo.svg](design/tv-workshop-logo.svg)。
 - **drawable 内的主题属性边界**：嵌套 drawable（selector / ripple 的 item）一律用直接颜色资源（如 `bg_sheet_channel_item` 的 `tv_secondary_container` / `tv_control_highlight`），不用 `?attr`——BottomSheet 的 LayoutInflater 包装路径下解析失败会崩溃（真机 Android 10 已验证，2026-11-08 修复）；根级 vector 的 `fillColor="?attr/…"` 可用。
 
@@ -296,7 +299,7 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 
 关于页与阅读页沿用 DayNight 品牌配色，内容最大宽度为 500dp，窄窗口随可用宽度收缩。根容器以系统栏、挖孔与 IME 的并集设置绝对 padding，消费后子 View 不再重复避让；工具栏与章节条固定，正文独立滚动。标题、摘要不设固定行高，入口和胶囊保留至少 48dp 触达范围；返回与前进图标支持 RTL 自动镜像。
 
-按本轮明确语言要求，新增 24 个文案集中放在 `values/strings_documents.xml` 并标记 `translatable=false`，其他语言环境同样显示这些中文入口和正文；既有 `strings.xml` 的 47 个 key 仍在 11 个目录保持一致。原来源说明继续使用既有多语言资源。
+按本轮明确语言要求，新增 24 个文案集中放在 `values/strings_documents.xml` 并标记 `translatable=false`，其他语言环境同样显示这些中文入口和正文；通用 `strings.xml` 当前的 53 个 key 在 11 个目录保持一致。原来源说明继续使用既有多语言资源。
 
 协议互链仅接受登记的 `USER_AGREEMENT.md` / `PRIVACY_POLICY.md` 文件名，在内部页面打开。外链只接受 HTTP(S)，先展示目标地址确认，再通过系统 ACTION_VIEW + CATEGORY_BROWSABLE 打开；缺少浏览器时提示，页面不崩溃。Span 点击回调在绑定时创建，后台结果不持有页面。应用不新增网络权限、账号、自动反馈或首次启动同意门禁。
 
@@ -305,3 +308,24 @@ Room 三表 + BuiltinChannels         收藏 / 最近观看 / 导入频道 + 内
 本轮执行静态源码审查、`git diff --check`、62 个 XML（含 Manifest）的解析与资源引用检查、通用 11 语言 key / 格式占位符一致性检查、24 个中文专用资源标记检查、三份正文结构与 65 处本地文档链接 / 锚点检查，核对 Manifest 内部页面声明及 docs 的 assets 配置。另读取缓存 Markwon 4.6.2 源码核对 URLSpan 与 TextView 绑定钩子；缓存 API 核对不代表当前依赖解析或编译通过。
 
 未运行 Gradle 构建、测试、Lint、安装、模拟器或真机任务，未验证 APK 实际打包结果或页面外观。后续验收需覆盖三入口往返、离线正文、连续展开 / 收起、章节定位与高亮、回顶、重建后的滚动与展开恢复、浅深色、大字体、RTL、窄宽窗口、系统栏 / IME，以及外链确认和无浏览器提示。没有基于本轮设备实测的兼容性或性能结论。
+
+## 13. UI 审查与调整（2026-11-09）
+
+触发原因：用户要求指出并修正现有界面可优化之处。静态阅读主页、播放页、导入框、频道抽屉和新增文档布局后，优先处理文字可读性、窄窗口操作可达性与页面恢复；沿用现有品牌色、XML / ViewBinding 和 MVVM。
+
+| 问题与触发条件 | 最终调整 |
+|---|---|
+| 播放底栏所有入口排一行，长翻译或大字体可能挤出屏幕 | 上下频道固定两端，中部入口横向滚动；文字按钮不固定高度，图标触达区保持 48dp |
+| 自动隐藏不区分触摸、键盘 / 遥控器焦点和读屏，操作中可能失去按钮 | 按生命周期、触摸、窗口焦点、按钮焦点与触摸浏览状态控制计时，隐藏任务再核对；方向键可唤出控件，无常驻轮询 |
+| 错误内容按整屏居中，短横屏或大字体下可能与操作条重叠 | 在上下操作条之间提供可滚动、限宽错误卡片；按钮纵向排列，只显示可执行的换源操作 |
+| 无源仍显示 1/0、未加载可点收藏、不支持的画中画入口点后无反馈 | 无源隐藏计数，无频道禁用收藏，单路换源弱化并禁用；不支持画中画时隐藏入口 |
+| 主页空态按整屏居中，未考虑浮层与键盘，浮层高度仅首帧同步 | 状态区在浮层下方可滚动并避让 IME，左右安全区统一处理，浮层每次高度变化同步列表留白 |
+| 初次状态渲染强制回顶，空适配器提前消费恢复状态 | 首次不回顶，异步列表使用 PREVENT_WHEN_EMPTY，后续切分类才回顶；选中 Chip 自动揭示 |
+| 频道名只显示一行，分类与源数量缺少右边界，大字体可能与收藏按钮重叠 | 名称最多两行，摘要占用有边界的宽度并可换行，收藏描述带频道名 |
+| 导入长说明作为浮动标签，正文粘贴后无限撑高 | 短标签与说明分开，输入显示 4～6 行并内部滚动，正文长度不受 UI 行数限制；内容区可滚动 |
+| 频道抽屉可能停在折叠高度，无快捷清空和当前位置 | 打开即展开，首次列表提交后定位播放项，重建保留位置；增加清空搜索、收起 IME 和播放项读屏描述 |
+| 列表、播放与文档入口缺少明确焦点，关于页三入口分界较弱 | 统一圆角涟漪与填色 / 描边焦点，播放器固定白色反馈，关于页入口增加浅深色分隔线 |
+
+本轮同步双语 README、工程索引与用户更新日志，通用资源从 47 增至 53 个 key，11 语言 key 与占位符保持一致；关于与正文继续仅中文，应用版本保持 1.0。静态检查通过：65 个 XML 的解析、资源引用、ViewBinding 成员对应、布局尺寸与嵌套 drawable 颜色约束，53 个通用 key × 11 语言的占位符与 24 个中文专用文案标记，8 份 Markdown 中 69 处本地链接 / 锚点，以及 `git diff --check`。另静态核对缓存 Android 编辑控件与 Lint 触摸检查逻辑，未执行 Lint。本次未运行构建、测试、Lint、安装、模拟器或真机验证。
+
+待验收重点：浅深色、大字体与长翻译、RTL、窄宽 / 短窗口、横屏侧边挖孔及三键导航、IME、导入长正文滚动、遥控器 / 键盘 / TalkBack、列表重建后的滚动恢复、频道抽屉搜索与定位，以及前后台 / 画中画返回。以上为代码与资源调整，不作为设备外观、无障碍表现或性能实测的通过结论。

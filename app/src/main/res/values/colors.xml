@@ -35,6 +35,7 @@
     <color name="tv_scrim">#66000000</color>
     <color name="tv_player_background">#FF000000</color>
     <color name="tv_player_control_background">#80000000</color>
+    <color name="tv_player_control_highlight">#33FFFFFF</color>
 
     <!-- 列表按压涟漪高亮：drawable 内嵌套 selector / ripple 不允许 ?attr 引用（BottomSheet
          等 LayoutInflater 包装路径下解析不到会直接崩溃），必须引用直接颜色资源 -->

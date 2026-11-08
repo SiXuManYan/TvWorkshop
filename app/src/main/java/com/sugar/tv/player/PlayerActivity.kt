@@ -10,14 +10,19 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Rational
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewTreeObserver
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -76,8 +81,32 @@ class PlayerActivity : BaseActivity() {
     /** 已应用到播放器的清晰度请求序号；[NO_PLAY_REQUEST] 表示尚未应用（含释放后重置）。 */
     private var appliedQualityRequestId: Long = NO_PLAY_REQUEST
 
-    /** 5 秒无操作自动隐藏操作区。 */
-    private val hideControlsRunnable = Runnable { setControlsVisible(visible = false) }
+    /** 页面可见期间才允许计时，避免窗口失焦或退后台后重新挂上隐藏任务。 */
+    private var controlsStarted = false
+
+    /** 触摸尚未结束时不隐藏操作区，避免长按或持续滚动中途失去按钮。 */
+    private var controlsTouchInProgress = false
+
+    /** 系统读屏状态在 onCreate 获取，不在 Activity 构造阶段访问 Context。 */
+    private var accessibilityManager: AccessibilityManager? = null
+
+    /** 执行时再次核对焦点与读屏状态，避免计时期间开始操作的用户失去控件。 */
+    private val hideControlsRunnable = Runnable {
+        if (canAutoHideControls()) setControlsVisible(visible = false)
+    }
+
+    /** 键盘 / 遥控器焦点离开操作条后重新计时，停留在按钮上时保持常显。 */
+    private val controlsFocusListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, _ ->
+        scheduleControlsHide()
+    }
+
+    /** 读屏触摸浏览启用时显示操作区，关闭后按当前焦点恢复自动隐藏。 */
+    private val touchExplorationListener = AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
+        if (enabled && controlsStarted && !isInPictureInPictureMode) {
+            setControlsVisible(visible = true)
+        }
+        scheduleControlsHide()
+    }
 
     /** 最近一次 OSD 展示的频道 id：同一频道重复渲染不重播 OSD。 */
     private var lastOsdChannelId: String? = null
@@ -119,6 +148,7 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
+    /** 创建视图、手势与无障碍监听，所有 Context 相关对象均在挂载后初始化。 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 播放页背景为纯黑：系统栏图标固定为亮色，不随系统深浅色翻转
@@ -131,6 +161,9 @@ class PlayerActivity : BaseActivity() {
         // GestureDetector 构造会读取 Resources：Activity 构造期 baseContext 尚未挂载，
         // 必须在 attach 之后的 onCreate 里创建，写成字段初始化器会导致启动即崩溃
         channelGestureDetector = GestureDetector(this, ChannelGestureListener())
+        accessibilityManager = getSystemService(AccessibilityManager::class.java)
+        accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
+        binding.root.viewTreeObserver.addOnGlobalFocusChangeListener(controlsFocusListener)
         binding.root.keepScreenOn = true
         setupInsets()
         setupControls()
@@ -141,6 +174,7 @@ class PlayerActivity : BaseActivity() {
     /** 前台就绪后创建播放器、重放请求并恢复可操作的控件。 */
     override fun onStart() {
         super.onStart()
+        controlsStarted = true
         ensurePlayer()
         // 不依赖生命周期收集器与播放器创建的先后顺序，前台恢复时显式重放当前请求。
         render(viewModel.uiState.value)
@@ -152,10 +186,12 @@ class PlayerActivity : BaseActivity() {
 
     /** 非画中画退后台时撤销延迟 UI 任务并释放播放器。 */
     override fun onStop() {
+        controlsStarted = false
+        controlsTouchInProgress = false
+        binding.root.removeCallbacks(hideControlsRunnable)
         // 直播不后台播放：离开前台即释放播放器（画中画中仍处于可见前台，继续播放），
         // 回到前台重建实例并重新缓冲当前源
         if (!isInPictureInPictureMode) {
-            binding.root.removeCallbacks(hideControlsRunnable)
             binding.root.removeCallbacks(osdHideRunnable)
             binding.tvPlayerOsd.animate().cancel()
             binding.tvPlayerOsd.isVisible = false
@@ -164,11 +200,53 @@ class PlayerActivity : BaseActivity() {
         super.onStop()
     }
 
+    /** 注销系统与视图监听，释放页面级任务和播放器引用。 */
     override fun onDestroy() {
+        accessibilityManager?.removeTouchExplorationStateChangeListener(touchExplorationListener)
+        binding.root.viewTreeObserver.removeOnGlobalFocusChangeListener(controlsFocusListener)
         binding.root.removeCallbacks(hideControlsRunnable)
         binding.root.removeCallbacks(osdHideRunnable)
         releasePlayer()
         super.onDestroy()
+    }
+
+    /** 所有触摸和按键操作都重置计时，包括收藏、重试和横向滚动操作条。 */
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        if (::binding.isInitialized) scheduleControlsHide()
+    }
+
+    /** 连续触摸期间暂停计时，松手或取消后再开始完整的观看倒计时。 */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (::binding.isInitialized && event.actionMasked == MotionEvent.ACTION_DOWN) {
+            controlsTouchInProgress = true
+            binding.root.removeCallbacks(hideControlsRunnable)
+        }
+        val handled = super.dispatchTouchEvent(event)
+        if (::binding.isInitialized &&
+            (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL)
+        ) {
+            controlsTouchInProgress = false
+            scheduleControlsHide()
+        }
+        return handled
+    }
+
+    /** 对话框关闭后重新计时，窗口被遮挡期间不让操作区在背后消失。 */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (::binding.isInitialized) scheduleControlsHide()
+    }
+
+    /** 隐藏状态下方向键先唤出操作条，再交系统执行常规焦点移动。 */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (::binding.isInitialized && event.action == KeyEvent.ACTION_DOWN &&
+            !isInPictureInPictureMode && event.keyCode in CONTROL_NAVIGATION_KEYS
+        ) {
+            setControlsVisible(visible = true)
+            scheduleControlsHide()
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     /** 画中画隐藏覆盖层，退出时恢复操作区及其自动隐藏节奏。 */
@@ -192,6 +270,7 @@ class PlayerActivity : BaseActivity() {
         val bottomBarStart = binding.playerBottomBar.paddingStart
         val bottomBarBottom = binding.playerBottomBar.paddingBottom
         val bottomBarEnd = binding.playerBottomBar.paddingEnd
+        val errorMargin = resources.getDimensionPixelSize(R.dimen.dp_16)
         ViewCompat.setOnApplyWindowInsetsListener(binding.playerOverlay) { _, insets ->
             val safe = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
@@ -206,12 +285,25 @@ class PlayerActivity : BaseActivity() {
                 bottom = bottomBarBottom + safe.bottom,
                 right = bottomBarEnd + safe.right,
             )
+            // 错误卡片在操作条之间布局，水平方向同样避让横屏挖孔与侧边导航栏。
+            binding.playerErrorOverlay.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                leftMargin = errorMargin + safe.left
+                rightMargin = errorMargin + safe.right
+                marginStart = leftMargin
+                marginEnd = rightMargin
+                if (binding.playerOverlay.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
+                    marginStart = rightMargin
+                    marginEnd = leftMargin
+                }
+            }
             WindowInsetsCompat.CONSUMED
         }
     }
 
     /** 绑定控件与用户意图；播放区手势（单击 / 双击 / 横扫）与浮层空白点击均驱动显隐或换台。 */
     private fun setupControls() {
+        binding.btnPlayerPip.isVisible =
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
         binding.playerView.setOnClickListener { toggleControls() }
         // 触摸事件交给手势识别；单击确认后经 performClick 触发上面的点击监听，
         // 保证 TalkBack / 键盘激活与触摸行为一致
@@ -295,12 +387,31 @@ class PlayerActivity : BaseActivity() {
                 R.drawable.ic_player_favorite_outline
             },
         )
-        binding.btnPlayerFavorite.contentDescription =
-            getString(if (state.isFavorite) R.string.favorite_remove else R.string.favorite_add)
+        val favoriteAction = getString(
+            if (state.isFavorite) R.string.favorite_remove else R.string.favorite_add,
+        )
+        binding.btnPlayerFavorite.contentDescription = if (channel != null) {
+            getString(
+                R.string.channel_favorite_description_format,
+                channel.name,
+                favoriteAction,
+            )
+        } else {
+            favoriteAction
+        }
+        binding.btnPlayerFavorite.isEnabled = channel != null
+        binding.btnPlayerFavorite.alpha = if (channel != null) 1f else DISABLED_CONTROL_ALPHA
     }
 
-    /** 渲染换源文案与可用性：底栏与错误浮层共用「信号源 i/n」占位文案。 */
+    /** 无信号源时隐藏计数，单路时弱化底栏入口，错误浮层只展示可执行的换源操作。 */
     private fun renderSourceControls(state: PlayerUiState) {
+        val hasSources = state.sources.isNotEmpty()
+        val canSwitchSource = state.sources.size >= 2
+        binding.btnPlayerSwitchSource.isVisible = hasSources
+        binding.btnPlayerSwitchSource.isEnabled = canSwitchSource
+        binding.btnPlayerSwitchSource.alpha = if (canSwitchSource) 1f else DISABLED_CONTROL_ALPHA
+        binding.btnPlayerErrorSwitchSource.isVisible = canSwitchSource
+        if (!hasSources) return
         val sourceText = getString(
             R.string.switch_source_format,
             state.currentSourceIndex + 1,
@@ -308,9 +419,6 @@ class PlayerActivity : BaseActivity() {
         )
         binding.btnPlayerSwitchSource.text = sourceText
         binding.btnPlayerErrorSwitchSource.text = sourceText
-        val canSwitchSource = state.sources.size >= 2
-        binding.btnPlayerSwitchSource.isEnabled = canSwitchSource
-        binding.btnPlayerErrorSwitchSource.isEnabled = canSwitchSource
     }
 
     /**
@@ -324,6 +432,10 @@ class PlayerActivity : BaseActivity() {
             QualityMode.HIGHEST -> getString(R.string.quality_highest)
             QualityMode.PINNED -> formatHeightLabel(state.pinnedVideoHeight)
         }
+        binding.btnPlayerQuality.contentDescription = getString(
+            R.string.player_quality_current_format,
+            binding.btnPlayerQuality.text,
+        )
     }
 
     /**
@@ -549,6 +661,13 @@ class PlayerActivity : BaseActivity() {
     private fun setControlsVisible(visible: Boolean) {
         if (controlsVisible == visible) return
         controlsVisible = visible
+        if (!visible) {
+            binding.root.removeCallbacks(hideControlsRunnable)
+            // 明确隐藏时把键盘焦点还给视频，随后可用方向键或确认键重新唤出操作区。
+            if (binding.playerTopBar.hasFocus() || binding.playerBottomBar.hasFocus()) {
+                binding.playerView.requestFocus()
+            }
+        }
         for (bar in listOf(binding.playerTopBar, binding.playerBottomBar)) {
             bar.animate().cancel()
             if (visible) {
@@ -562,13 +681,20 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    /** 重新计时自动隐藏；错误浮层显示期间保持操作区常显。 */
+    /** 重新计时；错误、读屏、按钮焦点或其他窗口接管操作时保持操作区可用。 */
     private fun scheduleControlsHide() {
         binding.root.removeCallbacks(hideControlsRunnable)
-        if (!errorOverlayVisible) {
+        if (canAutoHideControls()) {
             binding.root.postDelayed(hideControlsRunnable, CONTROLS_HIDE_DELAY_MS)
         }
     }
+
+    /** 自动隐藏只适用于前台视频观看，不能打断键盘 / 遥控器或读屏的操作过程。 */
+    private fun canAutoHideControls(): Boolean =
+        controlsStarted && controlsVisible && hasWindowFocus() && !isInPictureInPictureMode &&
+            !controlsTouchInProgress && !errorOverlayVisible &&
+            accessibilityManager?.isTouchExplorationEnabled != true &&
+            !binding.playerTopBar.hasFocus() && !binding.playerBottomBar.hasFocus()
 
     /** 打开频道列表抽屉（与播放页共享同一 ViewModel）。 */
     private fun showChannelSheet() {
@@ -661,6 +787,18 @@ class PlayerActivity : BaseActivity() {
 
         /** 操作区显隐淡入淡出时长。 */
         private const val CONTROLS_FADE_DURATION_MS = 200L
+
+        /** 禁用入口保留上下文，但通过透明度表达当前不可操作。 */
+        private const val DISABLED_CONTROL_ALPHA = 0.5f
+
+        /** 这些按键只负责导航，不消费确认键，避免与视频点击的显隐动作冲突。 */
+        private val CONTROL_NAVIGATION_KEYS = setOf(
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_TAB,
+        )
 
         /** 换台 OSD 停留时长。 */
         private const val OSD_HIDE_DELAY_MS = 2_000L

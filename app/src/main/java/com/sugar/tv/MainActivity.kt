@@ -3,6 +3,7 @@ package com.sugar.tv
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -62,7 +63,7 @@ class MainActivity : BaseActivity() {
         ViewModelProvider(this).get(BrowseViewModel::class.java)
     }
 
-    /** 最近一次渲染的分类：变化时触发列表回顶。 */
+    /** 最近一次渲染的分类：仅后续分类切换回顶，首次渲染保留 RecyclerView 恢复的位置。 */
     private var lastRenderedCategory: BrowseCategory? = null
 
     /** 程序化同步 Chip 时不回写用户意图，避免异步渲染旧状态后覆盖新选择。 */
@@ -125,7 +126,7 @@ class MainActivity : BaseActivity() {
     /**
      * 频道列表：LayoutManager + ListAdapter，条目点击与收藏星操作委托回调处理。
      *
-     * 性能调优：条目高度统一（单行频道名）启用 hasFixedSize；加大离屏缓存减少回滚重绑定；
+     * 性能调优：列表本身尺寸不依赖条目内容，启用 hasFixedSize；加大离屏缓存减少回滚重绑定；
      * 变更动画关闭（遵循作品页策略：数据刷新不做条目内闪烁动画，仅保留增删与移动动画）。
      */
     private fun setupChannelList() {
@@ -162,6 +163,8 @@ class MainActivity : BaseActivity() {
         chip.text = getString(category.labelRes)
         // 程序化生成默认无勾选图标，选中态完全由配色表达
         chip.isCheckable = true
+        // 分类由 ViewModel 恢复，避免系统另存的 Chip 选中态反向覆盖它。
+        chip.isSaveEnabled = false
         chip.checkedIcon = null
         // 触达目标扩到 48dp：Material Chip 默认视觉高度 32dp，不满足可操作目标约定
         chip.setEnsureMinTouchTargetSize(true)
@@ -191,13 +194,18 @@ class MainActivity : BaseActivity() {
     }
 
     /**
-     * 按状态同步 Chip 选中态：赋值为布尔绝对值，幂等且不累积。
+     * 按状态同步 Chip 选中态；分类变化时揭示选中项，恢复页面后也能看清当前分类。
      */
-    private fun syncSelectedChip(selected: BrowseCategory) {
+    private fun syncSelectedChip(selected: BrowseCategory, revealSelection: Boolean) {
         syncingCategoryChips = true
         try {
             binding.browseCategoryChips.children.filterIsInstance<Chip>().forEach { chip ->
                 chip.isChecked = (chip.tag as? BrowseCategory) == selected
+                if (chip.isChecked && revealSelection) {
+                    chip.doOnLayout {
+                        chip.requestRectangleOnScreen(Rect(0, 0, chip.width, chip.height), false)
+                    }
+                }
             }
         } finally {
             syncingCategoryChips = false
@@ -207,14 +215,17 @@ class MainActivity : BaseActivity() {
     /**
      * 窗口 Insets 避让：
      * - 顶部浮层 padding = 状态栏（含挖孔）；
-     * - 列表顶部 padding = 浮层实测高度（首帧布局后同步，内容从浮层下方开始滚动）；
-     * - 列表底部 padding = max(导航栏, 输入法) + 内容留白，保证末条可滚动到安全区。
+     * - 根容器统一避让左右系统栏与挖孔，列表顶部随浮层每次高度变化同步；
+     * - 列表与状态区底部避让 max(导航栏, 输入法) + 内容留白。
      */
     private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { root, insets ->
+            val safe = insets.getInsets(BAR_INSETS_MASK)
+            root.updatePadding(left = safe.left, right = safe.right)
+            insets
+        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.browseOverlayContainer) { overlay, insets ->
             overlay.updatePadding(top = insets.getInsets(BAR_INSETS_MASK).top)
-            // 状态栏避让改变浮层高度后，重新同步列表顶部留白（按绝对值设置，幂等）
-            overlay.post { syncListTopPadding() }
             insets
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.browseChannelList) { list, insets ->
@@ -224,7 +235,19 @@ class MainActivity : BaseActivity() {
             )
             insets
         }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.browseStatusScroll) { status, insets ->
+            status.updatePadding(
+                bottom = insets.getInsets(BOTTOM_INSETS_MASK).bottom +
+                    resources.getDimensionPixelSize(R.dimen.dp_16)
+            )
+            insets
+        }
+        // 字号、窗口宽度与工具栏搜索均可能改变浮层高度，不能只在首帧计算一次。
+        binding.browseOverlayContainer.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) syncListTopPadding()
+        }
         binding.browseOverlayContainer.doOnLayout { syncListTopPadding() }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     /**
@@ -253,11 +276,12 @@ class MainActivity : BaseActivity() {
 
     /**
      * 渲染 UI 状态：加载态 / 空态 / 列表三态互斥展示，Chip 选中态同步；
-     * 分类切换时列表回到顶部，避免停留在上一分类的滚动位置造成位置错觉。
+     * 只有后续分类切换才回顶，初次渲染等待数据后由 RecyclerView 恢复阅读位置。
      */
     private fun render(state: BrowseUiState) {
         binding.browseLoadingView.isVisible = state.loading
         binding.browseEmptyView.isVisible = !state.loading && state.channels.isEmpty()
+        binding.browseStatusScroll.isVisible = state.loading || state.channels.isEmpty()
         binding.browseChannelList.isVisible = !state.loading && state.channels.isNotEmpty()
         if (!state.loading && state.channels.isEmpty()) {
             state.emptyReason?.let { binding.browseEmptyView.setText(it.messageRes) }
@@ -266,11 +290,12 @@ class MainActivity : BaseActivity() {
         if (channelAdapter.currentList != state.channels) {
             channelAdapter.submitList(state.channels)
         }
-        if (state.selectedCategory != lastRenderedCategory) {
-            lastRenderedCategory = state.selectedCategory
+        val categoryChanged = state.selectedCategory != lastRenderedCategory
+        if (lastRenderedCategory != null && categoryChanged) {
             binding.browseChannelList.post { binding.browseChannelList.scrollToPosition(0) }
         }
-        syncSelectedChip(state.selectedCategory)
+        lastRenderedCategory = state.selectedCategory
+        syncSelectedChip(selected = state.selectedCategory, revealSelection = categoryChanged)
     }
 
     /**

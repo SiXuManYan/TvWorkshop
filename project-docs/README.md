@@ -16,6 +16,7 @@
 | 排查导入与去重问题 | [技术设计 · m3u 解析规则](TECHNICAL_DESIGN.md#6-m3u-解析规则)、[导入流程](TECHNICAL_DESIGN.md#7-导入流程) |
 | 查看已知限制与未验证边界 | [技术设计 · 已知限制与未验证边界](TECHNICAL_DESIGN.md#10-已知限制与未验证边界) |
 | 查看性能与正确性修正 | [技术设计 · 2026-11-09 审查记录](TECHNICAL_DESIGN.md#2026-11-09-性能与正确性审查记录)：快速换台、清晰度、收藏竞争、大目录过滤、导入与恢复 |
+| 维护界面与操作可达性 | [技术设计 · UI 审查与调整](TECHNICAL_DESIGN.md#13-ui-审查与调整2026-11-09)：窄窗口、大字体、焦点与读屏、列表恢复、导入框和频道抽屉 |
 | 维护关于页与离线文档 | [技术设计 · 关于与本地文档](TECHNICAL_DESIGN.md#12-关于与本地文档)：入口、MVVM、章节与版本状态、中文例外、打包及待验收范围 |
 | 修改面向用户的正文 | [版本更新日志](../docs/version-history/CHANGELOG.md)、[用户协议](../docs/legal/USER_AGREEMENT.md)、[隐私政策](../docs/legal/PRIVACY_POLICY.md)：与 APK 同源，当前仅简体中文 |
 

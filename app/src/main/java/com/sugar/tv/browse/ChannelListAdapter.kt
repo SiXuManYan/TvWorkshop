@@ -25,6 +25,11 @@ class ChannelListAdapter(
     private val onFavoriteClick: (ChannelListItem) -> Unit,
 ) : ListAdapter<ChannelListItem, ChannelListAdapter.ChannelViewHolder>(DIFF) {
 
+    init {
+        // 异步目录尚未到达时延后恢复位置，避免空列表消费掉页面保存的滚动状态。
+        stateRestorationPolicy = StateRestorationPolicy.PREVENT_WHEN_EMPTY
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChannelViewHolder {
         val binding = ItemChannelBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ChannelViewHolder(binding, onChannelClick, onFavoriteClick)
@@ -58,18 +63,22 @@ class ChannelListAdapter(
         }
 
         /**
-         * 绑定条目：名称、分类小标签、信号源数与收藏星标状态。
+         * 绑定条目与收藏操作描述，读屏在星标上也能区分所操作的频道。
          */
         fun bind(item: ChannelListItem) {
             currentItem = item
             val context = binding.root.context
             binding.channelName.text = item.name
-            binding.channelCategoryTag.setText(item.categoryLabelRes)
-            binding.channelSourceCount.text =
-                context.getString(R.string.source_count_format, item.sourceCount)
+            binding.channelMetadata.text = context.getString(
+                R.string.channel_metadata_format,
+                context.getString(item.categoryLabelRes),
+                context.getString(R.string.source_count_format, item.sourceCount),
+            )
             binding.channelFavoriteStar.isSelected = item.isFavorite
             binding.channelFavoriteStar.contentDescription = context.getString(
-                if (item.isFavorite) R.string.favorite_remove else R.string.favorite_add
+                R.string.channel_favorite_description_format,
+                item.name,
+                context.getString(if (item.isFavorite) R.string.favorite_remove else R.string.favorite_add),
             )
         }
     }

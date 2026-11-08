@@ -25,6 +25,9 @@
     <string name="favorite_remove">取消收藏</string>
     <string name="favorite_added">已加入收藏</string>
     <string name="favorite_removed">已取消收藏</string>
+    <string name="channel_favorite_description_format">%1$s，%2$s</string>
+    <string name="channel_metadata_format">%1$s · %2$s</string>
+    <string name="player_toggle_controls">顯示或隱藏播放控制項</string>
 
     <!-- 播放 -->
     <string name="play_error">播放失敗</string>
@@ -35,10 +38,13 @@
     <string name="action_next_channel">下一頻道</string>
     <string name="player_channel_list">頻道列表</string>
     <string name="player_back">返回</string>
+    <string name="channel_now_playing">正在播放</string>
+    <string name="player_quality_current_format">畫質：%1$s</string>
 
     <!-- 匯入頻道源 -->
     <string name="import_title">匯入頻道源</string>
     <string name="import_hint">貼上 m3u / m3u8 訂閱地址，或直接貼上訂閱內容</string>
+    <string name="import_input_label">訂閱位址或列表內容</string>
     <string name="import_confirm">匯入</string>
     <string name="import_cancel">取消</string>
     <string name="import_success_format">成功匯入 %1$d 個頻道</string>

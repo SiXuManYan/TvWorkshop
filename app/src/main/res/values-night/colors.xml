@@ -27,6 +27,7 @@
     <color name="tv_scrim">#8A000000</color>
     <color name="tv_player_background">#FF000000</color>
     <color name="tv_player_control_background">#80000000</color>
+    <color name="tv_player_control_highlight">#33FFFFFF</color>
 
     <!-- 列表按压涟漪高亮（深色方案用浅色叠加） -->
     <color name="tv_control_highlight">#33FFFFFF</color>

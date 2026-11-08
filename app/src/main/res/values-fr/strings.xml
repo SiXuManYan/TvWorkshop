@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 操作描述与导入输入标签 -->
+    <string name="channel_favorite_description_format">%1$s, %2$s</string>
+    <string name="channel_metadata_format">%1$s · %2$s</string>
+    <string name="player_toggle_controls">Afficher ou masquer les commandes de lecture</string>
+    <string name="channel_now_playing">Lecture en cours</string>
+    <string name="player_quality_current_format">Qualité : %1$s</string>
+    <string name="import_input_label">URL d’abonnement ou contenu de la liste</string>
+
     <!-- Application -->
     <string name="app_name">TV Workshop</string>
 

@@ -143,6 +143,14 @@
                             <ImageView style="@style/Widget.TvWorkshop.DocumentRowChevron" />
                         </LinearLayout>
 
+                        <com.google.android.material.divider.MaterialDivider
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/dp_1"
+                            android:layout_marginHorizontal="@dimen/dp_20"
+                            android:importantForAccessibility="no"
+                            app:dividerColor="@color/tv_surface_variant"
+                            app:dividerThickness="@dimen/dp_1" />
+
                         <LinearLayout
                             android:id="@+id/about_agreement"
                             style="@style/Widget.TvWorkshop.DocumentRow">
@@ -157,6 +165,14 @@
                             </LinearLayout>
                             <ImageView style="@style/Widget.TvWorkshop.DocumentRowChevron" />
                         </LinearLayout>
+
+                        <com.google.android.material.divider.MaterialDivider
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/dp_1"
+                            android:layout_marginHorizontal="@dimen/dp_20"
+                            android:importantForAccessibility="no"
+                            app:dividerColor="@color/tv_surface_variant"
+                            app:dividerThickness="@dimen/dp_1" />
 
                         <LinearLayout
                             android:id="@+id/about_privacy"

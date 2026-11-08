@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
@@ -11,6 +14,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.sugar.tv.R
 import com.sugar.tv.data.model.Channel
@@ -43,6 +48,9 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
     /** 当前过滤关键词（trim 后，空串表示不过滤）。 */
     private val query = MutableStateFlow("")
 
+    /** 新打开时仅定位一次当前频道；重建与后续高亮更新保留用户的滚动位置。 */
+    private var locatePlayingChannel = true
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -52,15 +60,38 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
         return binding.root
     }
 
+    /** 建立视图级监听；搜索文字与列表滚动位置交由系统视图状态恢复。 */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (savedInstanceState != null) locatePlayingChannel = false
         adapter = ChannelSheetAdapter(onChannelClick = ::onChannelClick)
         binding.sheetChannelRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.sheetChannelRecycler.adapter = adapter
+        binding.sheetChannelRecycler.itemAnimator = null
         binding.sheetSearchEdit.doAfterTextChanged { text ->
             query.value = text?.toString()?.trim().orEmpty()
+            if (query.value.isNotEmpty()) locatePlayingChannel = false
+        }
+        binding.sheetSearchEdit.setOnEditorActionListener { editor, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                ViewCompat.getWindowInsetsController(editor)?.hide(WindowInsetsCompat.Type.ime())
+                editor.clearFocus()
+                binding.sheetChannelRecycler.requestFocus()
+                true
+            } else {
+                false
+            }
         }
         observeViewModel()
+    }
+
+    /** 横屏空间有限，打开即展开，避免频道列表只露出一小段预览高度。 */
+    override fun onStart() {
+        super.onStart()
+        (dialog as? BottomSheetDialog)?.behavior?.apply {
+            skipCollapsed = true
+            state = BottomSheetBehavior.STATE_EXPANDED
+        }
     }
 
     /** 仅在视图 STARTED 期间收集合成结果，过滤与行映射在 ViewModel 的 Default 调度器执行。 */
@@ -72,9 +103,23 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
-    /** 渲染已过滤且去重的行列表与空态，不在主线程遍历频道全集。 */
+    /** 渲染后台合成的行与空态；首次无查询打开，在异步列表提交后定位当前频道。 */
     private fun renderRows(rows: List<ChannelSheetRow>) {
-        adapter.submitList(rows)
+        val submittedAdapter = adapter
+        submittedAdapter.submitList(rows) {
+            val currentBinding = _binding ?: return@submitList
+            if (currentBinding.sheetChannelRecycler.adapter !== submittedAdapter) return@submitList
+            if (locatePlayingChannel && rows.isNotEmpty()) {
+                if (query.value.isBlank()) {
+                    val playingPosition = rows.indexOfFirst { it.isPlaying }
+                    if (playingPosition >= 0) {
+                        locatePlayingChannel = false
+                        (currentBinding.sheetChannelRecycler.layoutManager as? LinearLayoutManager)
+                            ?.scrollToPositionWithOffset(playingPosition, 0)
+                    }
+                }
+            }
+        }
         val emptyTextRes = when {
             rows.isEmpty() && viewModel.allChannels.value.isEmpty() -> R.string.empty_channel_list
             rows.isEmpty() -> R.string.empty_search_result
@@ -92,6 +137,7 @@ class PlayerChannelsSheetFragment : BottomSheetDialogFragment() {
         dismissAllowingStateLoss()
     }
 
+    /** 列表与监听只属于本次抽屉视图，销毁后异步提交不得访问旧 Binding。 */
     override fun onDestroyView() {
         _binding?.sheetChannelRecycler?.adapter = null
         _binding = null

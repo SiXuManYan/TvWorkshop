@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 播放区始终使用白色焦点与涟漪，避免浅色系统主题的黑色反馈融入黑色视频。 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/tv_player_control_highlight">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/white" />
+            <corners android:radius="@dimen/dp_12" />
+        </shape>
+    </item>
+    <item>
+        <selector>
+            <item android:state_focused="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/tv_player_control_highlight" />
+                    <stroke android:width="@dimen/dp_2" android:color="@color/white" />
+                    <corners android:radius="@dimen/dp_12" />
+                </shape>
+            </item>
+            <item android:drawable="@android:color/transparent" />
+        </selector>
+    </item>
+</ripple>
