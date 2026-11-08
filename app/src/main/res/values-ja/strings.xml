@@ -68,4 +68,6 @@
     <string name="about_title">チャンネルソースについて</string>
     <string name="action_ok">OK</string>
     <string name="about_body">個人の技術学習用アプリです。内蔵リストは fanmingming/live（https://github.com/fanmingming/live）、iptv-org/iptv、Guovin/iptv-api の過去の出力を参考にしています。一部 URL の個別の出典記録は未整備です。詳細はプロジェクト文書をご覧ください。リストはアプリに同梱され、自動同期されません。\n\n端末から第三者のストリームへ直接接続します。アプリは番組のホスティング、再配信、変換、録画を行いません。コンテンツの権利は各権利者に帰属し、公開 URL や学習目的だけで利用が許諾されるわけではありません。利用権限のあるコンテンツを、適用される規約に従って使用してください。\n\nURL は無効になったり、ネットワーク制限を受けたりすることがあります。再生エラー時は後続のソースを試します。取り込みはその時点の解析結果を保存し、定期更新は行いません。\n\nアカウント、解析、クラッシュ報告 SDK はなく、お気に入り、履歴、取り込んだチャンネルを報告しません。購読リストの取得と再生では第三者へ通信し、IP アドレスやリクエスト URL などが送信されます。端末内のデータはシステム設定に応じて Android のクラウドバックアップや端末移行の対象になる場合があります。</string>
+    <string name="player_settings">再生設定</string>
+    <string name="player_source_option_format">ソース %1$d</string>
 </resources>

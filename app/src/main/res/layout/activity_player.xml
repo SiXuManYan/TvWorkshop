@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 播放页：全屏纯黑播放器，覆盖层为半透明顶栏 / 中央缓冲 / 错误浮层 / 底部操作条。 -->
+<!-- 播放页：边缘渐隐操作区，中央保留给画面，次要操作收进播放设置。 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -26,13 +26,13 @@
             android:id="@+id/player_top_bar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@color/tv_player_control_background"
+            android:background="@drawable/bg_player_top_scrim"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="@dimen/dp_4"
+            android:paddingStart="@dimen/dp_8"
             android:paddingTop="@dimen/dp_4"
-            android:paddingEnd="@dimen/dp_4"
-            android:paddingBottom="@dimen/dp_4"
+            android:paddingEnd="@dimen/dp_8"
+            android:paddingBottom="@dimen/dp_20"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -164,40 +164,42 @@
             </FrameLayout>
         </androidx.core.widget.NestedScrollView>
 
-        <!-- 换台 OSD：频道变化时中央显示频道名，短暂停留后淡出 -->
+        <!-- 隐藏控件时才在左上角短暂提示换台结果，避免重复标题和中央遮挡。 -->
         <TextView
             android:id="@+id/tv_player_osd"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/dp_16"
+            android:layout_marginTop="@dimen/dp_12"
+            android:layout_marginEnd="@dimen/dp_16"
             android:alpha="0"
             android:background="@drawable/bg_player_osd"
             android:ellipsize="end"
             android:maxLines="1"
             android:maxWidth="@dimen/dp_320"
-            android:paddingStart="@dimen/dp_24"
-            android:paddingTop="@dimen/dp_10"
-            android:paddingEnd="@dimen/dp_24"
-            android:paddingBottom="@dimen/dp_10"
+            android:importantForAccessibility="no"
+            android:paddingStart="@dimen/dp_16"
+            android:paddingTop="@dimen/dp_8"
+            android:paddingEnd="@dimen/dp_16"
+            android:paddingBottom="@dimen/dp_8"
             android:textColor="@color/white"
-            android:textSize="@dimen/sp_20"
+            android:textSize="@dimen/sp_14"
             android:textStyle="bold"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constrainedWidth="true"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.35" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- 上下频道固定在两端，中部操作可横向滚动，窄窗口与大字体下仍可到达所有入口。 -->
-        <LinearLayout
+        <!-- 常用换台入口固定可见；频道文字受限省略，设置固定在末端，无需横向寻找按钮。 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/player_bottom_bar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="@color/tv_player_control_background"
-            android:gravity="center"
-            android:orientation="horizontal"
+            android:background="@drawable/bg_player_bottom_scrim"
             android:paddingStart="@dimen/dp_8"
-            android:paddingTop="@dimen/dp_4"
+            android:paddingTop="@dimen/dp_24"
             android:paddingEnd="@dimen/dp_8"
             android:paddingBottom="@dimen/dp_4"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -209,60 +211,51 @@
                 style="@style/Widget.TvWorkshop.PlayerIconButton"
                 android:contentDescription="@string/action_prev_channel"
                 android:src="@drawable/ic_player_prev"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btn_player_channel_list"
+                app:layout_constraintHorizontal_bias="0"
+                app:layout_constraintHorizontal_chainStyle="packed"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/white" />
 
-            <HorizontalScrollView
-                android:id="@+id/player_actions_scroll"
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_player_channel_list"
+                style="@style/Widget.TvWorkshop.PlayerTextButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fillViewport="true"
-                android:scrollbars="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <androidx.appcompat.widget.AppCompatImageButton
-                        android:id="@+id/btn_player_channel_list"
-                        style="@style/Widget.TvWorkshop.PlayerIconButton"
-                        android:contentDescription="@string/player_channel_list"
-                        android:src="@drawable/ic_player_channel_list"
-                        app:tint="@color/white" />
-
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/btn_player_switch_source"
-                        style="@style/Widget.TvWorkshop.PlayerTextButton"
-                        android:drawableStart="@drawable/ic_player_source"
-                        android:drawablePadding="@dimen/dp_6" />
-
-                    <!-- 清晰度选择仅在提供多档画质时显示。 -->
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/btn_player_quality"
-                        style="@style/Widget.TvWorkshop.PlayerTextButton"
-                        android:contentDescription="@string/player_quality"
-                        android:drawableStart="@drawable/ic_player_quality"
-                        android:drawablePadding="@dimen/dp_4"
-                        android:text="@string/quality_auto"
-                        android:visibility="gone" />
-
-                    <androidx.appcompat.widget.AppCompatImageButton
-                        android:id="@+id/btn_player_pip"
-                        style="@style/Widget.TvWorkshop.PlayerIconButton"
-                        android:contentDescription="@string/player_pip"
-                        android:src="@drawable/ic_player_pip"
-                        app:tint="@color/white" />
-                </LinearLayout>
-            </HorizontalScrollView>
+                android:contentDescription="@string/player_channel_list"
+                android:drawableStart="@drawable/ic_player_channel_list"
+                android:drawablePadding="@dimen/dp_8"
+                android:ellipsize="end"
+                android:minWidth="@dimen/dp_48"
+                android:text="@string/player_channel_list"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btn_player_next"
+                app:layout_constraintStart_toEndOf="@id/btn_player_prev"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_max="@dimen/dp_160" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btn_player_next"
                 style="@style/Widget.TvWorkshop.PlayerIconButton"
+                android:layout_marginEnd="@dimen/dp_16"
                 android:contentDescription="@string/action_next_channel"
                 android:src="@drawable/ic_player_next"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/btn_player_settings"
+                app:layout_constraintStart_toEndOf="@id/btn_player_channel_list"
+                app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/white" />
-        </LinearLayout>
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btn_player_settings"
+                style="@style/Widget.TvWorkshop.PlayerIconButton"
+                android:contentDescription="@string/player_settings"
+                android:src="@drawable/ic_player_settings"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/white" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

@@ -1,5 +1,6 @@
 package com.sugar.tv.player
 
+import android.animation.ValueAnimator
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
@@ -11,6 +12,7 @@ import android.os.Bundle
 import android.util.Rational
 import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
@@ -18,9 +20,13 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.view.ContextThemeWrapper
+import androidx.appcompat.widget.PopupMenu
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -38,7 +44,6 @@ import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.sugar.tv.R
 import com.sugar.tv.base.BaseActivity
 import com.sugar.tv.data.model.ChannelCategory
@@ -55,10 +60,12 @@ import kotlinx.coroutines.launch
  * （画中画中仍属可见前台不释放，其余情形直播不后台播放），换源 / 换频道复用同一实例
  * `setMediaItem` 平滑过渡；旋转由 `configChanges` 接管，不重建、不重复初始化。
  *
- * 手势：单击确认切换浮层显隐；双击左 / 右半区与横向轻扫按方向换台（配合换台 OSD）。
+ * 常用换台入口位于底部，选源、画质与画中画收进深色设置菜单；系统栏以短暂滑出方式隐藏。
+ * 手势：单击确认切换浮层显隐；双击左 / 右半区与横向轻扫按方向换台（配合边缘换台提示）。
  */
 class PlayerActivity : BaseActivity() {
 
+    /** 页面级视图绑定，只在 Context 挂载后的 onCreate 创建。 */
     private lateinit var binding: ActivityPlayerBinding
 
     /** 与频道抽屉共享的播放 ViewModel（Activity 作用域）。 */
@@ -89,6 +96,12 @@ class PlayerActivity : BaseActivity() {
 
     /** 系统读屏状态在 onCreate 获取，不在 Activity 构造阶段访问 Context。 */
     private var accessibilityManager: AccessibilityManager? = null
+
+    /** 页面持有的临时设置菜单，退后台或媒体选项变化时关闭。 */
+    private var settingsPopup: PopupMenu? = null
+
+    /** 菜单打开时的媒体快照，防止自动换源后继续操作旧线路或旧画质。 */
+    private var settingsSnapshot: PlayerUiState? = null
 
     /** 执行时再次核对焦点与读屏状态，避免计时期间开始操作的用户失去控件。 */
     private val hideControlsRunnable = Runnable {
@@ -165,6 +178,8 @@ class PlayerActivity : BaseActivity() {
         accessibilityManager?.addTouchExplorationStateChangeListener(touchExplorationListener)
         binding.root.viewTreeObserver.addOnGlobalFocusChangeListener(controlsFocusListener)
         binding.root.keepScreenOn = true
+        WindowCompat.getInsetsController(window, binding.root).systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         setupInsets()
         setupControls()
         scheduleControlsHide()
@@ -175,6 +190,7 @@ class PlayerActivity : BaseActivity() {
     override fun onStart() {
         super.onStart()
         controlsStarted = true
+        hideSystemBars()
         ensurePlayer()
         // 不依赖生命周期收集器与播放器创建的先后顺序，前台恢复时显式重放当前请求。
         render(viewModel.uiState.value)
@@ -188,7 +204,10 @@ class PlayerActivity : BaseActivity() {
     override fun onStop() {
         controlsStarted = false
         controlsTouchInProgress = false
+        closePlaybackSettings()
         binding.root.removeCallbacks(hideControlsRunnable)
+        binding.playerTopBar.animate().cancel()
+        binding.playerBottomBar.animate().cancel()
         // 直播不后台播放：离开前台即释放播放器（画中画中仍处于可见前台，继续播放），
         // 回到前台重建实例并重新缓冲当前源
         if (!isInPictureInPictureMode) {
@@ -206,11 +225,13 @@ class PlayerActivity : BaseActivity() {
         binding.root.viewTreeObserver.removeOnGlobalFocusChangeListener(controlsFocusListener)
         binding.root.removeCallbacks(hideControlsRunnable)
         binding.root.removeCallbacks(osdHideRunnable)
+        closePlaybackSettings()
+        binding.tvPlayerOsd.animate().cancel()
         releasePlayer()
         super.onDestroy()
     }
 
-    /** 所有触摸和按键操作都重置计时，包括收藏、重试和横向滚动操作条。 */
+    /** 所有触摸和按键操作都重置计时，包括收藏、重试和设置菜单。 */
     override fun onUserInteraction() {
         super.onUserInteraction()
         if (::binding.isInitialized) scheduleControlsHide()
@@ -235,7 +256,10 @@ class PlayerActivity : BaseActivity() {
     /** 对话框关闭后重新计时，窗口被遮挡期间不让操作区在背后消失。 */
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (::binding.isInitialized) scheduleControlsHide()
+        if (::binding.isInitialized) {
+            if (hasFocus && controlsStarted) hideSystemBars()
+            scheduleControlsHide()
+        }
     }
 
     /** 隐藏状态下方向键先唤出操作条，再交系统执行常规焦点移动。 */
@@ -255,14 +279,24 @@ class PlayerActivity : BaseActivity() {
         // 画中画只保留视频画面：覆盖层整体隐藏，退出后恢复操作区并重新计时自动隐藏
         binding.playerOverlay.isVisible = !isInPictureInPictureMode
         if (isInPictureInPictureMode) {
+            closePlaybackSettings()
             binding.root.removeCallbacks(hideControlsRunnable)
+            hideChannelOsd()
         } else {
+            hideSystemBars()
             setControlsVisible(visible = true)
             scheduleControlsHide()
         }
     }
 
-    /** Edge-to-edge：顶栏避让状态栏与挖孔、底栏避让手势条；以 XML 初始 padding 为基准，重复分发不累加。 */
+    /** 播放期间隐藏系统栏，边缘滑动可临时唤出；控件与系统栏的显示互不绑定。 */
+    private fun hideSystemBars() {
+        if (!isInPictureInPictureMode) {
+            WindowCompat.getInsetsController(window, binding.root).hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    /** 系统栏滑出前后使用同一安全区；顶底栏与边缘提示均按 XML 基准设置绝对避让量。 */
     private fun setupInsets() {
         val topBarStart = binding.playerTopBar.paddingStart
         val topBarTop = binding.playerTopBar.paddingTop
@@ -271,8 +305,10 @@ class PlayerActivity : BaseActivity() {
         val bottomBarBottom = binding.playerBottomBar.paddingBottom
         val bottomBarEnd = binding.playerBottomBar.paddingEnd
         val errorMargin = resources.getDimensionPixelSize(R.dimen.dp_16)
+        val osdTop = resources.getDimensionPixelSize(R.dimen.dp_12)
         ViewCompat.setOnApplyWindowInsetsListener(binding.playerOverlay) { _, insets ->
-            val safe = insets.getInsets(
+            // 忽略可见性可避免系统栏短暂滑出时按钮和换台提示上下跳动。
+            val safe = insets.getInsetsIgnoringVisibility(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
             )
             binding.playerTopBar.updatePadding(
@@ -296,14 +332,26 @@ class PlayerActivity : BaseActivity() {
                     marginEnd = leftMargin
                 }
             }
+            binding.tvPlayerOsd.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                topMargin = osdTop + safe.top
+                marginStart = errorMargin + if (binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
+                    safe.right
+                } else {
+                    safe.left
+                }
+                marginEnd = errorMargin + if (binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
+                    safe.left
+                } else {
+                    safe.right
+                }
+            }
             WindowInsetsCompat.CONSUMED
         }
+        ViewCompat.requestApplyInsets(binding.playerOverlay)
     }
 
     /** 绑定控件与用户意图；播放区手势（单击 / 双击 / 横扫）与浮层空白点击均驱动显隐或换台。 */
     private fun setupControls() {
-        binding.btnPlayerPip.isVisible =
-            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
         binding.playerView.setOnClickListener { toggleControls() }
         // 触摸事件交给手势识别；单击确认后经 performClick 触发上面的点击监听，
         // 保证 TalkBack / 键盘激活与触摸行为一致
@@ -321,12 +369,7 @@ class PlayerActivity : BaseActivity() {
             viewModel.nextChannel()
             scheduleControlsHide()
         }
-        binding.btnPlayerSwitchSource.setOnClickListener {
-            viewModel.nextSource()
-            scheduleControlsHide()
-        }
-        binding.btnPlayerQuality.setOnClickListener { showQualityDialog() }
-        binding.btnPlayerPip.setOnClickListener { enterPictureInPictureIfSupported() }
+        binding.btnPlayerSettings.setOnClickListener { showPlaybackSettings() }
         binding.btnPlayerChannelList.setOnClickListener {
             showChannelSheet()
             scheduleControlsHide()
@@ -355,7 +398,7 @@ class PlayerActivity : BaseActivity() {
     private fun render(state: PlayerUiState) {
         renderHeader(state)
         renderSourceControls(state)
-        renderQualityControls(state)
+        renderSettings(state)
         renderPlaybackOverlay(state)
         renderChannelOsd(state)
         if (state.playRequestId != appliedPlayRequestId && applyCurrentSource(state)) {
@@ -403,78 +446,128 @@ class PlayerActivity : BaseActivity() {
         binding.btnPlayerFavorite.alpha = if (channel != null) 1f else DISABLED_CONTROL_ALPHA
     }
 
-    /** 无信号源时隐藏计数，单路时弱化底栏入口，错误浮层只展示可执行的换源操作。 */
+    /** 错误浮层保留一步换源，正常播放时线路选择收进设置菜单。 */
     private fun renderSourceControls(state: PlayerUiState) {
-        val hasSources = state.sources.isNotEmpty()
         val canSwitchSource = state.sources.size >= 2
-        binding.btnPlayerSwitchSource.isVisible = hasSources
-        binding.btnPlayerSwitchSource.isEnabled = canSwitchSource
-        binding.btnPlayerSwitchSource.alpha = if (canSwitchSource) 1f else DISABLED_CONTROL_ALPHA
         binding.btnPlayerErrorSwitchSource.isVisible = canSwitchSource
-        if (!hasSources) return
+        if (!canSwitchSource) return
         val sourceText = getString(
             R.string.switch_source_format,
             state.currentSourceIndex + 1,
             state.sources.size,
         )
-        binding.btnPlayerSwitchSource.text = sourceText
         binding.btnPlayerErrorSwitchSource.text = sourceText
     }
 
-    /**
-     * 渲染清晰度入口：仅信号源提供多档画质时显示，按钮文案随当前模式切换
-     * （自动 / 最高 / 具体高度如 1080p）。
-     */
-    private fun renderQualityControls(state: PlayerUiState) {
-        binding.btnPlayerQuality.isVisible = state.qualityOptions.size >= 2
-        binding.btnPlayerQuality.text = when (state.qualityMode) {
-            QualityMode.AUTO -> getString(R.string.quality_auto)
-            QualityMode.HIGHEST -> getString(R.string.quality_highest)
-            QualityMode.PINNED -> formatHeightLabel(state.pinnedVideoHeight)
+    /** 只保留有实际动作的设置入口，已打开菜单的媒体快照失效后立即关闭。 */
+    private fun renderSettings(state: PlayerUiState) {
+        val hasSettings = state.sources.size >= 2 || state.qualityOptions.size >= 2 ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+        binding.btnPlayerSettings.isEnabled = hasSettings
+        binding.btnPlayerSettings.alpha = if (hasSettings) 1f else DISABLED_CONTROL_ALPHA
+        settingsSnapshot?.let { snapshot ->
+            if (snapshot.playRequestId != state.playRequestId ||
+                snapshot.qualityRequestId != state.qualityRequestId ||
+                snapshot.qualityOptions != state.qualityOptions
+            ) {
+                closePlaybackSettings()
+            }
         }
-        binding.btnPlayerQuality.contentDescription = getString(
-            R.string.player_quality_current_format,
-            binding.btnPlayerQuality.text,
-        )
+    }
+
+    /** 当前画质模式的本地化标签，同时用于菜单标题和已选项。 */
+    private fun qualityLabel(state: PlayerUiState): String = when (state.qualityMode) {
+        QualityMode.AUTO -> getString(R.string.quality_auto)
+        QualityMode.HIGHEST -> getString(R.string.quality_highest)
+        QualityMode.PINNED -> formatHeightLabel(state.pinnedVideoHeight)
     }
 
     /**
-     * 清晰度选择对话框：自动（带宽自适应）/ 最高 / 高度上限（上限内仍可自适应）。
-     * 单档位信号源不提供入口（按钮隐藏），打开对话框前以当前状态兜底。
+     * 边缘弹出菜单按需提供线路、画质和画中画，不在播放画面上常驻次要按钮。
+     * 子菜单直接标记当前选项；来源和轨道变化会作废快照，不能误用旧菜单下标。
      */
-    private fun showQualityDialog() {
+    private fun showPlaybackSettings() {
+        if (settingsPopup != null || isInPictureInPictureMode) return
         val state = viewModel.uiState.value
-        if (state.qualityOptions.size < 2) {
-            return
-        }
-        val labels = buildList {
-            add(getString(R.string.quality_auto))
-            add(getString(R.string.quality_highest))
-            state.qualityOptions.forEach { option -> add(formatHeightLabel(option.height)) }
-        }
-        val checkedIndex = when (state.qualityMode) {
-            QualityMode.AUTO -> 0
-            QualityMode.HIGHEST -> 1
-            QualityMode.PINNED ->
-                2 + state.qualityOptions.indexOfFirst { it.height == state.pinnedVideoHeight }
-                    .coerceAtLeast(0)
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.player_quality)
-            .setSingleChoiceItems(labels.toTypedArray(), checkedIndex) { dialog, which ->
-                when (which) {
-                    0 -> viewModel.selectQuality(mode = QualityMode.AUTO, height = 0)
-                    1 -> viewModel.selectQuality(mode = QualityMode.HIGHEST, height = 0)
-                    else ->
-                        viewModel.selectQuality(
-                            mode = QualityMode.PINNED,
-                            height = state.qualityOptions[which - 2].height,
-                        )
-                }
-                dialog.dismiss()
+        val popup = PopupMenu(
+            ContextThemeWrapper(this, R.style.ThemeOverlay_TvWorkshop_PlayerPopup),
+            binding.btnPlayerSettings,
+        )
+        if (state.sources.isNotEmpty()) {
+            val sources = popup.menu.addSubMenu(
+                getString(R.string.switch_source_format, state.currentSourceIndex + 1, state.sources.size),
+            )
+            sources.item.setIcon(R.drawable.ic_player_source)
+            sources.item.isEnabled = state.sources.size >= 2
+            state.sources.indices.forEach { index ->
+                sources.add(
+                    SOURCE_MENU_GROUP,
+                    index,
+                    Menu.NONE,
+                    getString(R.string.player_source_option_format, index + 1),
+                ).isChecked = index == state.currentSourceIndex
             }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+            sources.setGroupCheckable(SOURCE_MENU_GROUP, true, true)
+        }
+        if (state.qualityOptions.size >= 2) {
+            val qualities = popup.menu.addSubMenu(getString(R.string.player_quality_current_format, qualityLabel(state)))
+            qualities.item.setIcon(R.drawable.ic_player_quality)
+            qualities.add(QUALITY_MENU_GROUP, QUALITY_AUTO_ITEM, Menu.NONE, R.string.quality_auto)
+                .isChecked = state.qualityMode == QualityMode.AUTO
+            qualities.add(QUALITY_MENU_GROUP, QUALITY_HIGHEST_ITEM, Menu.NONE, R.string.quality_highest)
+                .isChecked = state.qualityMode == QualityMode.HIGHEST
+            state.qualityOptions.forEach { option ->
+                qualities.add(QUALITY_MENU_GROUP, option.height, Menu.NONE, formatHeightLabel(option.height))
+                    .isChecked = state.qualityMode == QualityMode.PINNED && state.pinnedVideoHeight == option.height
+            }
+            qualities.setGroupCheckable(QUALITY_MENU_GROUP, true, true)
+        }
+        if (packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+            popup.menu.add(Menu.NONE, PIP_MENU_ITEM, Menu.NONE, R.string.player_pip)
+                .setIcon(R.drawable.ic_player_pip)
+        }
+        if (popup.menu.size() == 0) return
+        settingsPopup = popup
+        settingsSnapshot = state
+        binding.root.removeCallbacks(hideControlsRunnable)
+        popup.setOnMenuItemClickListener { item ->
+            // 回调可能先于下一次状态渲染，执行前仍须核对媒体代次与真实轨道。
+            val current = viewModel.uiState.value
+            if (current.playRequestId != state.playRequestId ||
+                current.qualityRequestId != state.qualityRequestId || current.qualityOptions != state.qualityOptions
+            ) {
+                closePlaybackSettings()
+                return@setOnMenuItemClickListener true
+            }
+            if (item.hasSubMenu()) return@setOnMenuItemClickListener false
+            when (item.groupId) {
+                SOURCE_MENU_GROUP -> viewModel.selectSource(index = item.itemId, playRequestId = state.playRequestId)
+                QUALITY_MENU_GROUP -> when (item.itemId) {
+                    QUALITY_AUTO_ITEM -> viewModel.selectQuality(mode = QualityMode.AUTO, height = 0)
+                    QUALITY_HIGHEST_ITEM -> viewModel.selectQuality(mode = QualityMode.HIGHEST, height = 0)
+                    else -> viewModel.selectQuality(mode = QualityMode.PINNED, height = item.itemId)
+                }
+                else -> if (item.itemId == PIP_MENU_ITEM) enterPictureInPictureIfSupported()
+            }
+            true
+        }
+        popup.setOnDismissListener {
+            if (settingsPopup === popup) {
+                settingsPopup = null
+                settingsSnapshot = null
+                scheduleControlsHide()
+            }
+        }
+        popup.show()
+    }
+
+    /** AppCompat 在窄窗口会用独立弹窗承接子菜单，关闭时一并释放，不能只 dismiss 原根菜单。 */
+    private fun closePlaybackSettings() {
+        val popup = settingsPopup ?: return
+        for (index in 0 until popup.menu.size()) {
+            popup.menu.getItem(index).subMenu?.close()
+        }
+        popup.dismiss()
     }
 
     /** 把当前清晰度模式写成播放器 `TrackSelectionParameters`（自动 / 锁最高 / 锁高度）。 */
@@ -544,17 +637,29 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    /** 渲染换台 OSD：频道变化时中央显示频道名，停留 [OSD_HIDE_DELAY_MS] 后淡出。 */
+    /** 控件隐藏时才在顶部边缘短暂提示新频道，已显示的标题不再重复覆盖画面。 */
     private fun renderChannelOsd(state: PlayerUiState) {
         val channel = state.channel ?: return
         if (channel.id == lastOsdChannelId) return
         lastOsdChannelId = channel.id
         binding.tvPlayerOsd.text = channel.name
+        if (controlsVisible || isInPictureInPictureMode) {
+            hideChannelOsd()
+            return
+        }
         binding.tvPlayerOsd.animate().cancel()
         binding.tvPlayerOsd.isVisible = true
         binding.tvPlayerOsd.animate().alpha(1f).setDuration(OSD_FADE_DURATION_MS).start()
         binding.root.removeCallbacks(osdHideRunnable)
         binding.root.postDelayed(osdHideRunnable, OSD_HIDE_DELAY_MS)
+    }
+
+    /** 显示控件或进入画中画时撤销换台提示，不让旧的结束回调覆盖后续提示。 */
+    private fun hideChannelOsd() {
+        binding.root.removeCallbacks(osdHideRunnable)
+        binding.tvPlayerOsd.animate().cancel()
+        binding.tvPlayerOsd.isVisible = false
+        binding.tvPlayerOsd.alpha = 0f
     }
 
     /**
@@ -649,6 +754,7 @@ class PlayerActivity : BaseActivity() {
 
     /** 单击播放区：浮层显示时直接隐藏，隐藏时恢复并重新计时。 */
     private fun toggleControls() {
+        if (errorOverlayVisible) return
         if (controlsVisible) {
             setControlsVisible(visible = false)
         } else {
@@ -657,10 +763,11 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    /** 顶栏与底栏整体淡入淡出；完全隐藏后退出 TalkBack 与键盘遍历，恢复时还原。 */
+    /** 顶底栏轻移并淡出，隐藏后保留布局尺寸以免遮罩或错误区跳动，同时退出焦点与读屏遍历。 */
     private fun setControlsVisible(visible: Boolean) {
-        if (controlsVisible == visible) return
+        val changed = controlsVisible != visible
         controlsVisible = visible
+        if (visible) hideChannelOsd()
         if (!visible) {
             binding.root.removeCallbacks(hideControlsRunnable)
             // 明确隐藏时把键盘焦点还给视频，随后可用方向键或确认键重新唤出操作区。
@@ -670,12 +777,20 @@ class PlayerActivity : BaseActivity() {
         }
         for (bar in listOf(binding.playerTopBar, binding.playerBottomBar)) {
             bar.animate().cancel()
+            val hiddenTranslation = resources.getDimension(R.dimen.dp_8) *
+                if (bar === binding.playerTopBar) -1f else 1f
+            if (!changed || !ValueAnimator.areAnimatorsEnabled()) {
+                bar.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+                bar.alpha = if (visible) 1f else 0f
+                bar.translationY = if (visible) 0f else hiddenTranslation
+                continue
+            }
             if (visible) {
                 bar.visibility = View.VISIBLE
-                bar.animate().alpha(1f).setDuration(CONTROLS_FADE_DURATION_MS).start()
+                bar.animate().alpha(1f).translationY(0f).setDuration(CONTROLS_FADE_DURATION_MS).start()
             } else {
-                bar.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION_MS)
-                    .withEndAction { if (!controlsVisible) bar.visibility = View.GONE }
+                bar.animate().alpha(0f).translationY(hiddenTranslation).setDuration(CONTROLS_FADE_DURATION_MS)
+                    .withEndAction { if (!controlsVisible) bar.visibility = View.INVISIBLE }
                     .start()
             }
         }
@@ -693,6 +808,7 @@ class PlayerActivity : BaseActivity() {
     private fun canAutoHideControls(): Boolean =
         controlsStarted && controlsVisible && hasWindowFocus() && !isInPictureInPictureMode &&
             !controlsTouchInProgress && !errorOverlayVisible &&
+            settingsPopup == null &&
             accessibilityManager?.isTouchExplorationEnabled != true &&
             !binding.playerTopBar.hasFocus() && !binding.playerBottomBar.hasFocus()
 
@@ -783,13 +899,28 @@ class PlayerActivity : BaseActivity() {
         private const val NO_PLAY_REQUEST = -1L
 
         /** 操作区无操作自动隐藏延时。 */
-        private const val CONTROLS_HIDE_DELAY_MS = 5_000L
+        private const val CONTROLS_HIDE_DELAY_MS = 3_000L
 
         /** 操作区显隐淡入淡出时长。 */
         private const val CONTROLS_FADE_DURATION_MS = 200L
 
         /** 禁用入口保留上下文，但通过透明度表达当前不可操作。 */
         private const val DISABLED_CONTROL_ALPHA = 0.5f
+
+        /** 线路下标使用独立分组，不与视频高度或普通动作的 itemId 混淆。 */
+        private const val SOURCE_MENU_GROUP = 1
+
+        /** 画质选项身份由模式标记或真实视频高度组成。 */
+        private const val QUALITY_MENU_GROUP = 2
+
+        /** 不属于线路或画质分组的画中画动作。 */
+        private const val PIP_MENU_ITEM = 1
+
+        /** 自动档使用负值，与真实视频高度区分。 */
+        private const val QUALITY_AUTO_ITEM = -1
+
+        /** 最高档同样不占用真实高度的正值身份。 */
+        private const val QUALITY_HIGHEST_ITEM = -2
 
         /** 这些按键只负责导航，不消费确认键，避免与视频点击的显隐动作冲突。 */
         private val CONTROL_NAVIGATION_KEYS = setOf(
@@ -801,7 +932,7 @@ class PlayerActivity : BaseActivity() {
         )
 
         /** 换台 OSD 停留时长。 */
-        private const val OSD_HIDE_DELAY_MS = 2_000L
+        private const val OSD_HIDE_DELAY_MS = 1_500L
 
         /** OSD 淡入淡出时长。 */
         private const val OSD_FADE_DURATION_MS = 150L

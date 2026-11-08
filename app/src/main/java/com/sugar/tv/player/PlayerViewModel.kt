@@ -189,15 +189,23 @@ class PlayerViewModel(
 
     /** 手动切换到下一路信号源（循环换源），可从「全部失败」错误态恢复播放。 */
     fun nextSource() {
-        autoRetryJob?.cancel()
         val current = _uiState.value
         val size = current.sources.size
         if (size < 2) return
-        val nextIndex = (current.currentSourceIndex + 1).mod(size)
-        savedStateHandle[PlayerActivity.EXTRA_SOURCE_INDEX] = nextIndex
+        selectSource(index = (current.currentSourceIndex + 1).mod(size), playRequestId = current.playRequestId)
+    }
+
+    /** 直接选择菜单中的线路；拒绝过期媒体请求，重复选择正常线路不重新缓冲。 */
+    fun selectSource(index: Int, playRequestId: Long) {
+        val current = _uiState.value
+        if (current.playRequestId != playRequestId || index !in current.sources.indices) return
+        if (index == current.currentSourceIndex && !current.allSourcesFailed) return
+        autoRetryJob?.cancel()
+        // 手动选源延续本回合的重试次数，与原 nextSource 的取消和恢复边界一致。
+        savedStateHandle[PlayerActivity.EXTRA_SOURCE_INDEX] = index
         _uiState.update {
             it.copy(
-                currentSourceIndex = nextIndex,
+                currentSourceIndex = index,
                 allSourcesFailed = false,
                 isBuffering = true,
                 qualityOptions = emptyList(),

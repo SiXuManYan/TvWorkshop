@@ -40,6 +40,8 @@
     <string name="player_back">返回</string>
     <string name="channel_now_playing">正在播放</string>
     <string name="player_quality_current_format">清晰度：%1$s</string>
+    <string name="player_settings">播放设置</string>
+    <string name="player_source_option_format">信号源 %1$d</string>
 
     <!-- 导入频道源 -->
     <string name="import_title">导入频道源</string>

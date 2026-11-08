@@ -81,7 +81,7 @@ class LocalDocumentActivity : BaseActivity() {
         }
     }
 
-    /** 关闭变更动画，长正文展开时直接完成布局，不叠加整行淡入与高度动画。 */
+    /** 禁用整行变更动画，展开由章节自己的高度、透明度与箭头动画接管。 */
     private fun setupList() {
         documentAdapter = LocalDocumentAdapter(
             context = this,
@@ -117,7 +117,18 @@ class LocalDocumentActivity : BaseActivity() {
             onCommitted = committed@ {
                 if (isDestroyed) return@committed
                 binding.documentList.doOnLayout {
-                    if (!isDestroyed && !applyPendingSection()) updateActiveChapter()
+                    if (isDestroyed) return@doOnLayout
+                    // payload 在列表布局时才绑定；先等本轮绑定，再等待所有章节高度稳定。
+                    documentAdapter.whenLayoutSettled {
+                        // 离屏 Holder 也可能在 RecyclerView 布局中结束动画，定位延后一轮再执行。
+                        binding.documentList.post {
+                            if (!isDestroyed) {
+                                binding.documentList.doOnLayout {
+                                    if (!isDestroyed && !applyPendingSection()) updateActiveChapter()
+                                }
+                            }
+                        }
+                    }
                 }
             },
         )
@@ -218,6 +229,7 @@ class LocalDocumentActivity : BaseActivity() {
     override fun onDestroy() {
         externalDialog?.dismiss()
         externalDialog = null
+        documentAdapter.close()
         binding.documentList.clearOnScrollListeners()
         binding.documentList.adapter = null
         chapterChips.clear()

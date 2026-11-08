@@ -11,7 +11,7 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
-    <!-- 文字按钮允许随字号增高，单行全文由中部横向操作区承接。 -->
+    <!-- 文字按钮允许随字号增高；受限宽度由具体布局决定换行或省略方式。 -->
     <style name="Widget.TvWorkshop.PlayerTextButton" parent="">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
@@ -31,4 +31,6 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
+    <!-- 播放设置固定深色，浅色系统主题下也与视频控件保持一致。 -->
+    <style name="ThemeOverlay.TvWorkshop.PlayerPopup" parent="ThemeOverlay.AppCompat.Dark" />
 </resources>

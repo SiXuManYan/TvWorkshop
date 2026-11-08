@@ -40,6 +40,8 @@
     <string name="player_back">رجوع</string>
     <string name="channel_now_playing">قيد التشغيل</string>
     <string name="player_quality_current_format">الجودة: %1$s</string>
+    <string name="player_settings">إعدادات التشغيل</string>
+    <string name="player_source_option_format">المصدر %1$d</string>
 
     <!-- استيراد مصادر القنوات -->
     <string name="import_title">استيراد مصادر القنوات</string>

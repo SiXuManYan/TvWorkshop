@@ -40,6 +40,8 @@
     <string name="player_back">Back</string>
     <string name="channel_now_playing">Now playing</string>
     <string name="player_quality_current_format">Quality: %1$s</string>
+    <string name="player_settings">Playback settings</string>
+    <string name="player_source_option_format">Source %1$d</string>
 
     <!-- Import -->
     <string name="import_title">Import channel sources</string>

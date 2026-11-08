@@ -50,6 +50,12 @@ internal class LocalDocumentAdapter(
     /** 只调用 setParsedMarkdown，不在主线程解析正文，也不与仓库共用跨线程渲染器。 */
     private val renderer = Markwon.create(context)
 
+    /** 只跟踪尚未回收的章节，页面结束时统一清理高度动画。 */
+    private val sectionHolders = mutableSetOf<SectionHolder>()
+
+    /** 高度变化会移动后续章节，定位只保留最近一次请求并等待动画完成。 */
+    private var pendingLayoutAction: (() -> Unit)? = null
+
     init {
         setHasStableIds(true)
         // 异步加载时不让空列表消费恢复位置，等正文提交后再恢复 LayoutManager 状态。
@@ -100,8 +106,57 @@ internal class LocalDocumentAdapter(
         val row = getItem(position)
         when (holder) {
             is OverviewHolder -> holder.bind(row = row)
-            is SectionHolder -> holder.bind(row = row)
+            is SectionHolder -> {
+                sectionHolders += holder
+                holder.bind(row = row, animate = false)
+            }
         }
+    }
+
+    /** 仅展开集合发生变化时接续当前高度，避免整行重绑造成闪烁或从头播放动画。 */
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (holder is SectionHolder && EXPANSION_PAYLOAD in payloads) {
+            sectionHolders += holder
+            holder.bind(row = getItem(position), animate = true)
+        } else {
+            onBindViewHolder(holder = holder, position = position)
+        }
+    }
+
+    /** 临时离屏也要完成动画，缓存 Holder 再出现时不能停在半展开状态。 */
+    override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
+        if (holder is SectionHolder) holder.finishAnimation()
+        super.onViewDetachedFromWindow(holder)
+    }
+
+    /** 回收前释放动画与正文，之后绑定其他章节时不保留旧目标。 */
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        if (holder is SectionHolder) {
+            holder.recycle()
+            sectionHolders -= holder
+        }
+        super.onViewRecycled(holder)
+    }
+
+    /** 在 RecyclerView 完成此次绑定的布局之后调用，确保可见行已经启动对应动画。 */
+    fun whenLayoutSettled(action: () -> Unit) {
+        pendingLayoutAction = action
+        runPendingLayoutAction()
+    }
+
+    /** 页面销毁时先丢弃定位闭包，再结束所有仍绑定章节的动画。 */
+    fun close() {
+        pendingLayoutAction = null
+        sectionHolders.forEach { it.finishAnimation() }
+        sectionHolders.clear()
+    }
+
+    /** 最后一个高度动画结束后才定位，避免滚动完成后又被收起卡片推走。 */
+    private fun runPendingLayoutAction() {
+        if (sectionHolders.any { it.isAnimating }) return
+        val action = pendingLayoutAction ?: return
+        pendingLayoutAction = null
+        action()
     }
 
     /**
@@ -128,6 +183,15 @@ internal class LocalDocumentAdapter(
     private inner class SectionHolder(private val binding: ItemDocumentSectionBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
+        /** 上一次绑定的身份用于区分用户切换与回收后的首次显示。 */
+        private var boundRow: DocumentRow? = null
+
+        /** 高度、淡入淡出和箭头共用一个动画，避免快速点击时三者不同步。 */
+        private val expansion = DocumentSectionAnimator(binding = binding, onSettled = ::runPendingLayoutAction)
+
+        /** 提供给列表的布局等待条件，不向 ViewModel 暴露 View 动画状态。 */
+        val isAnimating: Boolean get() = expansion.isRunning
+
         init {
             binding.sectionHeader.setOnClickListener {
                 val position = bindingAdapterPosition
@@ -138,13 +202,16 @@ internal class LocalDocumentAdapter(
             }
         }
 
-        /** 收起时清空 View 正文，既退出无障碍遍历，也释放页面链接回调。 */
-        fun bind(row: DocumentRow) {
+        /** 目标状态先交给动画器，收起完成后才清正文，让后续卡片连续移动。 */
+        fun bind(row: DocumentRow, animate: Boolean) {
+            val previous = boundRow
+            val sameContent = previous != null && previous.sectionIndex == row.sectionIndex && previous.body === row.body
+            val animateChange = animate && sameContent && previous?.expanded != row.expanded
+            if (!sameContent) expansion.finish()
             binding.sectionTitle.text = row.title
             binding.sectionHeader.isClickable = row.collapsible
             binding.sectionHeader.isFocusable = row.collapsible
             binding.sectionArrow.isVisible = row.collapsible
-            binding.sectionArrow.rotation = if (row.expanded) 180f else 0f
             ViewCompat.setStateDescription(
                 binding.sectionHeader,
                 if (row.collapsible) {
@@ -155,12 +222,22 @@ internal class LocalDocumentAdapter(
                     null
                 },
             )
-            binding.sectionBody.isVisible = row.expanded
-            if (row.expanded) {
+            if (row.expanded && (!sameContent || binding.sectionBody.text.isNullOrEmpty())) {
                 binding.sectionBody.bindDocumentText(body = row.body, renderer = renderer, onOpenLink = onOpenLink)
-            } else {
-                binding.sectionBody.text = null
             }
+            boundRow = row
+            expansion.setExpanded(expanded = row.expanded, animate = animateChange)
+        }
+
+        /** 结束到当前目标后再离屏或回收，正文是否清空由目标展开态决定。 */
+        fun finishAnimation() = expansion.finish()
+
+        /** 回收池不保留页面链接 Span 或旧绑定身份，下次显示直接恢复新行的目标状态。 */
+        fun recycle() {
+            expansion.finish()
+            binding.sectionBody.text = null
+            binding.sectionBody.movementMethod = null
+            boundRow = null
         }
     }
 
@@ -171,6 +248,9 @@ internal class LocalDocumentAdapter(
         /** 章节或版本卡片类型。 */
         const val SECTION = 1
 
+        /** 展开状态专用 payload 不触发默认整行交叉淡入。 */
+        const val EXPANSION_PAYLOAD = "document_expansion"
+
         /** 身份按章节下标比较，展开状态参与内容 Diff。 */
         val ROW_DIFF = object : DiffUtil.ItemCallback<DocumentRow>() {
             /** 同一页面不切换文档，下标可作为稳定章节身份。 */
@@ -179,6 +259,10 @@ internal class LocalDocumentAdapter(
 
             /** Span 复用后台结果，不重复比较或排版 Markdown。 */
             override fun areContentsTheSame(oldItem: DocumentRow, newItem: DocumentRow): Boolean = oldItem == newItem
+
+            /** 稳定正文只更新展开状态，首次绑定和内容替换继续走完整绑定。 */
+            override fun getChangePayload(oldItem: DocumentRow, newItem: DocumentRow): Any? =
+                if (oldItem.copy(expanded = newItem.expanded) == newItem) EXPANSION_PAYLOAD else null
         }
     }
 }
