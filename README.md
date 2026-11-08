@@ -2,6 +2,28 @@
 
 [![中文](https://img.shields.io/badge/Language-%E4%B8%AD%E6%96%87-red?style=for-the-badge)](README.zh-CN.md)
 
+### Special Thanks
+
+Special thanks to the authors and maintainers of the open-source projects and third-party libraries used here, and to the friends who tested the app and shared feedback. Thank you for your time, ideas, and support ❤️
+
+This project is made possible by the following open-source projects, third-party components, and content sources:
+
+- [fanmingming/live](https://github.com/fanmingming/live) — Reference for part of the built-in TV channel list and stream URLs, including some primary CCTV and CGTN sources. Thank you to its authors and maintainers for curating these playlists.
+- [iptv-org/iptv](https://github.com/iptv-org/iptv) — Reference for some domestic and international stream URLs and categorized playlists.
+- [Guovin/iptv-api](https://github.com/Guovin/iptv-api) — IPTV source-collection tooling; some built-in URLs are traceable to historical output files.
+- [Kotlin](https://github.com/JetBrains/kotlin) — Application language and standard library.
+- [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) — Coroutines, asynchronous work, and Flow-based state.
+- [Material Components for Android](https://github.com/material-components/material-components-android) — Material widgets, themes, and dialogs.
+- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core, Annotation, AppCompat, Lifecycle, ConstraintLayout, and RecyclerView for UI, lists, and screen state.
+- [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer, HLS, and player UI components for live-stream playback.
+- [Room](https://developer.android.com/jetpack/androidx/releases/room) — Local database for favorites, recently watched channels, and imported channels.
+- [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test and Espresso](https://github.com/android/android-test) — JVM unit-test and Android UI-test infrastructure.
+- [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — Build tooling and compile-time symbol processing for Room.
+
+See [Built-in Channels and Source Attribution](#built-in-channels-and-source-attribution) for playlist provenance and the distinction between playlist projects, stream services, and content rights holders.
+
+---
+
 An Android IPTV/live-TV player for personal technical learning and research. It browses, searches, and plays third-party stream URLs, with favorites, watch history, m3u/m3u8 playlist import, and automatic source failover.
 
 Current source version: `1.0`. Requires Android 10 (API 29) or later. Built with Kotlin, Android Views/XML, ViewBinding, and MVVM. The [Chinese README](README.zh-CN.md) is the primary documentation.

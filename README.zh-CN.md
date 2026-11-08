@@ -2,6 +2,28 @@
 
 [![English](https://img.shields.io/badge/Language-English-blue?style=for-the-badge)](README.md)
 
+### Special Thanks
+
+特别感谢所有开源项目与第三方库的作者和维护者，也感谢身边参与测试、提出建议的朋友们。你们的时间、智慧与支持，让本项目得以不断完善 ❤️
+
+本项目的实现离不开以下开源项目、第三方组件与内容来源的帮助：
+
+- [fanmingming/live](https://github.com/fanmingming/live) — 部分内置电视频道列表与信号地址的参考来源，包括部分央视与 CGTN 主源。感谢作者与维护者对直播列表的整理与维护。
+- [iptv-org/iptv](https://github.com/iptv-org/iptv) — 部分国内外频道地址与频道分类列表的参考来源。
+- [Guovin/iptv-api](https://github.com/Guovin/iptv-api) — 直播源整理工具；部分内置地址可追溯到其历史输出文件。
+- [Kotlin](https://github.com/JetBrains/kotlin) — 应用开发语言与标准库。
+- [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) — 协程、异步任务与 Flow 状态流。
+- [Material Components for Android](https://github.com/material-components/material-components-android) — Material 界面控件、主题与对话框。
+- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core、Annotation、AppCompat、Lifecycle、ConstraintLayout 与 RecyclerView，提供界面、列表与页面状态管理。
+- [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer、HLS 与播放器 UI，提供直播媒体播放能力。
+- [Room](https://developer.android.com/jetpack/androidx/releases/room) — 收藏、最近观看与导入频道的本地数据库。
+- [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test 与 Espresso](https://github.com/android/android-test) — JVM 单元测试与 Android 界面测试基础。
+- [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — 构建工具链与 Room 编译期符号处理。
+
+具体列表出处、实际流服务与内容权利方的区别，见[内置频道与直播源说明](#内置频道与直播源说明)。
+
+---
+
 一款用于个人技术学习与研究的 Android 直播电视播放器：在本机浏览、搜索并播放第三方直播地址，支持收藏、最近观看、m3u / m3u8 频道列表导入与信号源自动轮换。
 
 当前源码版本：`1.0`。要求 Android 10（API 29）及以上。基于 Kotlin、Android View 体系 / XML、ViewBinding 与 MVVM 构建。
