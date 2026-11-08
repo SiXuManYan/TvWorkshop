@@ -15,10 +15,11 @@ import com.sugar.tv.data.model.ChannelSource
  * - `https://github.com/Guovin/iptv-api` 的历史结果：部分地址仍可复核；
  *   当前上游为工具框架，旧输出链接已停止更新。
  *
- * 当前共 66 个频道、169 个地址；2026-11-08 文本比对命中 81 个，88 个待补逐条出处，
- * 固定文件版本与核对范围见 `project-docs/TECHNICAL_DESIGN.md` 第 5 节。
+ * 当前共 66 个频道、162 个地址；2026-11-09 抽样后移除 7 路返回购物流的错配地址。
+ * 2026-11-08 的原 169 路文本比对命中 81 个，88 个待补逐条出处；历史快照、
+ * 固定文件版本与本次内容抽样范围见 `project-docs/TECHNICAL_DESIGN.md` 第 5 节。
  * 地址随应用发布，不自动同步上游；列表整理者不等于实际流服务或节目权利方。
- * 可用性与内容授权未逐条验证；播放报错后按 sources 顺序尝试后续线路。
+ * 内容抽样不代表全量可用性或内容授权验证；播放报错后按 sources 顺序尝试后续线路。
  * 频道名称属于数据而非界面文案，保持频道官方命名，不参与多语言。
  */
 object BuiltinChannels {
@@ -35,8 +36,7 @@ object BuiltinChannels {
         channel(
             "builtin:cctv-2", "CCTV-2 财经", ChannelCategory.CCTV,
             "主源" to "http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221226893/1.m3u8",
-            "备用1" to "http://198.204.228.26/live/cctv2hd.m3u8",
-            "备用2" to "http://107.150.60.122/live/cctv2hd.m3u8",
+            "备用1" to "http://107.150.60.122/live/cctv2hd.m3u8",
         ),
         channel(
             "builtin:cctv-3", "CCTV-3 综艺", ChannelCategory.CCTV,
@@ -125,8 +125,7 @@ object BuiltinChannels {
         channel(
             "builtin:cctv-16", "CCTV-16 奥林匹克", ChannelCategory.CCTV,
             "主源" to "http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221227002/1.m3u8",
-            "备用1" to "http://207.56.13.146:81/cdnlive/cctv16.m3u8",
-            "备用2" to "http://74.91.26.218:82/live/cctv16hd.m3u8",
+            "备用1" to "http://74.91.26.218:82/live/cctv16hd.m3u8",
         ),
         channel(
             "builtin:cctv-17", "CCTV-17 农业农村", ChannelCategory.CCTV,
@@ -203,14 +202,12 @@ object BuiltinChannels {
         channel(
             "builtin:guangdong-tv", "广东卫视", ChannelCategory.SATELLITE,
             "主源" to "https://h5cul1yar48um3t.wcetv.com/hls/gdsatellite.m3u8",
-            "备用1" to "http://63.141.230.178:82/gslb/zbdq5.m3u8?id=gdwshd",
-            "备用2" to "http://107.150.60.122/live/gdwshd.m3u8",
+            "备用1" to "http://107.150.60.122/live/gdwshd.m3u8",
         ),
         channel(
             "builtin:shandong-tv", "山东卫视", ChannelCategory.SATELLITE,
             "主源" to "http://125.210.152.18:9090/live/SDWSHD_H265.m3u8",
             "备用1" to "http://63.141.230.178:82/gslb/zbdq5.m3u8?id=sdwshd",
-            "备用2" to "http://107.150.60.122/live/sdwshd.m3u8",
         ),
         channel(
             "builtin:tianjin-tv", "天津卫视", ChannelCategory.SATELLITE,
@@ -272,7 +269,6 @@ object BuiltinChannels {
         channel(
             "builtin:shanxi-tv", "山西卫视", ChannelCategory.SATELLITE,
             "主源" to "http://63.141.230.178:82/gslb/zbdq5.m3u8?id=sxwshd",
-            "备用1" to "http://107.150.60.122/live/sxwshd.m3u8",
         ),
         channel(
             "builtin:guizhou-tv", "贵州卫视", ChannelCategory.SATELLITE,
@@ -309,8 +305,7 @@ object BuiltinChannels {
         ),
         channel(
             "builtin:ningxia-tv", "宁夏卫视", ChannelCategory.SATELLITE,
-            "主源" to "http://107.150.60.122/live/nxws.m3u8",
-            "备用1" to "http://39.134.115.163:8080/PLTV/88888910/224/3221225726/index.m3u8",
+            "主源" to "http://39.134.115.163:8080/PLTV/88888910/224/3221225726/index.m3u8",
         ),
         channel(
             "builtin:qinghai-tv", "青海卫视", ChannelCategory.SATELLITE,
@@ -344,8 +339,7 @@ object BuiltinChannels {
         ),
         channel(
             "builtin:shaanxi-tv", "陕西卫视", ChannelCategory.SATELLITE,
-            "主源" to "http://63.141.230.178:82/gslb/zbdq5.m3u8?id=snwshd",
-            "备用1" to "http://107.150.60.122/live/snwshd.m3u8",
+            "主源" to "http://107.150.60.122/live/snwshd.m3u8",
         ),
 
         // ==================== 外国频道 ====================
