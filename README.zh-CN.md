@@ -2,6 +2,29 @@
 
 [![English](https://img.shields.io/badge/Language-English-blue?style=for-the-badge)](README.md)
 
+## Special Thanks
+
+特别感谢所有开源项目与第三方库的作者和维护者，也感谢身边参与测试、提出建议的朋友们。你们的时间、智慧与支持，让本项目得以不断完善 ❤️
+
+本项目的实现离不开以下开源项目、第三方组件与内容来源的帮助：
+
+- [fanmingming/live](https://github.com/fanmingming/live) — 部分内置电视频道列表与信号地址的参考来源，包括部分央视与 CGTN 主源。感谢作者与维护者对直播列表的整理与维护。
+- [iptv-org/iptv](https://github.com/iptv-org/iptv) — 部分国内外频道地址与频道分类列表的参考来源。
+- [Guovin/iptv-api](https://github.com/Guovin/iptv-api) — 直播源整理工具；部分内置地址可追溯到其历史输出文件。
+- [Kotlin](https://github.com/JetBrains/kotlin) — 应用开发语言与标准库。
+- [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) — 协程、异步任务与 Flow 状态流。
+- [Material Components for Android](https://github.com/material-components/material-components-android) — Material 界面控件、主题与对话框。
+- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core、Annotation、AppCompat、Lifecycle、ConstraintLayout 与 RecyclerView，提供界面、列表与页面状态管理。
+- [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer、HLS 与播放器 UI，提供直播媒体播放能力。
+- [Room](https://developer.android.com/jetpack/androidx/releases/room) — 收藏、最近观看与导入频道的本地数据库。
+- [Markwon](https://github.com/noties/Markwon) / [CommonMark Java](https://github.com/commonmark/commonmark-java) — 中文离线文档的 Markdown 解析与排版，页面结构参考拼图工坊与 RadioWorkshop。
+- [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test 与 Espresso](https://github.com/android/android-test) — JVM 单元测试与 Android 界面测试基础。
+- [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — 构建工具链与 Room 编译期符号处理。
+
+具体列表出处、实际流服务与内容权利方的区别，见[内置频道与来源](#内置频道与来源)。
+
+---
+
 电视工坊是一款面向个人技术学习与研究的 Android 直播电视播放器。它在本机浏览、搜索和播放第三方直播地址，提供收藏、最近观看、m3u / m3u8 导入、自动换源、清晰度选择和画中画等功能。
 
 当前源码版本为 `1.0`，最低支持 Android 10（API 29）。项目使用 Kotlin、Android View/XML、ViewBinding 和 MVVM。
@@ -97,15 +120,3 @@
 | 长期开发规则 | [AGENTS.md](AGENTS.md) |
 | 工程文档索引 | [project-docs/README.md](project-docs/README.md) |
 | English entry | [README.md](README.md) |
-
-## 致谢
-
-感谢参与测试、提出建议的朋友们，也感谢以下开源项目、第三方组件和内容整理项目：
-
-- [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv)、[Guovin/iptv-api](https://github.com/Guovin/iptv-api)：频道列表和地址的参考来源；
-- [Kotlin](https://github.com/JetBrains/kotlin)、[kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines)：语言、协程和 Flow；
-- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx)、[Material Components](https://github.com/material-components/material-components-android)、[AndroidX Media3](https://github.com/androidx/media)、[Room](https://developer.android.com/jetpack/androidx/releases/room)：界面、生命周期、本地数据和直播播放；
-- [Markwon](https://github.com/noties/Markwon)、[CommonMark Java](https://github.com/commonmark/commonmark-java)：离线 Markdown 文档；
-- [JUnit 4](https://github.com/junit-team/junit4)、[AndroidX Test](https://github.com/android/android-test)、[Gradle](https://github.com/gradle/gradle)、[Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) 和 [KSP](https://github.com/google/ksp)：测试与构建工具。
-
-文档阅读页的章节导航、版本卡片和交互结构参考了拼图工坊与 RadioWorkshop，并适配为本项目的 XML / ViewBinding 实现。

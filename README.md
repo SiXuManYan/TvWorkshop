@@ -2,6 +2,29 @@
 
 [![中文](https://img.shields.io/badge/Language-%E4%B8%AD%E6%96%87-red?style=for-the-badge)](README.zh-CN.md)
 
+## Special Thanks
+
+Special thanks to the authors and maintainers of the open-source projects and third-party libraries used here, and to the friends who tested the app and shared feedback. Thank you for your time, ideas, and support ❤️
+
+This project is made possible by the following open-source projects, third-party components, and content sources:
+
+- [fanmingming/live](https://github.com/fanmingming/live) — Reference for part of the built-in TV channel list and stream URLs, including some primary CCTV and CGTN sources. Thank you to its authors and maintainers for curating these playlists.
+- [iptv-org/iptv](https://github.com/iptv-org/iptv) — Reference for some domestic and international stream URLs and categorized playlists.
+- [Guovin/iptv-api](https://github.com/Guovin/iptv-api) — IPTV source-collection tooling; some built-in URLs are traceable to historical output files.
+- [Kotlin](https://github.com/JetBrains/kotlin) — Application language and standard library.
+- [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) — Coroutines, asynchronous work, and Flow-based state.
+- [Material Components for Android](https://github.com/material-components/material-components-android) — Material widgets, themes, and dialogs.
+- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core, Annotation, AppCompat, Lifecycle, ConstraintLayout, and RecyclerView for UI, lists, and screen state.
+- [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer, HLS, and player UI components for live-stream playback.
+- [Room](https://developer.android.com/jetpack/androidx/releases/room) — Local database for favorites, recently watched channels, and imported channels.
+- [Markwon](https://github.com/noties/Markwon) / [CommonMark Java](https://github.com/commonmark/commonmark-java) — Markdown parsing and rendering for offline Chinese documents. The page structure follows CollageWorkshop and RadioWorkshop.
+- [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test and Espresso](https://github.com/android/android-test) — JVM unit-test and Android UI-test infrastructure.
+- [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — Build tooling and compile-time symbol processing for Room.
+
+See [Built-in Channels and Source Attribution](#built-in-channels-and-source-attribution) for playlist provenance and the distinction between playlist projects, stream services, and content rights holders.
+
+---
+
 TV Workshop is an Android live-TV player for personal technical learning and research. It browses, searches, and plays third-party stream URLs on the device, with favorites, watch history, m3u/m3u8 import, source failover, quality selection, and picture-in-picture.
 
 The current source version is `1.0` and the minimum supported Android version is Android 10 (API 29). The app uses Kotlin, Android Views/XML, ViewBinding, and MVVM. Long-term engineering rules are in [AGENTS.md](AGENTS.md), and the [Chinese README](README.zh-CN.md) is the primary user guide.
@@ -97,15 +120,3 @@ Recent engineering reviews relied on static source and resource checks. Builds, 
 | Long-term development rules | [AGENTS.md](AGENTS.md) |
 | Project documentation index | [project-docs/README.md](project-docs/README.md) |
 | Chinese entry | [README.zh-CN.md](README.zh-CN.md) |
-
-## Acknowledgements
-
-Thanks to the friends who tested the app and shared feedback, and to the projects and maintainers whose code, tools, lists, and documentation support this project:
-
-- [fanmingming/live](https://github.com/fanmingming/live), [iptv-org/iptv](https://github.com/iptv-org/iptv), and [Guovin/iptv-api](https://github.com/Guovin/iptv-api) for reference channel lists and source tooling;
-- [Kotlin](https://github.com/JetBrains/kotlin) and [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) for the language, coroutines, and Flow;
-- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx), [Material Components](https://github.com/material-components/material-components-android), [AndroidX Media3](https://github.com/androidx/media), and [Room](https://developer.android.com/jetpack/androidx/releases/room) for UI, lifecycle, local data, and playback;
-- [Markwon](https://github.com/noties/Markwon) and [CommonMark Java](https://github.com/commonmark/commonmark-java) for offline Markdown documents;
-- [JUnit 4](https://github.com/junit-team/junit4), [AndroidX Test](https://github.com/android/android-test), [Gradle](https://github.com/gradle/gradle), [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/), and [KSP](https://github.com/google/ksp) for tests and build tooling.
-
-The document reader's chapter navigation, version cards, and interaction patterns follow CollageWorkshop and RadioWorkshop, adapted to this project's XML/ViewBinding implementation.
