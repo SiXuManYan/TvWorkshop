@@ -45,7 +45,8 @@
             android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape"
             android:supportsPictureInPicture="true"
-            android:theme="@style/PlayerTheme" />
+            android:theme="@style/PlayerTheme"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

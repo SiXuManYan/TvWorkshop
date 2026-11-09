@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 频道抽屉列表项：当前播放项通过 state_activated 驱动高亮背景与播放图标。 -->
+<!-- 频道面板列表项：固定深色配色，当前播放与键盘焦点分别提供高亮和描边。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/sheet_item_root"
+    android:id="@+id/panel_item_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_sheet_channel_item"
+    android:background="@drawable/bg_panel_channel_item"
     android:focusable="true"
     android:screenReaderFocusable="true"
     android:gravity="center_vertical"
@@ -15,24 +15,24 @@
     android:paddingEnd="@dimen/dp_16">
 
     <ImageView
-        android:id="@+id/sheet_item_playing_icon"
+        android:id="@+id/panel_item_playing_icon"
         android:layout_width="@dimen/dp_18"
         android:layout_height="@dimen/dp_18"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_sheet_playing"
+        android:src="@drawable/ic_panel_playing"
         android:visibility="invisible"
-        app:tint="?attr/colorPrimary" />
+        app:tint="@color/tv_player_panel_accent" />
 
     <TextView
-        android:id="@+id/sheet_item_name"
+        android:id="@+id/panel_item_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/dp_10"
         android:layout_weight="1"
         android:ellipsize="end"
-        android:maxLines="1"
+        android:maxLines="2"
         android:paddingTop="@dimen/dp_12"
         android:paddingBottom="@dimen/dp_12"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="@color/white"
         android:textSize="@dimen/sp_16" />
 </LinearLayout>

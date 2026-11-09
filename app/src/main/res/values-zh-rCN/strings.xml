@@ -37,6 +37,7 @@
     <string name="action_prev_channel">上一频道</string>
     <string name="action_next_channel">下一频道</string>
     <string name="player_channel_list">频道列表</string>
+    <string name="player_close_channel_list">收起频道列表</string>
     <string name="player_back">返回</string>
     <string name="channel_now_playing">正在播放</string>
     <string name="player_quality_current_format">清晰度：%1$s</string>

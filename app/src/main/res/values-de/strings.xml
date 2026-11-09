@@ -42,6 +42,7 @@
     <string name="action_prev_channel">Vorheriger Sender</string>
     <string name="action_next_channel">Nächster Sender</string>
     <string name="player_channel_list">Senderliste</string>
+    <string name="player_close_channel_list">Senderliste schließen</string>
     <string name="player_back">Zurück</string>
 
     <!-- Import -->

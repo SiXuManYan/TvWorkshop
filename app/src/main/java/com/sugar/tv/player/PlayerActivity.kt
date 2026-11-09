@@ -18,11 +18,13 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.PopupMenu
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -50,6 +52,7 @@ import com.sugar.tv.data.model.ChannelCategory
 import com.sugar.tv.databinding.ActivityPlayerBinding
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -60,7 +63,7 @@ import kotlinx.coroutines.launch
  * （画中画中仍属可见前台不释放，其余情形直播不后台播放），换源 / 换频道复用同一实例
  * `setMediaItem` 平滑过渡；旋转由 `configChanges` 接管，不重建、不重复初始化。
  *
- * 常用换台入口位于底部，选源、画质与画中画收进深色设置菜单；系统栏以短暂滑出方式隐藏。
+ * 常用换台入口位于底部；选台时视频与列表分别占位，选源、画质与画中画收进深色设置菜单。
  * 手势：单击确认切换浮层显隐；双击左 / 右半区与横向轻扫按方向换台（配合边缘换台提示）。
  */
 class PlayerActivity : BaseActivity() {
@@ -68,7 +71,7 @@ class PlayerActivity : BaseActivity() {
     /** 页面级视图绑定，只在 Context 挂载后的 onCreate 创建。 */
     private lateinit var binding: ActivityPlayerBinding
 
-    /** 与频道抽屉共享的播放 ViewModel（Activity 作用域）。 */
+    /** 播放与选台查询的业务状态，不由视图控制器持有。 */
     private val viewModel: PlayerViewModel by lazy {
         ViewModelProvider(this)[PlayerViewModel::class.java]
     }
@@ -81,6 +84,20 @@ class PlayerActivity : BaseActivity() {
 
     /** 覆盖层（顶栏 + 底栏）当前是否可见。 */
     private var controlsVisible = true
+
+    /** 面板只管理视图和分区几何，播放器始终归 Activity 托管。 */
+    private lateinit var channelsPanelController: PlayerChannelsPanelController
+
+    /** 最近渲染的面板显隐，用于隔离视频手势、浮层和自动隐藏逻辑。 */
+    private var channelPanelVisible = false
+
+    /** 选台时系统返回先收起面板，再次返回才离开播放器。 */
+    private val channelPanelBackCallback = object : OnBackPressedCallback(false) {
+        /** 保留当前频道，只结束选台操作。 */
+        override fun handleOnBackPressed() {
+            viewModel.closeChannelPanel()
+        }
+    }
 
     /** 最近一次渲染时错误浮层是否可见，用于驱动操作区在出错期间保持显示。 */
     private var errorOverlayVisible = false
@@ -180,8 +197,11 @@ class PlayerActivity : BaseActivity() {
         binding.root.keepScreenOn = true
         WindowCompat.getInsetsController(window, binding.root).systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        setupInsets()
         setupControls()
+        setupChannelPanel(
+            restoringOpenPanel = savedInstanceState != null && viewModel.channelPanelState.value.isOpen,
+        )
+        setupInsets()
         scheduleControlsHide()
         observeViewModel()
     }
@@ -192,6 +212,7 @@ class PlayerActivity : BaseActivity() {
         controlsStarted = true
         hideSystemBars()
         ensurePlayer()
+        renderChannelPanel(viewModel.channelPanelState.value)
         // 不依赖生命周期收集器与播放器创建的先后顺序，前台恢复时显式重放当前请求。
         render(viewModel.uiState.value)
         if (!isInPictureInPictureMode) {
@@ -204,6 +225,7 @@ class PlayerActivity : BaseActivity() {
     override fun onStop() {
         controlsStarted = false
         controlsTouchInProgress = false
+        channelsPanelController.hideKeyboard()
         closePlaybackSettings()
         binding.root.removeCallbacks(hideControlsRunnable)
         binding.playerTopBar.animate().cancel()
@@ -227,6 +249,7 @@ class PlayerActivity : BaseActivity() {
         binding.root.removeCallbacks(osdHideRunnable)
         closePlaybackSettings()
         binding.tvPlayerOsd.animate().cancel()
+        channelsPanelController.dispose()
         releasePlayer()
         super.onDestroy()
     }
@@ -265,7 +288,7 @@ class PlayerActivity : BaseActivity() {
     /** 隐藏状态下方向键先唤出操作条，再交系统执行常规焦点移动。 */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (::binding.isInitialized && event.action == KeyEvent.ACTION_DOWN &&
-            !isInPictureInPictureMode && event.keyCode in CONTROL_NAVIGATION_KEYS
+            !isInPictureInPictureMode && !channelPanelVisible && event.keyCode in CONTROL_NAVIGATION_KEYS
         ) {
             setControlsVisible(visible = true)
             scheduleControlsHide()
@@ -279,6 +302,9 @@ class PlayerActivity : BaseActivity() {
         // 画中画只保留视频画面：覆盖层整体隐藏，退出后恢复操作区并重新计时自动隐藏
         binding.playerOverlay.isVisible = !isInPictureInPictureMode
         if (isInPictureInPictureMode) {
+            // 画中画只给视频分配空间；选台面板不随小窗恢复，返回后可再次主动打开。
+            viewModel.closeChannelPanel()
+            renderChannelPanel(viewModel.channelPanelState.value)
             closePlaybackSettings()
             binding.root.removeCallbacks(hideControlsRunnable)
             hideChannelOsd()
@@ -287,6 +313,7 @@ class PlayerActivity : BaseActivity() {
             setControlsVisible(visible = true)
             scheduleControlsHide()
         }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     /** 播放期间隐藏系统栏，边缘滑动可临时唤出；控件与系统栏的显示互不绑定。 */
@@ -296,7 +323,7 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    /** 系统栏滑出前后使用同一安全区；顶底栏与边缘提示均按 XML 基准设置绝对避让量。 */
+    /** 全屏由浮层避让；选台由根布局统一避让系统栏和 IME，防止两套 padding 叠加。 */
     private fun setupInsets() {
         val topBarStart = binding.playerTopBar.paddingStart
         val topBarTop = binding.playerTopBar.paddingTop
@@ -306,11 +333,16 @@ class PlayerActivity : BaseActivity() {
         val bottomBarEnd = binding.playerBottomBar.paddingEnd
         val errorMargin = resources.getDimensionPixelSize(R.dimen.dp_16)
         val osdTop = resources.getDimensionPixelSize(R.dimen.dp_12)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.playerOverlay) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             // 忽略可见性可避免系统栏短暂滑出时按钮和换台提示上下跳动。
-            val safe = insets.getInsetsIgnoringVisibility(
+            val windowSafe = insets.getInsetsIgnoringVisibility(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
             )
+            channelsPanelController.applyInsets(
+                safe = if (isInPictureInPictureMode) Insets.NONE else windowSafe,
+                keyboardBottom = if (isInPictureInPictureMode) 0 else insets.getInsets(WindowInsetsCompat.Type.ime()).bottom,
+            )
+            val safe = if (channelPanelVisible || isInPictureInPictureMode) Insets.NONE else windowSafe
             binding.playerTopBar.updatePadding(
                 left = topBarStart + safe.left,
                 top = topBarTop + safe.top,
@@ -347,7 +379,7 @@ class PlayerActivity : BaseActivity() {
             }
             WindowInsetsCompat.CONSUMED
         }
-        ViewCompat.requestApplyInsets(binding.playerOverlay)
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     /** 绑定控件与用户意图；播放区手势（单击 / 双击 / 横扫）与浮层空白点击均驱动显隐或换台。 */
@@ -371,11 +403,46 @@ class PlayerActivity : BaseActivity() {
         }
         binding.btnPlayerSettings.setOnClickListener { showPlaybackSettings() }
         binding.btnPlayerChannelList.setOnClickListener {
-            showChannelSheet()
-            scheduleControlsHide()
+            viewModel.openChannelPanel()
         }
         binding.btnPlayerRetry.setOnClickListener { viewModel.retry() }
         binding.btnPlayerErrorSwitchSource.setOnClickListener { viewModel.nextSource() }
+    }
+
+    /** 创建同页选台控制器，查询与点选经 ViewModel 执行，关闭不干预媒体实例。 */
+    private fun setupChannelPanel(restoringOpenPanel: Boolean) {
+        channelsPanelController = PlayerChannelsPanelController(
+            binding = binding,
+            restoringOpenPanel = restoringOpenPanel,
+            onClose = viewModel::closeChannelPanel,
+            onQueryChanged = viewModel::onChannelQueryChanged,
+            onChannelClick = { channel ->
+                viewModel.loadChannel(channelId = channel.id)
+                viewModel.closeChannelPanel()
+            },
+        )
+        onBackPressedDispatcher.addCallback(this, channelPanelBackCallback)
+    }
+
+    /** 选台期间不在预览上显示操作条，关闭后恢复常用按钮和原有自动隐藏节奏。 */
+    private fun renderChannelPanel(state: ChannelPanelUiState) {
+        val open = state.isOpen && !isInPictureInPictureMode
+        val changed = channelPanelVisible != open
+        val returnFocus = channelPanelVisible && binding.playerChannelsPanel.root.hasFocus()
+        channelPanelVisible = open
+        channelsPanelController.renderState(state.copy(isOpen = open))
+        channelPanelBackCallback.isEnabled = open
+        if (!changed) return
+        closePlaybackSettings()
+        hideChannelOsd()
+        setControlsVisible(visible = !open, animate = false)
+        binding.playerView.contentDescription = getString(
+            if (open) R.string.player_close_channel_list else R.string.player_toggle_controls,
+        )
+        renderPlaybackOverlay(viewModel.uiState.value)
+        if (!open && returnFocus && !binding.root.isInTouchMode) binding.btnPlayerChannelList.requestFocus()
+        ViewCompat.requestApplyInsets(binding.root)
+        scheduleControlsHide()
     }
 
     /** 收集 ViewModel 状态与一次性事件；STARTED 起收集，回到 STARTED 时自动重放当前状态。 */
@@ -388,6 +455,21 @@ class PlayerActivity : BaseActivity() {
                 launch {
                     viewModel.favoriteNotice.collect { noticeRes ->
                         Toast.makeText(this@PlayerActivity, noticeRes, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                launch {
+                    // 查询或开关变化取消旧过滤流，隐藏及退后台期间不合成选台行。
+                    viewModel.channelPanelState.collectLatest { state ->
+                        renderChannelPanel(state)
+                        if (state.isOpen && !isInPictureInPictureMode) {
+                            viewModel.channelPanelRows(query = state.query).collect { rows ->
+                                channelsPanelController.renderRows(
+                                    rows = rows,
+                                    query = state.query,
+                                    catalogEmpty = viewModel.allChannels.value.isEmpty(),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -487,7 +569,7 @@ class PlayerActivity : BaseActivity() {
      * 子菜单直接标记当前选项；来源和轨道变化会作废快照，不能误用旧菜单下标。
      */
     private fun showPlaybackSettings() {
-        if (settingsPopup != null || isInPictureInPictureMode) return
+        if (settingsPopup != null || isInPictureInPictureMode || channelPanelVisible) return
         val state = viewModel.uiState.value
         val popup = PopupMenu(
             ContextThemeWrapper(this, R.style.ThemeOverlay_TvWorkshop_PlayerPopup),
@@ -621,7 +703,8 @@ class PlayerActivity : BaseActivity() {
     private fun renderPlaybackOverlay(state: PlayerUiState) {
         val errorVisible = state.allSourcesFailed || state.channelMissing ||
             (state.channel != null && state.sources.isEmpty())
-        binding.playerErrorOverlay.isVisible = errorVisible
+        binding.playerErrorOverlay.isVisible = errorVisible && !channelPanelVisible
+        binding.tvPlayerPreviewError.isVisible = errorVisible && channelPanelVisible
         binding.tvPlayerErrorMessage.text =
             getString(if (state.allSourcesFailed) R.string.play_error_all_sources else R.string.play_error)
         binding.playerBuffering.isVisible = state.isBuffering && !errorVisible
@@ -643,7 +726,7 @@ class PlayerActivity : BaseActivity() {
         if (channel.id == lastOsdChannelId) return
         lastOsdChannelId = channel.id
         binding.tvPlayerOsd.text = channel.name
-        if (controlsVisible || isInPictureInPictureMode) {
+        if (controlsVisible || channelPanelVisible || isInPictureInPictureMode) {
             hideChannelOsd()
             return
         }
@@ -752,8 +835,12 @@ class PlayerActivity : BaseActivity() {
         appliedQualityRequestId = NO_PLAY_REQUEST
     }
 
-    /** 单击播放区：浮层显示时直接隐藏，隐藏时恢复并重新计时。 */
+    /** 单击预览先退出选台；正常观看时切换操作区，错误态仍保持可操作。 */
     private fun toggleControls() {
+        if (channelPanelVisible) {
+            viewModel.closeChannelPanel()
+            return
+        }
         if (errorOverlayVisible) return
         if (controlsVisible) {
             setControlsVisible(visible = false)
@@ -763,8 +850,9 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
-    /** 顶底栏轻移并淡出，隐藏后保留布局尺寸以免遮罩或错误区跳动，同时退出焦点与读屏遍历。 */
-    private fun setControlsVisible(visible: Boolean) {
+    /** 顶底栏轻移并淡出；选台立即隐藏，避免缩小后的预览被过渡中的控件遮挡。 */
+    private fun setControlsVisible(visible: Boolean, animate: Boolean = true) {
+        if (visible && (channelPanelVisible || isInPictureInPictureMode)) return
         val changed = controlsVisible != visible
         controlsVisible = visible
         if (visible) hideChannelOsd()
@@ -779,7 +867,7 @@ class PlayerActivity : BaseActivity() {
             bar.animate().cancel()
             val hiddenTranslation = resources.getDimension(R.dimen.dp_8) *
                 if (bar === binding.playerTopBar) -1f else 1f
-            if (!changed || !ValueAnimator.areAnimatorsEnabled()) {
+            if (!changed || !animate || !ValueAnimator.areAnimatorsEnabled()) {
                 bar.visibility = if (visible) View.VISIBLE else View.INVISIBLE
                 bar.alpha = if (visible) 1f else 0f
                 bar.translationY = if (visible) 0f else hiddenTranslation
@@ -807,19 +895,11 @@ class PlayerActivity : BaseActivity() {
     /** 自动隐藏只适用于前台视频观看，不能打断键盘 / 遥控器或读屏的操作过程。 */
     private fun canAutoHideControls(): Boolean =
         controlsStarted && controlsVisible && hasWindowFocus() && !isInPictureInPictureMode &&
+            !channelPanelVisible &&
             !controlsTouchInProgress && !errorOverlayVisible &&
             settingsPopup == null &&
             accessibilityManager?.isTouchExplorationEnabled != true &&
             !binding.playerTopBar.hasFocus() && !binding.playerBottomBar.hasFocus()
-
-    /** 打开频道列表抽屉（与播放页共享同一 ViewModel）。 */
-    private fun showChannelSheet() {
-        if (supportFragmentManager.isStateSaved ||
-            supportFragmentManager.findFragmentByTag(PlayerChannelsSheetFragment.TAG) != null
-        ) return
-        // 同步提交保证下一次连点能查到现有抽屉，避免叠加多个列表与观察任务。
-        PlayerChannelsSheetFragment().showNow(supportFragmentManager, PlayerChannelsSheetFragment.TAG)
-    }
 
     /**
      * 进入画中画：以 16:9 画幅继续播放当前频道；设备不支持或当前状态不允许时静默忽略，
@@ -856,11 +936,17 @@ class PlayerActivity : BaseActivity() {
             return true
         }
 
+        /** 预览中的双击也只收起列表，避免关闭时额外换台。 */
         override fun onDoubleTap(motionEvent: MotionEvent): Boolean {
+            if (channelPanelVisible) {
+                viewModel.closeChannelPanel()
+                return true
+            }
             switchChannelByTapZone(motionEvent.x)
             return true
         }
 
+        /** 选台期间隔离换台横扫，正常观看才按速度与方向执行。 */
         override fun onFling(
             down: MotionEvent?,
             up: MotionEvent,
@@ -868,7 +954,9 @@ class PlayerActivity : BaseActivity() {
             velocityY: Float,
         ): Boolean {
             val horizontal = abs(velocityX)
-            if (down == null || horizontal < FLING_MIN_VELOCITY || horizontal < abs(velocityY) * FLING_RATIO) {
+            if (channelPanelVisible || down == null || horizontal < FLING_MIN_VELOCITY ||
+                horizontal < abs(velocityY) * FLING_RATIO
+            ) {
                 return false
             }
             if (velocityX > 0) {

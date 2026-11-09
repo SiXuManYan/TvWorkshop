@@ -42,6 +42,7 @@
     <string name="action_prev_channel">이전 채널</string>
     <string name="action_next_channel">다음 채널</string>
     <string name="player_channel_list">채널 목록</string>
+    <string name="player_close_channel_list">채널 목록 닫기</string>
     <string name="player_back">뒤로</string>
 
     <!-- 가져오기 -->

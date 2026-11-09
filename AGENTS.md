@@ -49,7 +49,7 @@ Kotlin 取像素值用 `resources.getDimension(R.dimen.dp_N)`（浮点）或 `ge
 
 界面文案禁止字符串模板拼接后直接 `setText`（触发 Lint `SetTextI18n` 且无法本地化语序）。统一用占位符字符串资源＋位置参数，如 `source_count_format`（`%1$d 路信号`）、`switch_source_format`（`信号源 %1$d/%2$d`）、`import_success_format`（`成功导入 %1$d 个频道`）。
 
-- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 55 个 key；提交前用 key 集合 diff 自查。
+- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 56 个 key；提交前用 key 集合 diff 自查。
 - **2026-11-09 用户明确指定的例外**：关于页、版本更新日志、用户协议、隐私政策本轮仅提供简体中文；新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`。通用 key 继续保持 11 目录一致，不复制中文到各语言目录假作翻译。
 - 频道名称（如「CCTV-1 综合」「BBC World News」）属于**数据而非界面文案**，保持官方命名，不参与多语言，不放入 strings.xml。
 - 无文案词的纯数字 / 十六进制格式化注意 Locale（如 `M3uParser.importedChannelId` 的 `%02x`）；不用 `@Suppress` / `tools:ignore` 压制 `SetTextI18n`。
@@ -65,10 +65,10 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 
 | 层 | 负责 | 边界 |
 |---|---|---|
-| Activity / Fragment（`MainActivity`、`PlayerActivity`、`PlayerChannelsSheetFragment`、`AboutActivity`、`LocalDocumentActivity`） | 生命周期、窗口与 Insets、菜单 / 对话框 / 抽屉、导航、控件渲染与播放器实例托管 | 不直接查询 Room、不下载订阅、不解析 m3u、不管理业务状态机 |
+| Activity（`MainActivity`、`PlayerActivity`、`AboutActivity`、`LocalDocumentActivity`）及视图控制器（`PlayerChannelsPanelController`） | 生命周期、窗口与 Insets、菜单 / 对话框 / 抽屉、导航、控件渲染与播放器实例托管 | 不直接查询 Room、不下载订阅、不解析 m3u、不管理业务状态机 |
 | ViewModel（`BrowseViewModel`、`PlayerViewModel`、`LocalDocumentViewModel`） | 不可变 UiState + StateFlow 只读暴露、用户意图、一次性事件（Channel）、`SavedStateHandle` 恢复 | 不持有 Activity / Fragment / View / Binding / Dialog；`AndroidViewModel` 只取 Application 级依赖 |
 | Repository（`ChannelRepository`、`LocalDocumentRepository`） | Room 读写、订阅下载、m3u 解析调度、内置目录合并、收藏 / 观看记录；离线文档 IO 与后台 Markdown 排版 | 不依赖页面 View 生命周期，不返回 View 类型；耗时操作收敛在 IO / Default 调度器 |
-| Adapter（`ChannelListAdapter`、`ChannelSheetAdapter`） | `ListAdapter` + DiffUtil 渲染，监听器绑定一次、数据幂等回填 | 不持有业务状态；点击经回调交给页面，最终转交 ViewModel |
+| Adapter（`ChannelListAdapter`、`ChannelPanelAdapter`） | `ListAdapter` + DiffUtil 渲染，监听器绑定一次、数据幂等回填 | 不持有业务状态；点击经回调交给页面，最终转交 ViewModel |
 
 - 页面状态用不可变 `XxxUiState`（`BrowseUiState` / `PlayerUiState`）经 `StateFlow` 只读暴露；一次性提示（导入结果、收藏提示）用 `Channel`，统一在 `repeatOnLifecycle(STARTED)` 期间收集。
 - `SavedStateHandle` 只放频道 id、信号源下标、枚举名、查询词等小型可序列化数据；Intent extras 键与恢复句柄键复用（`PlayerActivity.EXTRA_CHANNEL_ID` / `EXTRA_SOURCE_INDEX`）。
@@ -84,7 +84,7 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 | 页面 | 外观 | Insets 责任 |
 |---|---|---|
 | 主页 | 列表铺满全屏，`clipToPadding=false`；「Toolbar + 分类 Chip」为半透明浮层，背景 alpha 230/255；加载 / 空态在浮层下方可滚动 | 根容器避让左右系统栏∪挖孔；浮层 padding 顶 = 状态栏∪挖孔；列表顶部 padding 随浮层实测高度变化同步；列表与状态区底部 padding = max(导航栏, IME) + 16dp 留白 |
-| 播放页 | 纯黑背景，系统栏固定深色样式并沉浸隐藏，边缘滑动临时唤出；顶底栏用边缘黑色渐隐遮罩，中央画面不压暗；错误内容在操作条之间可滚动 | 按忽略可见性的系统栏∪挖孔保持稳定安全区，顶底栏、错误内容和边缘换台提示分别避让；以 XML 初始值为基准、重复分发不累加，消费后返回 `CONSUMED` |
+| 播放页 | 纯黑背景，系统栏固定深色样式并沉浸隐藏，边缘滑动临时唤出；顶底栏用边缘黑色渐隐遮罩，中央画面不压暗；错误内容在操作条之间可滚动 | 按忽略可见性的系统栏∪挖孔保持稳定安全区，全屏由顶底栏、错误内容和边缘换台提示分别避让；选台时根布局统一避让系统栏∪挖孔∪IME，子控件不重复避让；以 XML 初始值为基准、重复分发不累加，消费后返回 `CONSUMED` |
 | 关于 / 本地文档页 | DayNight 信息卡与阅读卡片，内容最大宽度 500dp；文档章节导航固定在顶部 | 根容器按系统栏∪挖孔∪IME 设置绝对 padding，消费后返回 `CONSUMED`；列表与正文不再重复避让 |
 
 - 避让量按绝对值设置，不重复累加同一段系统栏高度；浮层只调背景透明度，不降低控件 alpha。
@@ -99,7 +99,8 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 - **直播缓冲配置**：`DefaultLoadControl` 起播阈值 800ms / 重缓冲 1500ms，min 15s / max 30s（`PlayerActivity.ensurePlayer`）；这些是媒体缓冲参数，不作为实际出画耗时或性能提升的实测结论。
 - **信号源自动轮换**：`Player.Listener.onPlayerError` 交 ViewModel 按下标顺序切下一路；末路失败进入 `allSourcesFailed` 错误态停止轮换，并做**有限自动重试**（延迟 8 秒、最多 2 次，重试当前源）。换频道、手动重试或换源取消待执行重试；当前只有换频道与手动重试归零计数，换源保留计数。手动换源（`nextSource`）循环切换且可从错误态恢复。
 - **播放设置**：线路可直接选中，校验菜单媒体请求代次与当前选项；重复选择正常播放线路不重装媒体。换频道、自动换源、画质偏好或选项变化即关闭旧菜单；退后台和进入画中画同时关闭根菜单及独立子菜单，避免残留弹窗。
-- **播放区手势与换台 OSD**：单击确认（约 300ms 去抖）切换浮层显隐；双击左 / 右半区、横向轻扫（速度阈值 + 横纵比约束）按方向换台；仅操作区隐藏时在顶部起始边缘显示频道名 1.5 秒再淡出，不与已显示的标题重复。触摸经手势识别后以 `performClick` 驱动点击监听，保证 TalkBack / 键盘激活与触摸行为一致。
+- **同页选台**：频道列表与视频为兄弟节点，不使用 BottomSheet 或遮挡视频的抽屉；可用宽度至少 600dp 时在末端显示 280～320dp 列表，窄窗口视频置顶、列表在下方。选台期间隐藏顶底栏与频道 OSD；点选频道、关闭按钮、系统返回或点击预览收起列表，恢复全屏；预览不响应双击 / 横扫换台。查询与开关由 ViewModel / SavedStateHandle 保存，目录过滤在 Default 调度器且仅在面板可见、页面 STARTED 时收集；重建沿用滚动位置，主动重开清空查询并定位当前频道一次。键盘不自动弹出，IME / 窗口尺寸变化按实际空间重排；进入画中画关闭面板并恢复全尺寸视频。
+- **播放区手势与换台 OSD**：单击确认（约 300ms 去抖）切换浮层显隐；正常观看时双击左 / 右半区、横向轻扫（速度阈值 + 横纵比约束）按方向换台；仅操作区隐藏时在顶部起始边缘显示频道名 1.5 秒再淡出，不与已显示的标题重复。触摸经手势识别后以 `performClick` 驱动点击监听，保证 TalkBack / 键盘激活与触摸行为一致。
 - **画中画**：播放页 `supportsPictureInPicture`，设置菜单入口以 16:9 画幅进入；进入后覆盖层整体隐藏、退出恢复并重新计时自动隐藏；设备不支持时不提供该菜单项，调用仍做能力检查，不打断前台播放。
 - 旋转由 Manifest `configChanges`（orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden）接管，播放页 `sensorLandscape` + `singleTop` + `exported=false` + `supportsPictureInPicture`，不重建、不重复初始化。
 - m3u / m3u8 地址构造 `MediaItem` 时显式声明 `MimeTypes.APPLICATION_M3U8`，避免带查询串时按扩展名推断失败；其余地址交由 ExoPlayer 自动识别。
@@ -115,7 +116,7 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 - 浏览页列表调优：列表自身尺寸不依赖条目内容，启用 `setHasFixedSize`（不要求各条目等高）；离屏缓存加大到 4 条；关闭变更动画（仅保留增删 / 移动动画）；后续分类切换才回顶，首次渲染保留恢复位置，异步目录使用 `PREVENT_WHEN_EMPTY`；Snackbar 同一时刻仅保留最新一条；收藏星点击带触感反馈（`CONTEXT_CLICK`）。频道名最多两行，分类与信号数摘要可换行，避免挤占收藏触达区。
 - 播放页快速连续换频道：以上次请求目标为基准继续换台，先取消上一次加载 Job，结果写回前再核对「是否仍是最新请求」，观看记录跟随核对后的结果落库。媒体回调携带 `MediaItem.mediaId` 中的请求序号并核对当前代次。
 - 收藏写入收敛为 DAO 单条事务（`FavoriteChannelDao.toggle`）；浏览页按点击顺序写入，乐观覆盖同步取值且仅由相同代次释放（1 秒宽限），播放页星标统一由仓库流驱动。
-- 浏览页状态合成与抽屉过滤在 Default 调度器执行，频道 id 索引只在全集变化时重建。导入地址用集合保序去重，DAO `INSERT IGNORE` 原子跳过已有 id 并据实际 rowid 计数，不先加载旧频道正文。
+- 浏览页状态合成与选台面板过滤在 Default 调度器执行，频道 id 索引只在全集变化时重建。导入地址用集合保序去重，DAO `INSERT IGNORE` 原子跳过已有 id 并据实际 rowid 计数，不先加载旧频道正文。
 - 列表用稳定业务身份（频道 id）+ `ListAdapter` / DiffUtil 增量更新；相等结果不重复提交；未变化的渲染不触发无谓重绘。
 
 ## 数据模型与 @Keep

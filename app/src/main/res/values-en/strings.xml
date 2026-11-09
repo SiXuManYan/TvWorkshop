@@ -37,6 +37,7 @@
     <string name="action_prev_channel">Previous channel</string>
     <string name="action_next_channel">Next channel</string>
     <string name="player_channel_list">Channel list</string>
+    <string name="player_close_channel_list">Close channel list</string>
     <string name="player_back">Back</string>
     <string name="channel_now_playing">Now playing</string>
     <string name="player_quality_current_format">Quality: %1$s</string>

@@ -33,4 +33,12 @@
     </style>
     <!-- 播放设置固定深色，浅色系统主题下也与视频控件保持一致。 -->
     <style name="ThemeOverlay.TvWorkshop.PlayerPopup" parent="ThemeOverlay.AppCompat.Dark" />
+    <!-- 选台面板固定深色，输入、列表和焦点在浅色系统主题下仍与播放区一致。 -->
+    <style name="ThemeOverlay.TvWorkshop.PlayerPanel" parent="ThemeOverlay.Material3.Dark">
+        <item name="colorSurface">@color/tv_player_panel_background</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="colorOnSurfaceVariant">@color/tv_player_panel_secondary_text</item>
+        <item name="colorPrimary">@color/tv_player_panel_accent</item>
+        <item name="colorOutline">@color/tv_player_panel_secondary_text</item>
+    </style>
 </resources>

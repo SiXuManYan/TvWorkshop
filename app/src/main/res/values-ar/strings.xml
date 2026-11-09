@@ -37,6 +37,7 @@
     <string name="action_prev_channel">القناة السابقة</string>
     <string name="action_next_channel">القناة التالية</string>
     <string name="player_channel_list">قائمة القنوات</string>
+    <string name="player_close_channel_list">إغلاق قائمة القنوات</string>
     <string name="player_back">رجوع</string>
     <string name="channel_now_playing">قيد التشغيل</string>
     <string name="player_quality_current_format">الجودة: %1$s</string>

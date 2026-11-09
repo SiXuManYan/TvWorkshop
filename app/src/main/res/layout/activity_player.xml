@@ -1,261 +1,297 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 播放页：边缘渐隐操作区，中央保留给画面，次要操作收进播放设置。 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 视频和选台列表分别占据布局空间，选台期间缩放视频区域而非覆盖画面。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/player_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/tv_player_background">
+    android:background="@color/tv_player_background"
+    android:orientation="horizontal">
 
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/player_view"
-        android:layout_width="match_parent"
+    <FrameLayout
+        android:id="@+id/player_stage"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:contentDescription="@string/player_toggle_controls"
-        android:focusable="true"
-        app:surface_type="surface_view"
-        app:use_controller="false" />
+        android:layout_weight="1">
 
-    <!-- 覆盖层根容器：自身不拦截点击，空白区域穿透到播放区用于切换浮层显隐 -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/player_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/player_toggle_controls"
+            android:focusable="true"
+            app:resize_mode="fit"
+            app:surface_type="surface_view"
+            app:use_controller="false" />
 
-        <!-- 顶栏：返回、频道名、分类名、收藏 -->
-        <LinearLayout
-            android:id="@+id/player_top_bar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_player_top_scrim"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="@dimen/dp_8"
-            android:paddingTop="@dimen/dp_4"
-            android:paddingEnd="@dimen/dp_8"
-            android:paddingBottom="@dimen/dp_20"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+        <!-- 覆盖层根容器：自身不拦截点击，空白区域穿透到播放区用于切换浮层显隐 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/player_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_player_back"
-                style="@style/Widget.TvWorkshop.PlayerIconButton"
-                android:contentDescription="@string/player_back"
-                android:src="@drawable/ic_player_back"
-                app:tint="@color/white" />
-
+            <!-- 顶栏：返回、频道名、分类名、收藏 -->
             <LinearLayout
+                android:id="@+id/player_top_bar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/dp_8"
-                android:layout_marginEnd="@dimen/dp_8"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:background="@drawable/bg_player_top_scrim"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/dp_8"
+                android:paddingTop="@dimen/dp_4"
+                android:paddingEnd="@dimen/dp_8"
+                android:paddingBottom="@dimen/dp_20"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-                <TextView
-                    android:id="@+id/tv_player_channel_name"
-                    android:layout_width="match_parent"
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_player_back"
+                    style="@style/Widget.TvWorkshop.PlayerIconButton"
+                    android:contentDescription="@string/player_back"
+                    android:src="@drawable/ic_player_back"
+                    app:tint="@color/white" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/white"
-                    android:textSize="@dimen/sp_18"
-                    android:textStyle="bold" />
+                    android:layout_marginStart="@dimen/dp_8"
+                    android:layout_marginEnd="@dimen/dp_8"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tv_player_category_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:alpha="0.7"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/white"
-                    android:textSize="@dimen/sp_12" />
-            </LinearLayout>
-
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_player_favorite"
-                style="@style/Widget.TvWorkshop.PlayerIconButton"
-                android:contentDescription="@string/favorite_add"
-                android:src="@drawable/ic_player_favorite_outline"
-                app:tint="@color/white" />
-        </LinearLayout>
-
-        <!-- 中央缓冲指示器：仅在缓冲且无错误时显示 -->
-        <ProgressBar
-            android:id="@+id/player_buffering"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminateTint="@color/white"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- 错误内容在上下操作条之间独立滚动，大字体与短窗口下仍能触达重试。 -->
-        <androidx.core.widget.NestedScrollView
-            android:id="@+id/player_error_overlay"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginHorizontal="@dimen/dp_16"
-            android:layout_marginVertical="@dimen/dp_8"
-            android:fillViewport="true"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/player_bottom_bar"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/player_top_bar"
-            app:layout_constraintWidth_max="@dimen/dp_400">
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    app:cardBackgroundColor="@color/tv_player_control_background"
-                    app:cardCornerRadius="@dimen/dp_16"
-                    app:cardElevation="0dp">
-
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tv_player_channel_name"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_horizontal"
-                        android:orientation="vertical"
-                        android:padding="@dimen/dp_16">
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/sp_18"
+                        android:textStyle="bold" />
 
-                        <ImageView
-                            android:id="@+id/iv_player_error_icon"
-                            android:layout_width="@dimen/dp_32"
-                            android:layout_height="@dimen/dp_32"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_player_error"
-                            app:tint="@color/white" />
+                    <TextView
+                        android:id="@+id/tv_player_category_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:alpha="0.7"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/white"
+                        android:textSize="@dimen/sp_12" />
+                </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/tv_player_error_message"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/dp_12"
-                            android:gravity="center"
-                            android:text="@string/play_error"
-                            android:textColor="@color/white"
-                            android:textSize="@dimen/sp_16" />
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_player_favorite"
+                    style="@style/Widget.TvWorkshop.PlayerIconButton"
+                    android:contentDescription="@string/favorite_add"
+                    android:src="@drawable/ic_player_favorite_outline"
+                    app:tint="@color/white" />
+            </LinearLayout>
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_player_retry"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/dp_16"
-                            android:minHeight="@dimen/dp_48"
-                            android:text="@string/action_retry" />
-
-                        <androidx.appcompat.widget.AppCompatButton
-                            android:id="@+id/btn_player_error_switch_source"
-                            style="@style/Widget.TvWorkshop.PlayerTextButton"
-                            android:layout_width="match_parent"
-                            android:layout_marginTop="@dimen/dp_4"
-                            android:maxLines="2" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </FrameLayout>
-        </androidx.core.widget.NestedScrollView>
-
-        <!-- 隐藏控件时才在左上角短暂提示换台结果，避免重复标题和中央遮挡。 -->
-        <TextView
-            android:id="@+id/tv_player_osd"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/dp_16"
-            android:layout_marginTop="@dimen/dp_12"
-            android:layout_marginEnd="@dimen/dp_16"
-            android:alpha="0"
-            android:background="@drawable/bg_player_osd"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:maxWidth="@dimen/dp_320"
-            android:importantForAccessibility="no"
-            android:paddingStart="@dimen/dp_16"
-            android:paddingTop="@dimen/dp_8"
-            android:paddingEnd="@dimen/dp_16"
-            android:paddingBottom="@dimen/dp_8"
-            android:textColor="@color/white"
-            android:textSize="@dimen/sp_14"
-            android:textStyle="bold"
-            android:visibility="gone"
-            app:layout_constrainedWidth="true"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <!-- 常用换台入口固定可见；频道文字受限省略，设置固定在末端，无需横向寻找按钮。 -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/player_bottom_bar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_player_bottom_scrim"
-            android:paddingStart="@dimen/dp_8"
-            android:paddingTop="@dimen/dp_24"
-            android:paddingEnd="@dimen/dp_8"
-            android:paddingBottom="@dimen/dp_4"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
-
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_player_prev"
-                style="@style/Widget.TvWorkshop.PlayerIconButton"
-                android:contentDescription="@string/action_prev_channel"
-                android:src="@drawable/ic_player_prev"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btn_player_channel_list"
-                app:layout_constraintHorizontal_bias="0"
-                app:layout_constraintHorizontal_chainStyle="packed"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:tint="@color/white" />
-
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btn_player_channel_list"
-                style="@style/Widget.TvWorkshop.PlayerTextButton"
-                android:layout_width="0dp"
-                android:contentDescription="@string/player_channel_list"
-                android:drawableStart="@drawable/ic_player_channel_list"
-                android:drawablePadding="@dimen/dp_8"
-                android:ellipsize="end"
-                android:minWidth="@dimen/dp_48"
-                android:text="@string/player_channel_list"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btn_player_next"
-                app:layout_constraintStart_toEndOf="@id/btn_player_prev"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintWidth_max="@dimen/dp_160" />
-
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_player_next"
-                style="@style/Widget.TvWorkshop.PlayerIconButton"
-                android:layout_marginEnd="@dimen/dp_16"
-                android:contentDescription="@string/action_next_channel"
-                android:src="@drawable/ic_player_next"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btn_player_settings"
-                app:layout_constraintStart_toEndOf="@id/btn_player_channel_list"
-                app:layout_constraintTop_toTopOf="parent"
-                app:tint="@color/white" />
-
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_player_settings"
-                style="@style/Widget.TvWorkshop.PlayerIconButton"
-                android:contentDescription="@string/player_settings"
-                android:src="@drawable/ic_player_settings"
+            <!-- 中央缓冲指示器：仅在缓冲且无错误时显示 -->
+            <ProgressBar
+                android:id="@+id/player_buffering"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="@color/white"
+                android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:tint="@color/white" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- 选台预览只显示简短错误；点击视频或关闭面板后可使用完整重试操作。 -->
+            <TextView
+                android:id="@+id/tv_player_preview_error"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/play_error"
+                android:textColor="@color/white"
+                android:textSize="@dimen/sp_14"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- 错误内容在上下操作条之间独立滚动，大字体与短窗口下仍能触达重试。 -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/player_error_overlay"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginHorizontal="@dimen/dp_16"
+                android:layout_marginVertical="@dimen/dp_8"
+                android:fillViewport="true"
+                android:visibility="gone"
+                app:layout_constraintBottom_toTopOf="@id/player_bottom_bar"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/player_top_bar"
+                app:layout_constraintWidth_max="@dimen/dp_400">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="@color/tv_player_control_background"
+                        app:cardCornerRadius="@dimen/dp_16"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical"
+                            android:padding="@dimen/dp_16">
+
+                            <ImageView
+                                android:id="@+id/iv_player_error_icon"
+                                android:layout_width="@dimen/dp_32"
+                                android:layout_height="@dimen/dp_32"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_player_error"
+                                app:tint="@color/white" />
+
+                            <TextView
+                                android:id="@+id/tv_player_error_message"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/dp_12"
+                                android:gravity="center"
+                                android:text="@string/play_error"
+                                android:textColor="@color/white"
+                                android:textSize="@dimen/sp_16" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_player_retry"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/dp_16"
+                                android:minHeight="@dimen/dp_48"
+                                android:text="@string/action_retry" />
+
+                            <androidx.appcompat.widget.AppCompatButton
+                                android:id="@+id/btn_player_error_switch_source"
+                                style="@style/Widget.TvWorkshop.PlayerTextButton"
+                                android:layout_width="match_parent"
+                                android:layout_marginTop="@dimen/dp_4"
+                                android:maxLines="2" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </FrameLayout>
+            </androidx.core.widget.NestedScrollView>
+
+            <!-- 隐藏控件时才在左上角短暂提示换台结果，避免重复标题和中央遮挡。 -->
+            <TextView
+                android:id="@+id/tv_player_osd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/dp_16"
+                android:layout_marginTop="@dimen/dp_12"
+                android:layout_marginEnd="@dimen/dp_16"
+                android:alpha="0"
+                android:background="@drawable/bg_player_osd"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="@dimen/dp_320"
+                android:importantForAccessibility="no"
+                android:paddingStart="@dimen/dp_16"
+                android:paddingTop="@dimen/dp_8"
+                android:paddingEnd="@dimen/dp_16"
+                android:paddingBottom="@dimen/dp_8"
+                android:textColor="@color/white"
+                android:textSize="@dimen/sp_14"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constrainedWidth="true"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- 常用换台入口固定可见；频道文字受限省略，设置固定在末端，无需横向寻找按钮。 -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/player_bottom_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_player_bottom_scrim"
+                android:paddingStart="@dimen/dp_8"
+                android:paddingTop="@dimen/dp_24"
+                android:paddingEnd="@dimen/dp_8"
+                android:paddingBottom="@dimen/dp_4"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_player_prev"
+                    style="@style/Widget.TvWorkshop.PlayerIconButton"
+                    android:contentDescription="@string/action_prev_channel"
+                    android:src="@drawable/ic_player_prev"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btn_player_channel_list"
+                    app:layout_constraintHorizontal_bias="0"
+                    app:layout_constraintHorizontal_chainStyle="packed"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/white" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_player_channel_list"
+                    style="@style/Widget.TvWorkshop.PlayerTextButton"
+                    android:layout_width="0dp"
+                    android:contentDescription="@string/player_channel_list"
+                    android:drawableStart="@drawable/ic_player_channel_list"
+                    android:drawablePadding="@dimen/dp_8"
+                    android:ellipsize="end"
+                    android:minWidth="@dimen/dp_48"
+                    android:text="@string/player_channel_list"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btn_player_next"
+                    app:layout_constraintStart_toEndOf="@id/btn_player_prev"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintWidth_max="@dimen/dp_160" />
+
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_player_next"
+                    style="@style/Widget.TvWorkshop.PlayerIconButton"
+                    android:layout_marginEnd="@dimen/dp_16"
+                    android:contentDescription="@string/action_next_channel"
+                    android:src="@drawable/ic_player_next"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/btn_player_settings"
+                    app:layout_constraintStart_toEndOf="@id/btn_player_channel_list"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/white" />
+
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_player_settings"
+                    style="@style/Widget.TvWorkshop.PlayerIconButton"
+                    android:contentDescription="@string/player_settings"
+                    android:src="@drawable/ic_player_settings"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="@color/white" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</FrameLayout>
+    </FrameLayout>
+
+    <!-- 作为视频区域的兄弟节点，横排或竖排均不叠加到 PlayerView 上。 -->
+    <include
+        android:id="@+id/player_channels_panel"
+        layout="@layout/panel_player_channels"
+        android:layout_width="@dimen/dp_280"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+</LinearLayout>

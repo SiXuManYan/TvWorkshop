@@ -42,6 +42,7 @@
     <string name="action_prev_channel">Canal anterior</string>
     <string name="action_next_channel">Canal siguiente</string>
     <string name="player_channel_list">Lista de canales</string>
+    <string name="player_close_channel_list">Cerrar lista de canales</string>
     <string name="player_back">Atrás</string>
 
     <!-- Importación -->

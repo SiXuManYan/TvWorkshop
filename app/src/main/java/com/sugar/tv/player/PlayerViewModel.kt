@@ -32,8 +32,8 @@ import kotlinx.coroutines.launch
  * 持久化与解析全部下沉到仓库层并在 IO 调度器执行，本类不持有 View / Context（Application 除外）。
  *
  * @param application Application 级上下文，仅用于获取 [TvApplication.channelRepository]
- * @param savedStateHandle 恢复句柄：进程重建后恢复频道 id 与上次选择的信号源下标；
- *   键复用 [PlayerActivity] 的 Intent 常量（Intent extras 会作为初始值进入 SavedStateHandle）
+ * @param savedStateHandle 恢复句柄：进程重建后恢复频道、信号源与选台面板的开关和查询词；
+ *   频道与信号源键复用 [PlayerActivity] 的 Intent 常量（extras 作为初始值进入恢复句柄）
  */
 class PlayerViewModel(
     application: Application,
@@ -49,10 +49,21 @@ class PlayerViewModel(
     /** 播放页 UI 状态（不可变，只读暴露）。 */
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
-    /** 仓库频道全集快照，供换台和抽屉过滤共用。 */
+    /** 选台状态单独保存，输入变化不触发整个播放状态的重新渲染。 */
+    private val _channelPanelState = MutableStateFlow(
+        ChannelPanelUiState(
+            isOpen = savedStateHandle[CHANNEL_PANEL_OPEN] ?: false,
+            query = savedStateHandle[CHANNEL_PANEL_QUERY] ?: "",
+        ),
+    )
+
+    /** 频道面板开关与输入，跨前后台和进程重建恢复。 */
+    val channelPanelState: StateFlow<ChannelPanelUiState> = _channelPanelState.asStateFlow()
+
+    /** 仓库频道全集快照，供换台和面板过滤共用。 */
     private val _allChannels = MutableStateFlow<List<Channel>>(emptyList())
 
-    /** 全部频道（按仓库全集顺序），供频道抽屉展示与上 / 下频道切换。 */
+    /** 全部频道（按仓库全集顺序），供频道面板展示与上 / 下频道切换。 */
     val allChannels: StateFlow<List<Channel>> = _allChannels.asStateFlow()
 
     /** 收藏操作成功的一次性提示通道。 */
@@ -113,11 +124,11 @@ class PlayerViewModel(
     /**
      * 加载并开始播放指定频道：查询频道、恢复收藏态并记录一次观看。
      *
-     * 快速连续换频道（上一 / 下一、抽屉点选并发）时，先取消上一次未完成的加载任务，
+     * 快速连续换频道（上一 / 下一、面板点选并发）时，先取消上一次未完成的加载任务，
      * 查询返回后再核对「是否仍是最新请求」：两者共同保证只有最后选择的频道会写入
      * UI 状态与恢复句柄，旧频道结果不会覆盖用户最后的选择。
      *
-     * 首次进入按 Intent / 恢复值选择起始信号源；同一频道重复加载（如抽屉再次点选当前频道）
+     * 首次进入按 Intent / 恢复值选择起始信号源；同一频道重复加载（如面板再次点选当前频道）
      * 保持当前源且不重新装载播放请求；切换到新频道则从第一路信号源开始。
      */
     fun loadChannel(channelId: String) {
@@ -361,17 +372,40 @@ class PlayerViewModel(
         }
     }
 
-    /** 在 Default 调度器合成抽屉列表，搜索与播放状态变化只重建必要的行数据。 */
-    fun channelSheetRows(query: StateFlow<String>): Flow<List<ChannelSheetRow>> = combine(
-        allChannels,
-        uiState.map { it.channel?.id }.distinctUntilChanged(),
-        query,
-    ) { channels, playingId, search ->
-        channels.asSequence()
-            .filter { search.isEmpty() || it.name.contains(search, ignoreCase = true) }
-            .map { ChannelSheetRow(channel = it, isPlaying = it.id == playingId) }
-            .toList()
-    }.distinctUntilChanged().flowOn(Dispatchers.Default)
+    /** 每次主动打开从当前频道开始浏览；已打开或前后台恢复不清空查询。 */
+    fun openChannelPanel() {
+        if (_channelPanelState.value.isOpen) return
+        savedStateHandle[CHANNEL_PANEL_OPEN] = true
+        savedStateHandle[CHANNEL_PANEL_QUERY] = ""
+        _channelPanelState.update { it.copy(isOpen = true, query = "") }
+    }
+
+    /** 收起面板，只改变选台 UI，不重新装载当前媒体。 */
+    fun closeChannelPanel() {
+        savedStateHandle[CHANNEL_PANEL_OPEN] = false
+        _channelPanelState.update { it.copy(isOpen = false) }
+    }
+
+    /** 输入原文进入恢复句柄；过滤流在后台统一处理空白与大小写。 */
+    fun onChannelQueryChanged(query: String) {
+        if (_channelPanelState.value.query == query) return
+        savedStateHandle[CHANNEL_PANEL_QUERY] = query
+        _channelPanelState.update { it.copy(query = query) }
+    }
+
+    /** 仅由可见面板收集；查询变化时 UI 取消旧流，避免隐藏期间持续构造列表。 */
+    fun channelPanelRows(query: String): Flow<List<ChannelPanelRow>> {
+        val search = query.trim()
+        return combine(
+            allChannels,
+            uiState.map { it.channel?.id }.distinctUntilChanged(),
+        ) { channels, playingId ->
+            channels.asSequence()
+                .filter { search.isEmpty() || it.name.contains(search, ignoreCase = true) }
+                .map { ChannelPanelRow(channel = it, isPlaying = it.id == playingId) }
+                .toList()
+        }.distinctUntilChanged().flowOn(Dispatchers.Default)
+    }
 
     override fun onCleared() {
         // ViewModel 销毁时关闭一次性事件通道，缓冲中的提示仍可被收集方消费完
@@ -404,6 +438,12 @@ class PlayerViewModel(
     }
 
     private companion object {
+        /** 选台开关和查询分别存入恢复句柄，不保存频道对象或整个列表。 */
+        const val CHANNEL_PANEL_OPEN = "channel_panel_open"
+
+        /** 保留用户尚未完成的输入，面板主动重新打开时再清空。 */
+        const val CHANNEL_PANEL_QUERY = "channel_panel_query"
+
         /** 「全部失败」后自动重试的延迟（毫秒）：给网络抖动留出恢复窗口。 */
         const val AUTO_RETRY_DELAY_MS = 8_000L
 

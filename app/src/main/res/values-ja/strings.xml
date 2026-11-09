@@ -42,6 +42,7 @@
     <string name="action_prev_channel">前のチャンネル</string>
     <string name="action_next_channel">次のチャンネル</string>
     <string name="player_channel_list">チャンネルリスト</string>
+    <string name="player_close_channel_list">チャンネル一覧を閉じる</string>
     <string name="player_back">戻る</string>
 
     <!-- インポート -->

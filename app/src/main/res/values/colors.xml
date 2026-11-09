@@ -37,6 +37,10 @@
     <color name="tv_player_control_background">#80000000</color>
     <color name="tv_player_edge_scrim">#CC000000</color>
     <color name="tv_player_control_highlight">#33FFFFFF</color>
+    <color name="tv_player_panel_background">#FF181B20</color>
+    <color name="tv_player_panel_secondary_text">#FFB8C0CC</color>
+    <color name="tv_player_panel_accent">#FFA8C8FF</color>
+    <color name="tv_player_panel_selected">#FF263952</color>
 
     <!-- 列表按压涟漪高亮：drawable 内嵌套 selector / ripple 不允许 ?attr 引用（BottomSheet
          等 LayoutInflater 包装路径下解析不到会直接崩溃），必须引用直接颜色资源 -->

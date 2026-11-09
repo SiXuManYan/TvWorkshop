@@ -4,6 +4,17 @@ import com.sugar.tv.data.model.Channel
 import com.sugar.tv.data.model.ChannelSource
 
 /**
+ * 选台面板的可恢复状态；只保存小型数据，不持有列表或视图。
+ *
+ * @property isOpen 是否正在浏览频道列表
+ * @property query 原始查询文字，保留输入光标附近的空格，筛选时另行 trim
+ */
+data class ChannelPanelUiState(
+    val isOpen: Boolean = false,
+    val query: String = "",
+)
+
+/**
  * 视频清晰度档位：来自播放器 `Tracks` 回调中同一频道的多个视频格式。
  *
  * @property height 视频高度（像素），如 1080；展示标签由 UI 侧格式化
