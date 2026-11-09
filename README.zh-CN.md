@@ -2,124 +2,110 @@
 
 [![English](https://img.shields.io/badge/Language-English-blue?style=for-the-badge)](README.md)
 
-### Special Thanks
+电视工坊是一款面向个人技术学习与研究的 Android 直播电视播放器。它在本机浏览、搜索和播放第三方直播地址，提供收藏、最近观看、m3u / m3u8 导入、自动换源、清晰度选择和画中画等功能。
 
-特别感谢所有开源项目与第三方库的作者和维护者，也感谢身边参与测试、提出建议的朋友们。你们的时间、智慧与支持，让本项目得以不断完善 ❤️
+当前源码版本为 `1.0`，最低支持 Android 10（API 29）。项目使用 Kotlin、Android View/XML、ViewBinding 和 MVVM。
 
-本项目的实现离不开以下开源项目、第三方组件与内容来源的帮助：
+## 项目概览
 
-- [fanmingming/live](https://github.com/fanmingming/live) — 部分内置电视频道列表与信号地址的参考来源，包括部分央视与 CGTN 主源。感谢作者与维护者对直播列表的整理与维护。
-- [iptv-org/iptv](https://github.com/iptv-org/iptv) — 部分国内外频道地址与频道分类列表的参考来源。
-- [Guovin/iptv-api](https://github.com/Guovin/iptv-api) — 直播源整理工具；部分内置地址可追溯到其历史输出文件。
-- [Kotlin](https://github.com/JetBrains/kotlin) — 应用开发语言与标准库。
-- [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) — 协程、异步任务与 Flow 状态流。
-- [Material Components for Android](https://github.com/material-components/material-components-android) — Material 界面控件、主题与对话框。
-- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx) — Core、Annotation、AppCompat、Lifecycle、ConstraintLayout 与 RecyclerView，提供界面、列表与页面状态管理。
-- [AndroidX Media3](https://github.com/androidx/media) — ExoPlayer、HLS 与播放器 UI，提供直播媒体播放能力。
-- [Room](https://developer.android.com/jetpack/androidx/releases/room) — 收藏、最近观看与导入频道的本地数据库。
-- [Markwon](https://github.com/noties/Markwon) / [CommonMark Java](https://github.com/commonmark/commonmark-java) — 中文离线文档的 Markdown 解析与排版，页面结构参考拼图工坊与 RadioWorkshop。
-- [JUnit 4](https://github.com/junit-team/junit4) / [AndroidX Test 与 Espresso](https://github.com/android/android-test) — JVM 单元测试与 Android 界面测试基础。
-- [Gradle](https://github.com/gradle/gradle) / [Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) / [KSP](https://github.com/google/ksp) — 构建工具链与 Room 编译期符号处理。
+| 项目 | 当前行为 |
+| --- | --- |
+| 内置目录 | 66 个频道、162 个播放地址；目录随应用发布，不会启动时自动同步上游 |
+| 导入方式 | 粘贴单行 HTTP(S) 订阅地址，或直接粘贴 m3u / m3u8 正文；导入是一次性快照 |
+| 播放方式 | 支持全屏和画中画；普通退后台停止播放 |
+| 本地记录 | 保存收藏、最近观看和导入频道；系统可能参与备份或设备迁移 |
+| 网络请求 | 订阅下载和播放资源由设备直接访问第三方服务，应用不做遥测或播放行为上报 |
+| 随包文档 | 关于页提供离线更新日志、用户协议、隐私政策和频道来源说明 |
 
-具体列表出处、实际流服务与内容权利方的区别，见[内置频道与直播源说明](#内置频道与直播源说明)。
+## 功能概览
 
----
+### 浏览与导入
 
-一款用于个人技术学习与研究的 Android 直播电视播放器：在本机浏览、搜索并播放第三方直播地址，支持收藏、最近观看、m3u / m3u8 频道列表导入与信号源自动轮换。
+- 按最近观看、央视、卫视、外国频道和自定义分类浏览。
+- 主页搜索按频道名包含匹配，输入有 250ms 去抖，筛选在后台执行，页面重建后恢复已生效查询。
+- 可以在频道条目或播放页收藏频道，播放请求会写入最近观看记录。
+- 导入入口支持订阅地址或列表正文，也兼容多行裸 URL；同一批次的同名频道会合并线路并按顺序去重。
+- 与内置频道同名但拥有新地址的条目另存为导入频道，重复导入已有记录不会更新其中的其他线路。导入频道按名称和分组分类，不一定出现在“自定义”。
+- “清空自定义频道”会删除全部导入频道，保留收藏和最近观看记录。
 
-当前源码版本：`1.0`。要求 Android 10（API 29）及以上。基于 Kotlin、Android View 体系 / XML、ViewBinding 与 MVVM 构建。
+### 播放与换台
 
-## 功能
+- 播放错误后按顺序尝试后续线路；末路失败后每隔 8 秒自动重试当前线路，最多 2 次。
+- 上一频道、频道列表、下一频道固定在底部；线路、画质和画中画放在设置菜单中。
+- 多档视频源可选择自动、最高或高度上限；新源没有原高度时回落自动档。
+- 双击左右半区或横向轻扫可以换台。操作区隐藏时，频道名称只在顶部边缘短暂提示，不覆盖画面中央。
+- 操作区通常在 3 秒无操作后隐藏，键盘、遥控器焦点、读屏或错误提示需要操作时保持可见。
+- 频道列表与视频在同一页分区：宽窗口并排，窄窗口上下排列。列表可搜索并标出当前频道，点选、关闭、返回或点击预览均可恢复全屏；页面重建后保留查询和列表位置。
+- 设备支持时可以进入画中画。普通退后台不会继续播放，回到前台后按当前状态重新装载线路。
 
-| 功能 | 说明 |
-|---|---|
-| 频道分类浏览 | 最近观看 / 央视（含 CGTN）/ 卫视 / 外国频道 / 自定义五类，横向 Chip 单选切换 |
-| 内置频道目录 | 随应用内置 66 个频道（央视 24、卫视 32、外国 10）、162 个播放地址；「主源 / 备用」表示尝试顺序 |
-| 收藏 | 列表条目星标与播放页收藏按钮，写入本地 Room；列表乐观状态按点击代次确认，播放页星标跟随数据库观察流 |
-| 最近观看 | 播放即记录，按最近时间倒序展示；清空自定义频道不影响收藏与观看记录 |
-| 搜索 | 主页工具栏展开式搜索，按频道名包含匹配，输入 250ms 去抖；目录筛选在后台执行，重建页面时恢复已生效查询 |
-| 导入 m3u / m3u8 频道列表 | 支持单行订阅地址（导入时下载）或直接粘贴列表正文（含多行裸 URL）；同一批次同名频道合并信号源并保序去重，数据库原子跳过已有 id，提示实际新增数；逐行下载解析，解析结果仍全量保存在内存中；不定时刷新订阅 |
-| 信号源自动轮换 | 播放报错后自动切下一路信号源，到末路失败后显示错误浮层，并每隔 8 秒重试当前源、最多 2 次；手动重试、换源或换台会取消待执行重试 |
-| 清晰度选择 | 多档视频源提供「自动 / 最高 / 高度上限」切换，单档源隐藏入口；新源不含所选高度时回落自动并解除原限制，装载时的临时空轨道不清除偏好；启用备用解码器尝试，实际解码能力由设备决定 |
-| 关于、更新日志与协议 | 主页菜单「关于」进入独立信息页，展示当前构建版本，提供中文离线版本更新日志、用户协议、隐私政策；支持章节定位、滚动高亮、回顶与日志展开动画，并保留频道来源说明 |
-| 横屏播放页 | 沉浸式全屏，顶部标题与底部操作使用边缘渐隐遮罩；上一频道 / 频道列表 / 下一频道直接可达，播放设置集中提供线路选择、画质和画中画；支持双击左右半区或横向轻扫换台，控件隐藏时才显示顶部边缘换台提示；通常 3 秒无操作隐藏控件，键盘 / 遥控器焦点、读屏操作或设置打开时保持可见；选台时视频与列表分区显示，宽窗口并排、窄窗口上下排列，列表不盖住画面；支持搜索、当前频道高亮与首次定位，点选后恢复全屏；起播缓冲阈值为 800ms，实际出画时间取决于网络、源和设备；画中画可继续播放，其他后台场景释放播放器 |
+### 关于与离线文档
 
-2026-11-09 完成一轮静态性能与正确性审查，修正快速换台重复目标、清晰度限制未解除、收藏竞争、主线程全量过滤与导入去重等问题。后台/画中画返回时恢复操作区，缺失频道会清空旧视频。新增回归测试代码，但本轮未运行构建、测试、Lint 或设备验证，没有实测性能结论，详见[审查记录](project-docs/TECHNICAL_DESIGN.md#2026-11-09-性能与正确性审查记录)。
+主页菜单中的“关于”显示当前构建版本，并提供：
 
-同日补充 UI 调整：主页空态在工具栏下方居中并避让键盘，重建后保留列表位置；频道名可显示两行，分类与信号数可换行；导入框使用短标签和独立说明，长正文在输入区内滚动；播放错误内容可滚动操作，列表、播放和文档入口增加清楚的键盘焦点提示，关于页入口增加分隔线。仅完成静态检查，设备外观与交互待验收，详见 [UI 审查记录](project-docs/TECHNICAL_DESIGN.md#13-ui-审查与调整2026-11-09)。
+- [版本更新日志](docs/version-history/CHANGELOG.md)
+- [用户协议](docs/legal/USER_AGREEMENT.md)
+- [隐私政策](docs/legal/PRIVACY_POLICY.md)
+- 频道来源说明（详见[内置频道与来源记录](project-docs/CHANNEL_SOURCES.md)）
 
-同日继续精简播放页：选源、画质与画中画收进边缘设置菜单，系统栏可由边缘滑动临时唤出，画面中央不再出现换台名称。文档版本卡片迁入 240ms 高度、透明度与箭头联动动画，连续反向操作从当前进度接续，章节定位等待高度稳定。实际改动与检查边界见[播放页与折叠动画记录](project-docs/TECHNICAL_DESIGN.md#14-播放页精简与文档折叠动画2026-11-09)。
+关于页和三份正文当前只提供简体中文，其他通用界面文案继续维护既有多语言。正文随 APK 提供，阅读无需网络，支持章节定位、阅读位置恢复和回到顶部；更新日志可按版本展开或收起，区分“开发中”与 `v1.0` 基础能力。
 
-选台进一步改为同页预览与列表分区，替换遮挡视频的 BottomSheet。列表可搜索与清空查询，关闭按钮、系统返回或点击预览均可收起；搜索键盘出现时按剩余空间重排，查询和列表位置随页面恢复。实现与静态检查边界见[同页选台记录](project-docs/TECHNICAL_DESIGN.md#15-同页选台分区2026-11-09)。
+## 内置频道与来源
 
-## 版本与协议
+内置目录参考了 [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv) 和 [Guovin/iptv-api](https://github.com/Guovin/iptv-api) 的部分公开列表或历史结果，部分地址仍缺少可复核的逐条出处。固定版本、地址比对范围、2026-11-09 内容抽样和移除的 7 个错配地址，集中记录在[内置频道与来源记录](project-docs/CHANNEL_SOURCES.md)。
 
-从主页右上角菜单进入「关于」，即可查看[版本更新日志](docs/version-history/CHANGELOG.md)、[用户协议](docs/legal/USER_AGREEMENT.md)和[隐私政策](docs/legal/PRIVACY_POLICY.md)。三份正文随 APK 提供，阅读无需网络；本轮按需求仅提供简体中文，其他应用文案继续保持既有多语言支持。日志区分“开发中”与 1.0 基础能力，应用版本号未变更，也未补造发布日期。
+公开列表的整理者、实际流服务和节目权利方可能不是同一主体。应用与这些项目或电视台没有官方合作或背书；“主源”“备用”只表示尝试顺序，不代表官方来源、画质或长期可用性。地址可能受地区、运营商、IPv6、网络变化或第三方策略影响。
 
-阅读页沿用拼图工坊与 RadioWorkshop 的章节胶囊、版本卡片和离线文档结构，适配本项目 XML / ViewBinding。法律文档始终完整展示，版本卡片可独立展开或收起，正文高度、透明度与箭头同步过渡；首次显示、页面重建和系统关闭动画时直接恢复目标状态，页面重建保留阅读位置和展开状态。协议互链在应用内打开；网页链接经确认后交系统浏览器，不使用 WebView。
+应用不托管、转播或转码直播内容，也不提供录制和媒体下载功能；播放仍需接收并缓冲音视频。公开可访问和学习研究用途都不替代内容授权，软件或列表许可证也不授予节目使用权。请只导入和播放自己有权使用的内容，并遵守相应服务条款和适用法律。
 
-## 内置频道与直播源说明
+发现来源错误、地址失效或权利问题时，可在 [Issues](https://github.com/SiXuManYan/TvWorkshop/issues) 提供频道名和必要信息；公开提交前请移除 URL 中的令牌。内置目录的调整需要修改源码并随应用更新发布。
 
-### 来源与致谢
+## 隐私与数据边界
 
-感谢 [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv) 等项目提供的频道列表整理与相关工具。本项目的内置目录参考了这些公开列表，并在源码 [BuiltinChannels.kt](app/src/main/java/com/sugar/tv/data/builtin/BuiltinChannels.kt) 中保存所选频道及播放地址。
+收藏、最近观看和导入频道由应用保存在本机 Room 数据库。应用没有账号、统计、崩溃上报 SDK 或开发者云同步，不主动上报搜索词、播放记录或设备标识。
 
-| 参考项目 | 当前能够核对的范围 |
-|---|---|
-| [fanmingming/live](https://github.com/fanmingming/live) | [tv/m3u/ipv6.m3u](https://github.com/fanmingming/live/blob/936a3a8d11a6b65cc93d659939459dcd7553cd3b/tv/m3u/ipv6.m3u) 对应 18 个 CCTV 主源及 6 个 CGTN 主源；CCTV 地址为 IPv6，CGTN 地址为 HTTPS 域名 |
-| [iptv-org/iptv](https://github.com/iptv-org/iptv) | 中国、澳大利亚、新闻分类列表及韩国原始流文件中可核对到部分央视／卫视地址、CGTN 备源与外国频道地址 |
-| [Guovin/iptv-api](https://github.com/Guovin/iptv-api) | 原目录注释列出的另一参考项目，部分地址可在[历史输出文件](https://github.com/Guovin/iptv-api/blob/6f10e865173f8e73c58eb3aab78315051f336824/output/result.m3u) 中找到；该项目当前定位为工具框架，旧输出链接已停止更新 |
+订阅下载、播放列表、媒体分片和外部网页仍会产生第三方网络请求。对方可能看到 IP、请求地址和普通请求头；用户输入 URL 中的查询参数会按原样发送，可能包含令牌。应用启用 Android 系统备份且未排除 Room 数据库，数据可能随系统设置进入云备份或设备迁移。
 
-来源文本核对日期为 **2026-11-08**：当时的 169 个地址中，81 个可在所检查的上游文件中找到（CCTV 主源比较时忽略上游末尾的空 `?`），88 个尚缺可复核的逐条来源记录。这是清理前的历史比对范围，不能将全部内置地址归为 `fanmingming/live`，也不能宣称每一路来源都已确认。文件版本与比对范围见[技术设计 · 内置频道目录](project-docs/TECHNICAL_DESIGN.md#5-内置频道目录)。列表文本匹配不代表直播可用性或内容授权已经验证。
+完整说明见[隐私政策](docs/legal/PRIVACY_POLICY.md)。导入、播放和外部链接的使用边界见[用户协议](docs/legal/USER_AGREEMENT.md)。
 
-**2026-11-09 内容抽样清理**：对清理前的 169 个地址检查 HTTP / 播放列表，124 路返回 HLS，其中 118 路成功抽取视频帧；进一步复核可疑线路和其跳转目的地后，移除 CCTV-2、CCTV-16、广东、山东、山西、宁夏、陕西共 7 路曾返回错配购物流的地址，保留 66 个频道、162 个地址。部分线路随后会恢复正常节目，移除依据是已观察到的错配，不保证其余线路以后始终正确；超时、IPv6 不可达、测试卡和正常台内广告未据此删除。本次没有修改用户已导入的数据。逐路地址、抽样时间和证据边界见[清理记录](project-docs/TECHNICAL_DESIGN.md#54-广告错配线路清理2026-11-09)。
+## 构建与工具链
 
-### 播放与更新方式
-
-内置目录随应用版本发布，应用启动时不会自动订阅或同步上述仓库。播放时由设备直接请求所选地址及其播放列表、媒体分片等资源；列表整理项目与实际流服务提供方可能不同，本项目与上述项目及各电视台无官方合作或背书关系。
-
-通过「导入频道源」可加入自己有权使用的订阅地址或列表正文。导入保存的是当次解析出的频道和地址，不会定期更新，也不保存原订阅地址作为后续刷新入口。同一批次的同名条目会合并；与内置频道同名但含新地址的条目会作为独立导入频道保存，不会替换内置目录。导入频道按名称与分组分类，可能出现在「央视」「卫视」「外国频道」中，并非全部进入「自定义」分类。
-
-### 使用边界与内容权利
-
-- **可用性不保证**：第三方地址可能失效、限地区、限运营商或要求 IPv6 网络；「主源 / 备用」仅是尝试顺序，不表示官方来源、画质或可用性认证。
-- **内容权利归相应权利方**：应用提供客户端播放功能，不托管、转播或转码直播内容，也不提供录制下载功能；播放过程中仍需接收并缓冲音视频。地址能公开访问，不等于获得内容使用或再分发授权。
-- **学习用途不替代授权**：本项目用于个人技术学习与研究，请使用已获授权的内容并遵守相关服务条款。上游仓库许可证与电视节目、商标等内容权利分别适用；引用列表不代表取得内容授权，详见[上游许可说明](project-docs/TECHNICAL_DESIGN.md#53-来源角色与许可边界)。
-- **来源异议反馈**：如发现误标、失效或涉及权利异议的地址，请通过本仓库 Issues 提供频道名、对应地址及必要说明，供维护者核对和处理。当前应用无删除单个内置频道的界面入口，维护者需修改内置目录并发布更新。
-
-## 隐私
-
-- 收藏、观看记录与导入频道在本机 Room 数据库中处理和保存；应用未配置开发者数据接收服务，无账号体系、无统计 / 崩溃上报 SDK，不主动上报这些记录。
-- Manifest 仅申请 `INTERNET` 权限。网络访问用于下载用户提供的订阅，以及请求播放列表、媒体分片和播放所需的相关资源；相应服务提供方会接收到 IP 地址、请求地址等网络请求信息，日志政策由对方决定。
-- 当前开启 Android 系统备份（`allowBackup=true`），且未排除 Room 数据库；根据设备、系统设置和备份服务，本机数据可能进入系统云备份或设备迁移，不能承诺数据始终不离开设备。
-
-完整说明见随包提供的[隐私政策](docs/legal/PRIVACY_POLICY.md)，应用内入口为「关于 → 隐私政策」。其中说明 HTTP 与带令牌地址的请求、清理导入频道的真实范围，以及系统备份和主动反馈的处理边界。
-
-## 构建
-
-用 Android Studio 打开仓库根目录，等待 Gradle 同步完成即可运行；或命令行执行：
+用 Android Studio 打开仓库根目录并等待 Gradle 同步，或执行：
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-工具链：AGP 9.5.1（内置 Kotlin，无需 kotlin-android 插件）、Gradle Wrapper 9.6.1、KSP 2.3.13；compileSdk / targetSdk 37，minSdk 29。无需额外签名配置即可构建 Debug 包。
+当前工具链：
 
-## 技术栈
+- AGP 9.5.1（内置 Kotlin）；
+- Gradle Wrapper 9.6.1；
+- KSP 2.3.13；
+- compileSdk / targetSdk 37，minSdk 29；
+- AGP 运行要求 JDK 17 及以上，Java 编译目标为 11；
+- Media3 1.11.1、Room 2.8.5、Material 1.14.0、Lifecycle 2.11.0、Coroutines 1.11.0。
 
-- **UI**：Android View 体系 + XML + ViewBinding + Material 3（DayNight 浅深色），单 `:app` 模块；不使用 Compose。
-- **架构**：MVVM——Activity / Fragment 只做生命周期、Insets、导航与渲染；业务状态为不可变 UiState + StateFlow；数据访问收敛在 `ChannelRepository`。
-- **数据**：Room 2.8.5（收藏 / 最近观看 / 导入频道三张表，KSP 编译器）；`LocalDocumentRepository` 负责随包文档读取与后台排版。
-- **文档阅读**：Markwon core 4.6.2，不启用网络图片插件；`docs/` 随包，研发文档 `project-docs/` 不随包。
-- **播放**：Media3 / ExoPlayer 1.11.1（含 HLS 扩展），播放器实例归播放页生命周期所有。
-- **异步**：kotlinx.coroutines（IO / Default 调度器分离，StateFlow + Channel）。
+近期工程审查以源码和资源静态检查为主，构建、测试、Lint 和设备验证未在相应修订中运行；没有据此形成性能或兼容性实测结论。当前架构和实现见[技术设计](project-docs/TECHNICAL_DESIGN.md)，各次改动的原因与检查范围见[工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md)。
 
 ## 文档导航
 
-| 问题 | 入口 |
-|---|---|
-| 架构、数据流、Room 表结构与 m3u 解析规则 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
-| 应用内更新说明与使用、隐私规则 | [版本更新日志](docs/version-history/CHANGELOG.md)、[用户协议](docs/legal/USER_AGREEMENT.md)、[隐私政策](docs/legal/PRIVACY_POLICY.md)（当前仅中文） |
-| 开发与审查规范（MVVM 边界、i18n、播放器边界等长期规则） | [AGENTS.md](AGENTS.md) |
+| 需要了解 | 阅读入口 |
+| --- | --- |
+| 用户如何使用、有哪些限制 | 本页、[用户协议](docs/legal/USER_AGREEMENT.md)、[隐私政策](docs/legal/PRIVACY_POLICY.md) |
+| 当前架构和实现 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
+| 内置频道、地址出处和清理证据 | [内置频道与来源记录](project-docs/CHANNEL_SOURCES.md) |
+| 历次工程审查和界面调整 | [工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md)、[版本更新日志](docs/version-history/CHANGELOG.md) |
+| 长期开发规则 | [AGENTS.md](AGENTS.md) |
 | 工程文档索引 | [project-docs/README.md](project-docs/README.md) |
 | English entry | [README.md](README.md) |
+
+## 致谢
+
+感谢参与测试、提出建议的朋友们，也感谢以下开源项目、第三方组件和内容整理项目：
+
+- [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv)、[Guovin/iptv-api](https://github.com/Guovin/iptv-api)：频道列表和地址的参考来源；
+- [Kotlin](https://github.com/JetBrains/kotlin)、[kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines)：语言、协程和 Flow；
+- [AndroidX / Jetpack](https://developer.android.com/jetpack/androidx)、[Material Components](https://github.com/material-components/material-components-android)、[AndroidX Media3](https://github.com/androidx/media)、[Room](https://developer.android.com/jetpack/androidx/releases/room)：界面、生命周期、本地数据和直播播放；
+- [Markwon](https://github.com/noties/Markwon)、[CommonMark Java](https://github.com/commonmark/commonmark-java)：离线 Markdown 文档；
+- [JUnit 4](https://github.com/junit-team/junit4)、[AndroidX Test](https://github.com/android/android-test)、[Gradle](https://github.com/gradle/gradle)、[Android Gradle Plugin](https://android.googlesource.com/platform/tools/base/) 和 [KSP](https://github.com/google/ksp)：测试与构建工具。
+
+文档阅读页的章节导航、版本卡片和交互结构参考了拼图工坊与 RadioWorkshop，并适配为本项目的 XML / ViewBinding 实现。

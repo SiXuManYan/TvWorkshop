@@ -1,153 +1,232 @@
-# 电视工坊 — 项目约定
+# 电视工坊：开发与审查约定
 
-全局约定见 `~/.codex/AGENTS.md`。本文件是本仓库开发、重构和代码审查的长期规则，统一维护为根目录 `AGENTS.md`，不另建 `agent.md` 或其他大小写副本。
+全局约定见 `~/.codex/AGENTS.md`。本文件集中维护本仓库的长期规则，不另建 `agent.md` 或其他大小写副本。
 
-核心方向：**Kotlin / XML / ViewBinding + MVVM、edge-to-edge 沉浸式界面、直播播放与信号源自动轮换、本机处理与隐私克制、Markdown 文档随功能维护**。
+项目方向为 **Kotlin / XML / ViewBinding + MVVM**：保持 edge-to-edge 界面、直播播放与信号源自动轮换，尽量在本机处理数据，文档随功能维护。
 
-## 工作原则与阅读入口
+## 1. 工作方式与阅读入口
 
-- 用户在当前任务中的明确要求优先；常规实现选择自行完成，不反复询问是否继续。
-- 修改前先读目标页面、对应数据层与相关专题文档，保留无关未提交修改；围绕问题完成最小连贯改动，不附带迁移 UI 框架、替换存储技术或扩充产品范围。
-- 用户体验包括页面之间的一致性，以及详情往返、前后台切换、进程重建恢复与窗口变化；不能只处理首次进入页面的静态效果。
-- 规则与当前行为以本文件和专题的现行章节为准；历史结论只适用于各自日期/修订，不自动成为当前待办或通过证据。
+- 用户在当前任务中的明确要求优先。常规实现选择自行完成，不反复询问是否继续。
+- 修改前先读目标页面、对应数据层与相关文档，保留无关未提交修改。围绕问题完成最小连贯改动，不附带 UI 框架迁移、存储替换或产品扩展。
+- 体验验收包含页面往返、前后台切换、进程重建和窗口变化，不能只考虑首次进入页面的静态效果。
+- 当前规则以本文件为准，当前实现见技术设计。历史记录只适用于各自日期和修订，不自动成为待办或通过证据。
 
-| 任务 | 优先查阅 |
-|---|---|
-| 架构、数据流与播放器设计 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
-| 功能说明与免责边界 | [中文说明](README.zh-CN.md)、[English README](README.md) |
-| 内置地址出处与许可边界 | [技术设计 · 内置频道目录](project-docs/TECHNICAL_DESIGN.md#5-内置频道目录)：参考文件、固定版本与待补来源记录 |
-| 文档组织与维护范围 | [工程索引](project-docs/README.md) |
+| 任务 | 阅读入口 |
+| --- | --- |
+| 了解功能、构建与使用边界 | [中文 README](README.zh-CN.md)、[English README](README.md) |
+| 理解架构、数据流与播放器 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
+| 核对内置地址、来源与许可 | [内置频道与来源记录](project-docs/CHANNEL_SOURCES.md) |
+| 追溯调整原因与检查范围 | [工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md) |
+| 查找或维护文档 | [工程文档索引](project-docs/README.md) |
 
-## 技术栈边界
+## 2. 技术栈与依赖边界
 
-Kotlin + **Android View 体系 + ViewBinding**，不是 Compose。**不要向 Compose 迁移**，也不要引入任何 Compose 依赖；涉及 XML 布局的改动继续用 XML 完成。
+### 2.1 固定配置
 
-- 单 `:app` 模块（`settings.gradle.kts` 仅 `include(":app")`），命名空间与应用 id 均为 `com.sugar.tv`。本项目没有 `core_framework` / `module_image` 等库模块，不要按其他项目模板引入。
-- AGP **9.5.1** 内置 Kotlin（根与模块脚本均未声明 `kotlin-android` 插件，不要补加），KSP **2.3.13**（仅用于 Room 编译器），Gradle Wrapper 9.6.1；minSdk 29，targetSdk / compileSdk 37，`compileOptions` Java 11。
-- 关键依赖以 `gradle/libs.versions.toml` 为准：media3（ExoPlayer + HLS + UI）1.11.1，Room 2.8.5，Material 1.14.0，AppCompat 1.8.0，Lifecycle 2.11.0，Coroutines 1.11.0；Annotation 1.11.0、Core 1.19.1。升级时同步本文和当前实现文档，默认采用稳定版；历史验证保留原日期与版本。AGP 9.5 要求 Gradle ≥9.6.0、JDK ≥17。
-- 页面导航用显式 `Intent`（主页 → 播放页 / 关于页 → 本地文档页），未引入 Navigation 组件库；不要为既有页面引入导航框架或 Jetpack Compose Navigation。
-- 本地文档复用 Markwon core **4.6.2**（与拼图工坊 / RadioWorkshop 一致），仅渲染随包 Markdown，不启用网络图片插件；`docs/` 打包为 assets，`project-docs/` 仍只用于研发。
-- 网络只允许 `HttpURLConnection`（订阅下载），JSON 只允许 `org.json`（信号源序列化）；不引入 OkHttp / Retrofit / Gson / Coil / Glide 等第三方网络、图片或序列化库。
-- Release 构建当前 `optimization { enable = false }`，未开启 R8 混淆；改动混淆配置前先确认 `@Keep` 边界仍然成立。
+| 项目 | 当前配置 |
+| --- | --- |
+| 模块 | 单 `:app`；`settings.gradle.kts` 仅 `include(":app")` |
+| namespace / application id | `com.sugar.tv` |
+| UI | Kotlin + Android View/XML + ViewBinding；**不使用 Compose，不引入 Compose 依赖** |
+| AGP / Gradle Wrapper | 9.5.1 / 9.6.1；AGP 要求 Gradle ≥ 9.6.0、JDK ≥ 17 |
+| Kotlin / KSP | AGP 内置 Kotlin，不添加 `kotlin-android`；KSP 2.3.13 仅用于 Room 编译器 |
+| SDK / Java | minSdk 29，targetSdk / compileSdk 37，`compileOptions` Java 11 |
+| Release | `optimization { enable = false }`，未开启 R8 |
 
-## Kotlin 与代码注释
+关键依赖以 `gradle/libs.versions.toml` 为准：Media3 1.11.1（ExoPlayer、HLS、UI）、Room 2.8.5、Material 1.14.0、AppCompat 1.8.0、Lifecycle 2.11.0、Coroutines 1.11.0、Annotation 1.11.0、Core 1.19.1。升级默认采用稳定版，同步本文与技术设计，历史验证保留原日期和版本。
 
-- Kotlin 多参数构造和函数调用优先命名参数；语义已清楚的简短调用不强行套用。
-- 新增或修改的类、函数和成员变量补充简短中文 KDoc，说明用途、约束、归属或边界；源码自然语言注释默认中文，不机械翻译代码。
-- 主构造参数统一在类 KDoc 中用 `@param` / `@property` 说明；重要的取消、恢复、Insets 和播放器释放逻辑保留必要的行内解释。
-- 状态读改写优先 `MutableStateFlow.update`；协程取消异常（`CancellationException`）必须原样上抛，不得被通用 `catch (Exception)` 吞掉后误报成功或失败（参照 `BrowseViewModel` / `PlayerViewModel` 的既有写法）。
+### 2.2 不扩展的边界
 
-## 尺寸资源
+- XML 布局继续用 XML 修改，不迁移到 Compose。
+- 本项目没有 `core_framework`、`module_image` 等库模块，不按其他项目模板引入。
+- 页面用显式 `Intent` 导航，不为既有页面引入 Navigation 框架。
+- 订阅下载只用 `HttpURLConnection`，信号源 JSON 只用 `org.json`；不引入 OkHttp、Retrofit、Gson、Coil、Glide 等第三方网络、图片或序列化库。
+- 本地文档使用 Markwon core 4.6.2，与拼图工坊、RadioWorkshop 一致；仅渲染随包 Markdown，不启用网络图片插件。
+- 改动混淆配置前，先确认模型的 `@Keep` 边界仍成立。
 
-`app/src/main/res/values/dimens.xml` 提供 `dp_1`~`dp_500` 与 `sp_1`~`sp_500`（脚本生成，勿手工增删单项），另有语义别名 `browse_list_max_width`（默认 500dp，`values-w600dp` 覆盖为 480dp）。
+## 3. MVVM、状态与初始化
 
-XML 布局中的正整数尺寸一律引用 `@dimen/dp_N` / `@dimen/sp_N`，不硬编码 `10dp` / `10sp`。例外：约束布局的 `0dp`（match constraints）、资源引用本身、`match_parent` / `wrap_content` 等系统约定值。
+### 3.1 职责分工
 
-Kotlin 取像素值用 `resources.getDimension(R.dimen.dp_N)`（浮点）或 `getDimensionPixelSize(...)`（取整），参照 `MainActivity` 的 Insets 计算写法。
+| 层 | 负责 | 不负责 |
+| --- | --- | --- |
+| Activity / Fragment、视图控制器 | 生命周期、窗口、Insets、导航、菜单、对话框、ViewBinding 渲染和播放器实例托管 | Room 查询、订阅下载、m3u 解析和业务状态机 |
+| ViewModel | 不可变 UiState、用户意图、StateFlow、一次性事件、SavedStateHandle 恢复 | 持有 Activity、Fragment、View、Binding 或 Dialog |
+| Repository | Room、订阅下载、解析调度、内置目录合并、收藏与观看记录；本地文档 IO 和后台排版 | 页面生命周期和 View 类型 |
+| Adapter | ListAdapter / DiffUtil 渲染、一次性绑定监听、幂等回填 | 保存业务状态；点击应通过回调交给页面和 ViewModel |
 
-## 文案与 i18n
+页面包括 `MainActivity`、`PlayerActivity`、`AboutActivity`、`LocalDocumentActivity`；选台几何布局由 `PlayerChannelsPanelController` 管理。ViewModel 包括 `BrowseViewModel`、`PlayerViewModel`、`LocalDocumentViewModel`，`AndroidViewModel` 只取 Application 级依赖。
 
-界面文案禁止字符串模板拼接后直接 `setText`（触发 Lint `SetTextI18n` 且无法本地化语序）。统一用占位符字符串资源＋位置参数，如 `source_count_format`（`%1$d 路信号`）、`switch_source_format`（`信号源 %1$d/%2$d`）、`import_success_format`（`成功导入 %1$d 个频道`）。
+### 3.2 状态与恢复
 
-- 新增或修改文案 key 必须同步补全全部 **11 个语言目录**：`values`（简中基准）+ `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`，当前每个目录 56 个 key；提交前用 key 集合 diff 自查。
-- **2026-11-09 用户明确指定的例外**：关于页、版本更新日志、用户协议、隐私政策本轮仅提供简体中文；新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`。通用 key 继续保持 11 目录一致，不复制中文到各语言目录假作翻译。
-- 频道名称（如「CCTV-1 综合」「BBC World News」）属于**数据而非界面文案**，保持官方命名，不参与多语言，不放入 strings.xml。
-- 无文案词的纯数字 / 十六进制格式化注意 Locale（如 `M3uParser.importedChannelId` 的 `%02x`）；不用 `@Suppress` / `tools:ignore` 压制 `SetTextI18n`。
+- 页面状态用不可变 `XxxUiState`，经只读 `StateFlow` 暴露；导入结果、收藏提示等一次性事件用 `Channel`。
+- 页面统一在 `repeatOnLifecycle(STARTED)` 期间收集。
+- `SavedStateHandle` 只保存频道 id、线路下标、枚举名、查询词等小型可序列化数据。Intent extras 与恢复键复用，如 `PlayerActivity.EXTRA_CHANNEL_ID`、`EXTRA_SOURCE_INDEX`。
+- 状态读改写优先用 `MutableStateFlow.update`。
+- 列表提交前比较 `currentList`，Chip 按布尔绝对值同步。异步写回必须核对请求代次，旧结果不能覆盖最新选择。
+- 对话框和 Binding 由页面持有，在 `onDestroy` / `onDestroyView` 解除，不放进 ViewModel。
 
-## 主题与 drawable 资源
+### 3.3 初始化顺序
 
-- **嵌套 drawable（selector / ripple / layer-list 的 item 内）禁止 `?attr` 主题引用，一律用直接颜色资源（`@color/tv_*`）**：这类属性在 BottomSheetDialog 等 LayoutInflater 包装路径下解析失败会直接崩溃（真机已验证，Android 10），且编译期不可见。根级 vector 的 `fillColor="?attr/…"` 走 AppCompat 主题包裹路径，可用。
-- 新增需浅深色区分的颜色在 `values/colors.xml` 与 `values-night/colors.xml` 成对维护；drawable 引用颜色资源而不是写死十六进制。
+Activity / Fragment 字段初始化器只做无上下文赋值。构造期 `baseContext` 尚未挂载，不能调用 `getResources`、`getString`，也不能构造内部会读取 Context / Resources 的对象（如 `GestureDetector`）。此类成员用 `lateinit`，在 `onCreate` 或 `onViewCreated` 创建。
 
-## MVVM 边界
+ViewModel 在 `init` 启动任务之前，先声明并初始化任务引用、请求代次和任务读取的状态字段，不依赖编译器省略默认值赋值的行为。
 
-Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话框 / BottomSheet 和 ViewBinding 渲染；业务状态归 ViewModel，数据访问归 Repository。
+## 4. Kotlin 与源码注释
 
-| 层 | 负责 | 边界 |
-|---|---|---|
-| Activity（`MainActivity`、`PlayerActivity`、`AboutActivity`、`LocalDocumentActivity`）及视图控制器（`PlayerChannelsPanelController`） | 生命周期、窗口与 Insets、菜单 / 对话框 / 抽屉、导航、控件渲染与播放器实例托管 | 不直接查询 Room、不下载订阅、不解析 m3u、不管理业务状态机 |
-| ViewModel（`BrowseViewModel`、`PlayerViewModel`、`LocalDocumentViewModel`） | 不可变 UiState + StateFlow 只读暴露、用户意图、一次性事件（Channel）、`SavedStateHandle` 恢复 | 不持有 Activity / Fragment / View / Binding / Dialog；`AndroidViewModel` 只取 Application 级依赖 |
-| Repository（`ChannelRepository`、`LocalDocumentRepository`） | Room 读写、订阅下载、m3u 解析调度、内置目录合并、收藏 / 观看记录；离线文档 IO 与后台 Markdown 排版 | 不依赖页面 View 生命周期，不返回 View 类型；耗时操作收敛在 IO / Default 调度器 |
-| Adapter（`ChannelListAdapter`、`ChannelPanelAdapter`） | `ListAdapter` + DiffUtil 渲染，监听器绑定一次、数据幂等回填 | 不持有业务状态；点击经回调交给页面，最终转交 ViewModel |
+- 多参数构造和函数调用优先命名参数；语义清楚的简短调用不强行套用，也不强制用于 Java、Android 框架 API 或函数类型。
+- 新增或修改的类、函数和成员变量补充简短中文 KDoc，说明用途、约束、归属或边界。源码自然语言注释默认中文，不机械翻译代码。
+- 主构造参数在类 KDoc 中使用 `@param` / `@property`，不在参数上方单独放文档注释。
+- 取消、恢复、Insets、播放器释放等非显然逻辑保留必要的行内注释。
+- `CancellationException` 必须原样上抛，不能被通用 `catch (Exception)` 吞掉后误报成功或失败；参照现有 ViewModel 写法。
 
-- 页面状态用不可变 `XxxUiState`（`BrowseUiState` / `PlayerUiState`）经 `StateFlow` 只读暴露；一次性提示（导入结果、收藏提示）用 `Channel`，统一在 `repeatOnLifecycle(STARTED)` 期间收集。
-- `SavedStateHandle` 只放频道 id、信号源下标、枚举名、查询词等小型可序列化数据；Intent extras 键与恢复句柄键复用（`PlayerActivity.EXTRA_CHANNEL_ID` / `EXTRA_SOURCE_INDEX`）。
-- 渲染保持幂等：列表提交前比较 `currentList`，Chip 选中态按布尔绝对值同步；异步结果写回前核对代次（播放页 `playRequestId`、`latestRequestedChannelId`），旧结果不得覆盖最新选择。
-- 对话框 / Binding 由页面持有并在 `onDestroy` / `onDestroyView` 主动解除，不放进 ViewModel。
-- **Activity / Fragment 字段初始化器只做无上下文赋值**：构造期 `baseContext` 尚未挂载，构造内部会读 `Context` / `Resources` 的对象（如 `GestureDetector`）或任何 `getResources` / `getString` 调用都会在实例化阶段崩溃且编译期不可见；此类成员一律 `lateinit` 并在 `onCreate`（Fragment 为 `onViewCreated`）中创建。
-- ViewModel 在 `init` 启动任务前先声明并初始化任务引用、请求代次与任务读取的状态字段，让初始化依赖清楚；不要依赖编译器省略默认值赋值的行为。
+## 5. 尺寸、颜色与文案
 
-## Edge-to-edge 约定
+### 5.1 尺寸资源
 
-`BaseActivity` 统一在 `super.onCreate` 前调用 `enableEdgeToEdge()`；系统栏在主题中透明，内容延伸到系统栏后方，操作区按 Insets 避让。
+`values/dimens.xml` 提供脚本生成的 `dp_1`～`dp_500`、`sp_1`～`sp_500`，勿手工增删单项。语义别名 `browse_list_max_width` 默认为 500dp，在 `values-w600dp` 覆盖为 480dp。
 
-| 页面 | 外观 | Insets 责任 |
-|---|---|---|
-| 主页 | 列表铺满全屏，`clipToPadding=false`；「Toolbar + 分类 Chip」为半透明浮层，背景 alpha 230/255；加载 / 空态在浮层下方可滚动 | 根容器避让左右系统栏∪挖孔；浮层 padding 顶 = 状态栏∪挖孔；列表顶部 padding 随浮层实测高度变化同步；列表与状态区底部 padding = max(导航栏, IME) + 16dp 留白 |
-| 播放页 | 纯黑背景，系统栏固定深色样式并沉浸隐藏，边缘滑动临时唤出；顶底栏用边缘黑色渐隐遮罩，中央画面不压暗；错误内容在操作条之间可滚动 | 按忽略可见性的系统栏∪挖孔保持稳定安全区，全屏由顶底栏、错误内容和边缘换台提示分别避让；选台时根布局统一避让系统栏∪挖孔∪IME，子控件不重复避让；以 XML 初始值为基准、重复分发不累加，消费后返回 `CONSUMED` |
-| 关于 / 本地文档页 | DayNight 信息卡与阅读卡片，内容最大宽度 500dp；文档章节导航固定在顶部 | 根容器按系统栏∪挖孔∪IME 设置绝对 padding，消费后返回 `CONSUMED`；列表与正文不再重复避让 |
+XML 正整数尺寸一律引用 `@dimen/dp_N` 或 `@dimen/sp_N`，不直接写 `10dp`、`10sp`。例外是约束布局的 `0dp`、资源引用、`match_parent`、`wrap_content` 等系统约定值。Kotlin 取像素用 `getDimension` 或 `getDimensionPixelSize`。
 
-- 避让量按绝对值设置，不重复累加同一段系统栏高度；浮层只调背景透明度，不降低控件 alpha。
-- 覆盖内容的浮层保证对比度：主页浮层用 `colorSurface`，播放页控件用白色前景＋半透明黑遮罩。
-- 播放页操作区 3 秒无操作自动隐藏（淡出并向边缘轻移 200ms）；错误浮层显示、设置菜单打开、持续触摸、键盘 / 遥控器焦点停在按钮上或读屏触摸浏览启用时不自动隐藏，窗口失焦暂停计时。隐藏后用 `INVISIBLE` 保持布局尺寸并退出 TalkBack 遍历，方向键可唤出；错误态不允许手动隐藏操作区。
-- 播放页底部固定「上一频道 / 频道列表 / 下一频道」与末端设置入口，不再横向滚动查找次要按钮；图标触达区至少 48dp，频道列表文案受限时省略但保留完整读屏描述。选源、画质和画中画按需进入设置菜单；无源不显示计数，单路禁用选源，没有可用设置动作时禁用设置，错误区仅在至少两路时显示一步换源。
+### 5.2 主题与 drawable
 
-## 播放器边界
+嵌套 drawable（selector、ripple、layer-list 的 item 内）禁止 `?attr`，直接引用 `@color/tv_*`。这类属性曾在 BottomSheetDialog 的 LayoutInflater 包装路径下于 Android 10 真机崩溃，编译无法发现；根级 vector 的主题填色可以沿用 AppCompat 包装路径。
 
-- **ExoPlayer 实例归 `PlayerActivity` 所有**：`onStart` 创建或复用（`ensurePlayer`），`onStop` 与 `onDestroy` 释放（`releasePlayer`）——**直播不后台播放**，离开前台即释放，回到前台由状态重放重新装载当前信号源（`appliedPlayRequestId` 重置为未装载标记 -1 后随 UiState 重放）。例外：**画中画中仍属可见前台，不释放播放器**（`onStop` 以 `isInPictureInPictureMode` 判定）。
-- ViewModel 只决定「该播放哪一路」：`PlayerUiState.playRequestId` 递增驱动 UI 装载；同一实例 `setMediaItem + prepare + play` 平滑换源换频道，不重建播放器。
-- **直播缓冲配置**：`DefaultLoadControl` 起播阈值 800ms / 重缓冲 1500ms，min 15s / max 30s（`PlayerActivity.ensurePlayer`）；这些是媒体缓冲参数，不作为实际出画耗时或性能提升的实测结论。
-- **信号源自动轮换**：`Player.Listener.onPlayerError` 交 ViewModel 按下标顺序切下一路；末路失败进入 `allSourcesFailed` 错误态停止轮换，并做**有限自动重试**（延迟 8 秒、最多 2 次，重试当前源）。换频道、手动重试或换源取消待执行重试；当前只有换频道与手动重试归零计数，换源保留计数。手动换源（`nextSource`）循环切换且可从错误态恢复。
-- **播放设置**：线路可直接选中，校验菜单媒体请求代次与当前选项；重复选择正常播放线路不重装媒体。换频道、自动换源、画质偏好或选项变化即关闭旧菜单；退后台和进入画中画同时关闭根菜单及独立子菜单，避免残留弹窗。
-- **同页选台**：频道列表与视频为兄弟节点，不使用 BottomSheet 或遮挡视频的抽屉；可用宽度至少 600dp 时在末端显示 280～320dp 列表，窄窗口视频置顶、列表在下方。选台期间隐藏顶底栏与频道 OSD；点选频道、关闭按钮、系统返回或点击预览收起列表，恢复全屏；预览不响应双击 / 横扫换台。查询与开关由 ViewModel / SavedStateHandle 保存，目录过滤在 Default 调度器且仅在面板可见、页面 STARTED 时收集；重建沿用滚动位置，主动重开清空查询并定位当前频道一次。键盘不自动弹出，IME / 窗口尺寸变化按实际空间重排；进入画中画关闭面板并恢复全尺寸视频。
-- **播放区手势与换台 OSD**：单击确认（约 300ms 去抖）切换浮层显隐；正常观看时双击左 / 右半区、横向轻扫（速度阈值 + 横纵比约束）按方向换台；仅操作区隐藏时在顶部起始边缘显示频道名 1.5 秒再淡出，不与已显示的标题重复。触摸经手势识别后以 `performClick` 驱动点击监听，保证 TalkBack / 键盘激活与触摸行为一致。
-- **画中画**：播放页 `supportsPictureInPicture`，设置菜单入口以 16:9 画幅进入；进入后覆盖层整体隐藏、退出恢复并重新计时自动隐藏；设备不支持时不提供该菜单项，调用仍做能力检查，不打断前台播放。
-- 旋转由 Manifest `configChanges`（orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden）接管，播放页 `sensorLandscape` + `singleTop` + `exported=false` + `supportsPictureInPicture`，不重建、不重复初始化。
-- m3u / m3u8 地址构造 `MediaItem` 时显式声明 `MimeTypes.APPLICATION_M3U8`，避免带查询串时按扩展名推断失败；其余地址交由 ExoPlayer 自动识别。
-- **清晰度选择**：`onTracksChanged` 逐轨道过滤支持的视频格式（按高度去重、同高度取最高码率；保留单档信息，不足两种高度时隐藏入口），跳过装载时临时的空轨道；模式为 自动（带宽自适应）／最高（`setForceHighestSupportedBitrate`）／高度上限（`setMaxVideoSize` 限高，仍可在上限内自适应），所选高度在真实新选项中不存在时回落自动档；用户切换与自动回落均递增 `qualityRequestId` 驱动参数应用，`ensurePlayer` 新实例立即恢复当前偏好。
-- 播放器配置：`USAGE_MEDIA` 音频属性 + `handleAudioFocus=true` + `handleAudioBecomingNoisy=true`；关闭扩展渲染器（`EXTENSION_RENDERER_MODE_OFF`），启用备用解码器尝试（`setEnableDecoderFallback(true)`）；备用解码器是否可用取决于设备，不承诺软解兜底或一定无黑屏。`PlayerView use_controller=false`、`surface_type=surface_view`，控件全部自绘；`keepScreenOn=true`。
-- 换频道走全集顺序 `prevChannel` / `nextChannel`（循环回绕）；同一频道重复加载不重新起播，新频道从第一路信号源开始；起始下标经 `resolveStartIndex` 写回恢复句柄。
+新增需要区分浅深色的颜色时，在 `values/colors.xml` 和 `values-night/colors.xml` 成对维护，drawable 不写死颜色值。
 
-## 性能与协程约定
+### 5.3 文案与 i18n
 
-- 网络、Room、m3u 解析与文件访问放 IO 调度器（Repository 内 `withContext(Dispatchers.IO)` / `flowOn`）；频道合并、状态合成等 CPU 轻量操作放 Default；主线程只做 View 操作与轻量渲染，不用 `runBlocking`。
-- 搜索输入在写入侧 250ms 去抖（`BrowseViewModel.onQueryChanged`），清空立即生效；浏览页状态流 `WhileSubscribed(5000)`，短暂跳播放页不打断上游，5 秒无订阅自动停采。
-- 订阅导入流式衔接：下载逐行喂给 `M3uParser.parse(BufferedReader)`，不把整份订阅文本驻留内存；与内置目录的重名比对按「空白归一化 + 小写名称 → 地址」预建索引，大体积订阅的重名过滤由 O(订阅数 × 内置数) 降为 O(订阅数)（`ChannelRepository.importEntries`）。
-- 浏览页列表调优：列表自身尺寸不依赖条目内容，启用 `setHasFixedSize`（不要求各条目等高）；离屏缓存加大到 4 条；关闭变更动画（仅保留增删 / 移动动画）；后续分类切换才回顶，首次渲染保留恢复位置，异步目录使用 `PREVENT_WHEN_EMPTY`；Snackbar 同一时刻仅保留最新一条；收藏星点击带触感反馈（`CONTEXT_CLICK`）。频道名最多两行，分类与信号数摘要可换行，避免挤占收藏触达区。
-- 播放页快速连续换频道：以上次请求目标为基准继续换台，先取消上一次加载 Job，结果写回前再核对「是否仍是最新请求」，观看记录跟随核对后的结果落库。媒体回调携带 `MediaItem.mediaId` 中的请求序号并核对当前代次。
-- 收藏写入收敛为 DAO 单条事务（`FavoriteChannelDao.toggle`）；浏览页按点击顺序写入，乐观覆盖同步取值且仅由相同代次释放（1 秒宽限），播放页星标统一由仓库流驱动。
-- 浏览页状态合成与选台面板过滤在 Default 调度器执行，频道 id 索引只在全集变化时重建。导入地址用集合保序去重，DAO `INSERT IGNORE` 原子跳过已有 id 并据实际 rowid 计数，不先加载旧频道正文。
-- 列表用稳定业务身份（频道 id）+ `ListAdapter` / DiffUtil 增量更新；相等结果不重复提交；未变化的渲染不触发无谓重绘。
+界面文字使用占位符字符串资源和位置参数，不将字符串模板直接传给 `setText`。例如 `source_count_format` 的 `%1$d 路信号`、`switch_source_format` 的 `信号源 %1$d/%2$d`。不使用 `@Suppress` 或 `tools:ignore` 压制 `SetTextI18n`。
 
-## 数据模型与 @Keep
+- 通用 key 同步维护全部 11 个目录：`values`、`values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`；当前各有 56 个 key，提交前比较 key 集合与占位符。
+- **2026-11-09 的明确例外**：关于页、更新日志、用户协议、隐私政策仅提供简体中文。新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`；不复制中文到其他目录假作翻译。
+- 频道名称是数据，保持官方命名，不放入 strings.xml，不参与多语言。
+- 纯数字和十六进制格式化注意 Locale。
 
-- 网络 / 序列化 / 反射读写相关的模型统一加 `androidx.annotation.Keep`：`Channel`、`ChannelSource`、`ChannelCategory`、`SourceCodec`、`M3uEntry` 与 Room 实体（`FavoriteChannelEntity`、`RecentChannelEntity`、`ImportedChannelEntity`）。
-- 信号源持久化格式固定为 `SourceCodec` 的 `{"label","url"}` JSON 数组；修改字段名或格式必须保持向后兼容（旧库数据可解），解码容错跳过坏元素。
-- Room schema 当前 version 1 且 `exportSchema=false`；改表结构必须同步评估迁移策略，不得静默丢数据。
-- `@Keep` 只保护模型结构，不代表增加网络能力或替代隐私披露。
+## 6. Edge-to-edge 与操作区
 
-## m3u 导入约定
+`BaseActivity` 在 `super.onCreate` 前调用 `enableEdgeToEdge()`。系统栏透明，内容延伸到系统栏后方，操作区按 Insets 避让。以 XML 初始值为基准设置绝对 padding，不重复累加；主页按各区域继续分发，播放、关于和文档页处理后返回 `CONSUMED`。
 
-导入入口只有主页工具栏「导入频道源」对话框：粘贴订阅地址（单行 `http(s)://` 地址，前缀不区分大小写）或直接粘贴订阅正文（含多行裸 URL）。规则详见[技术设计](project-docs/TECHNICAL_DESIGN.md)，改动时保持：
+### 6.1 主页
 
-- 输入说明独立换行，浮动标签保持简短；输入区显示 4～6 行并可滚动，不截断正文，对话框内容也支持短窗口滚动。
-- 解析容错：兼容 BOM 与 `\r\n`；`#EXTINF` 读取 `tvg-id` / `tvg-name` / `group-title`，频道名取首个不被引号包裹的逗号之后内容；连续多条 EXTINF 共用一条 URL；裸 URL 行按无元数据条目解析。
-- 合并与去重：本次导入批次内的同名频道（去空白 + 忽略大小写）合并信号源并按序去重；与内置频道同名的条目剔除已固化地址，全部重复则跳过，有新地址则保存为独立导入频道；导入 id = `m3u:` + SHA-256(名称\n首个新 URL) 前 12 位。已有 id 直接跳过，不会更新其其他线路；名称写法或首个新地址变化可能新增记录。
-- 导入保存当次解析结果，不保存订阅 URL，不定时同步；导入频道按名称与分组分类，不保证全部位于「自定义」分类。「清空自定义频道」入口实际清空全部导入记录。
-- 分类推导：group 或名称含「央视/CCTV/CNTV/CGTN」→ 央视；含「卫视」→ 卫视；含 CJK → 自定义；其余 → 外国频道。
-- 错误归一：地址非法或无可播放频道 → `IllegalArgumentException`（提示格式错误）；下载失败 → `IOException`（提示网络不可用）；其余导入异常显示通用失败提示，取消异常原样上抛。HTTP(S) 地址须含合法主机与端口；下载超时各 10 秒、非 2xx 抛错；字符集优先响应头，回退 UTF-8。
-- 清空自定义频道不影响收藏与观看记录（收藏 / 观看表按频道 id 弱关联，频道消失时列表自动跳过）。
+- 列表铺满窗口，`clipToPadding=false`；Toolbar + 分类 Chip 为 `colorSurface` 半透明浮层，背景 alpha 为 230/255，不降低控件 alpha。
+- 根容器避让左右系统栏与挖孔；浮层顶部避让状态栏与挖孔。
+- 列表顶部留白跟随浮层实测高度；加载与空态位于浮层下方且可滚动。
+- 列表和状态区底部 padding 为 `max(导航栏, IME) + 16dp`。
 
-## 隐私约束
+### 6.2 播放页
 
-- **本机处理**：收藏、观看记录与导入频道保存在本机 Room 库；应用无账号体系、无统计 / 崩溃 SDK、未配置开发者数据收集服务，不主动上报这些记录。`allowBackup=true` 且备份规则未排除 Room，数据可能进入系统云备份或设备迁移，文档不得承诺数据始终不离开设备。
-- **订阅与播放请求**：网络访问用于用户提供的订阅下载，以及播放列表、媒体分片和相关播放资源；不做遥测、不做播放行为上报、不采集设备标识。第三方服务仍会收到 IP、请求地址等网络信息，其日志政策不由应用控制。
-- Manifest 仅申请 `INTERNET` 权限；`usesCleartextTraffic=true` 用于兼容内置与导入的 HTTP 地址。导入源不可枚举，当前未按域设置白名单，也未剥离用户输入 URL 中的令牌等参数，不能保证请求不含凭据。若后续加入登录 / 账号能力，必须改为 `networkSecurityConfig` 按域收紧，加入敏感配置前需收紧备份边界。
-- 不实现应用内 WebView；如需打开外部网页，交给系统浏览器并另议交互。
+- 纯黑背景和白色前景，系统栏沉浸隐藏，允许边缘滑动临时唤出；顶底栏使用黑色渐隐遮罩，不压暗中央画面。
+- 全屏时，顶底栏、错误内容和换台提示分别避让忽略可见性的系统栏与挖孔，保持稳定安全区。
+- 选台时，根布局统一避让系统栏、挖孔和 IME，子控件不重复处理。
+- 底部固定上一频道、频道列表、下一频道和末端设置；图标触达区至少 48dp，受限文案可省略但保留完整读屏描述。
+- 无源不显示计数，单路禁用选源；没有可用设置动作时禁用设置；错误区仅在至少两路时提供一步换源。
 
-## 验证
+操作区通常 3 秒无操作后以 200ms 淡出并轻移。错误态、设置打开、持续触摸、键盘／遥控器焦点或读屏触摸浏览期间不自动隐藏，窗口失焦暂停计时。隐藏后设为 `INVISIBLE`，保留布局尺寸并退出 TalkBack 遍历；方向键可以唤出，错误态不能手动隐藏。
 
-默认不运行 Gradle 构建、测试、Lint、安装或模拟器验证，编译门禁由工作流统一执行；用户明确要求验证时，按改动范围选择下列命令：
+### 6.3 关于与文档页
+
+使用 DayNight 信息卡和阅读卡，内容最大宽度 500dp，章节导航固定在顶部。根容器避让系统栏、挖孔和 IME，列表与正文不重复避让。
+
+## 7. 播放器、换源与选台
+
+### 7.1 生命周期与装载
+
+ExoPlayer 归 `PlayerActivity` 持有。`onStart` 创建或复用，`onStop` 和 `onDestroy` 释放；**画中画属于可见前台，不释放播放器**，判断用 `isInPictureInPictureMode`。普通退后台释放，回前台由状态重放装载当前线路；释放时将 `appliedPlayRequestId` 重置为 -1。
+
+ViewModel 只决定应播放哪一路。`playRequestId` 递增驱动 Activity 用同一实例执行 `setMediaItem + prepare + play`，换频道、换源和重试不重建播放器。`.m3u` / `.m3u8` 路径显式设置 `MimeTypes.APPLICATION_M3U8`，包括带查询串的地址；其余交播放器识别。
+
+Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supportsPictureInPicture`；`configChanges` 包含 orientation、screenSize、screenLayout、smallestScreenSize、keyboardHidden，旋转不重复初始化。
+
+### 7.2 播放器配置
+
+- 音频使用 `USAGE_MEDIA`，启用 `handleAudioFocus` 和 `handleAudioBecomingNoisy`。
+- `DefaultLoadControl` 起播 800ms、重缓冲 1500ms，min 15s / max 30s；这些不是实际出画耗时或性能提升的证据。
+- 扩展渲染器为 `EXTENSION_RENDERER_MODE_OFF`，启用 `setEnableDecoderFallback(true)`。备用解码器由设备决定，不保证软解或消除所有黑屏。
+- `PlayerView` 使用 `use_controller=false` 和 `surface_type=surface_view`，操作区自绘；`keepScreenOn=true`。
+
+### 7.3 换频道、轮换与重试
+
+- 上下频道按全集顺序循环回绕。同频道重复加载不重新起播，新频道从第一路开始，起始下标经 `resolveStartIndex` 写回恢复句柄。
+- 连续换台以上一次请求目标为基准，先取消旧加载，写回前核对最新请求；观看记录跟随核对后的结果落库。
+- 媒体回调携带 `MediaItem.mediaId` 中的请求序号，过期代次不得更新当前状态。
+- `onPlayerError` 按下标顺序切下一路；末路失败进入 `allSourcesFailed`，延迟 8 秒重试当前源，最多 2 次。
+- 换频道、手动重试和换源都会取消待执行重试；换频道与手动重试归零计数，换源保留计数。`nextSource` 循环切换并可从错误态恢复。
+- 线路菜单校验媒体请求代次与当前选项，重复选择正常线路不重装。换频道、自动换源、画质偏好或选项变化时关闭旧菜单；退后台和进入画中画同时关闭根菜单与独立子菜单。
+
+### 7.4 清晰度
+
+`onTracksChanged` 按轨道支持状态过滤视频格式，按高度去重，同高度取最高码率。保留单档信息用于偏好校验，不足两种高度时隐藏入口，装载期临时空轨道不清除偏好。
+
+模式为自动、最高（`setForceHighestSupportedBitrate`）和高度上限（`setMaxVideoSize`，仍在上限内自适应）。所选高度在真实新选项中不存在时回落自动；用户切换和自动回落均递增 `qualityRequestId`，新实例立即恢复当前偏好。
+
+### 7.5 手势、提示与画中画
+
+单击经约 300ms 确认后通过 `performClick` 切换操作区，保持触摸、TalkBack 与键盘一致。正常观看时，双击左／右半区和满足速度、横纵比条件的横扫用于换台。只有操作区隐藏时才在顶部起始边缘显示频道名，1.5 秒后淡出，不重复显示标题。
+
+画中画以 16:9 画幅进入；设备不支持时隐藏入口，调用仍检查能力。进入后关闭面板、隐藏覆盖层，退出后恢复操作区并重启隐藏计时，不打断前台播放。
+
+### 7.6 同页选台
+
+- 视频与列表为兄弟节点，不使用覆盖画面的 BottomSheet 或抽屉；可用宽度至少 600dp 时列表占末端 280～320dp，窄窗口视频在上、列表在下。
+- 选台期间隐藏顶底栏与 OSD。点选频道、关闭按钮、系统返回或点击预览均收起列表，恢复全屏；预览不执行双击或横扫换台。
+- 查询和开关由 ViewModel / SavedStateHandle 保存。过滤在 Default 执行，只在面板可见且页面 STARTED 时收集。
+- 主动重开清空查询并定位当前频道一次；重建保留查询和滚动位置。
+- 不自动弹出键盘，按 IME 与实际窗口空间重排；进入画中画关闭面板并恢复全尺寸视频。
+
+## 8. 性能与协程
+
+- 网络、Room、解析和文件访问放 IO；频道合并、状态合成与目录过滤放 Default。主线程只处理 View 和轻量渲染，不用 `runBlocking`。
+- 主页搜索在写入侧 250ms 去抖，清空立即生效；状态流用 `WhileSubscribed(5000)`，短暂导航不停止上游，5 秒无订阅后停采。
+- 目录 id 索引只在全集变化时重建。列表使用稳定频道 id、ListAdapter / DiffUtil，相等结果不重复提交，不做无谓重绘。
+- 订阅下载逐行交给 `M3uParser.parse(BufferedReader)`。与内置目录重名比对预建“归一化名称 → 地址”索引，避免逐条扫描整个内置目录。
+- 导入地址用集合保序去重；DAO `INSERT IGNORE` 原子跳过已有 id，按真实 rowid 统计，不预读全部旧频道正文。
+- 收藏切换使用 `FavoriteChannelDao.toggle` 单条事务；主页按点击顺序写入，乐观覆盖同步取值并由相同代次释放，宽限 1 秒。播放页星标只认仓库流。
+
+主页列表启用 `setHasFixedSize`（列表尺寸不依赖条目内容，不要求条目等高），离屏缓存 4 条。关闭变更动画，保留增删和移动动画；异步目录用 `PREVENT_WHEN_EMPTY`，首次保留位置，后续切分类才回顶。Snackbar 只保留最新一条，收藏点击带 `CONTEXT_CLICK` 触感，名称最多两行，摘要可换行且不挤占收藏触达区。
+
+## 9. 持久化与模型兼容
+
+网络、序列化、反射相关模型统一加 `androidx.annotation.Keep`：`Channel`、`ChannelSource`、`ChannelCategory`、`SourceCodec`、`M3uEntry` 和三张 Room 实体。`@Keep` 只保护结构，不增加网络能力，也不替代隐私披露。
+
+信号源格式固定为包含 `label`、`url` 的 JSON 数组。字段或格式修改必须兼容旧数据，解码容错跳过坏元素。Room schema 当前为 version 1、`exportSchema=false`，改表必须评估迁移，不能静默丢数据。
+
+## 10. m3u 导入
+
+详细解析与保存流程见[技术设计](project-docs/TECHNICAL_DESIGN.md#6-m3u-解析与导入)，修改时保持以下规则：
+
+### 10.1 输入与解析
+
+- 入口仅为主页“导入频道源”对话框：单行 HTTP(S) 地址下载，其他输入按正文解析，支持多行裸 URL，scheme 不区分大小写。
+- 说明独立换行，标签保持简短，输入区显示 4～6 行并可滚动，不截断正文；短窗口下对话框内容也可滚动。
+- 兼容 BOM、`\r\n`；读取 `tvg-id`、`tvg-name`、`group-title`；名称取首个未被引号包裹的逗号之后内容，连续多条 EXTINF 可以共用一个 URL。
+- 地址须有合法主机和端口；连接、读取超时各 10 秒，非 2xx 抛错，字符集优先响应头，否则 UTF-8。
+
+### 10.2 合并与保存
+
+- 同一批次按“去空白、忽略大小写的名称”合并，线路按序去重。
+- 与内置同名时剔除已固化地址；全部重复跳过，含新地址时保存为独立导入频道。
+- id 为 `m3u:` 加 `SHA-256(名称 + "\n" + 首个新 URL)` 前 12 位。已有 id 直接跳过，不更新其他线路；名称写法或首个新 URL 变化可能新增记录。
+- 只保存当次结果，不保存订阅 URL，不定时同步。
+- 名称或分组含“央视／CCTV／CNTV／CGTN”归央视，含“卫视”归卫视，其他含 CJK 归自定义，其余归外国频道。
+- “清空自定义频道”删除全部导入记录，不限分类，不删除收藏和观看记录；频道消失后列表自动跳过弱关联记录。
+
+### 10.3 错误处理
+
+地址非法或没有可播放频道抛 `IllegalArgumentException`，提示格式错误；下载失败抛 `IOException`，提示网络不可用；其余异常显示通用失败。取消异常原样上抛。
+
+## 11. 网络与隐私
+
+- 收藏、最近观看和导入频道保存于本机 Room；应用无账号、统计／崩溃 SDK 或开发者数据收集服务，不主动上报这些记录，不做播放遥测或设备标识采集。
+- `allowBackup=true`，备份规则未排除 Room。数据可能进入系统云备份或设备迁移，不能承诺始终不离开设备。
+- 网络用于用户订阅下载，以及播放列表、媒体分片和相关资源。第三方仍会收到 IP、请求地址等信息，其日志不由应用控制。
+- Manifest 仅申请 `INTERNET`；`usesCleartextTraffic=true` 用于兼容 HTTP。导入源不可枚举，当前没有域白名单，也不剥离 URL 中的令牌等参数。
+- 若增加登录／账号，必须改用 `networkSecurityConfig` 按域收紧；加入敏感配置前也需收紧备份边界。
+- 不实现 WebView；外部网页交系统浏览器，新增相关交互需单独考虑。现有文档外链按确认流程处理。
+
+## 12. 验证与报告
+
+默认不运行 Gradle 构建、测试、Lint、安装或模拟器任务，编译门禁由工作流统一执行。用户明确要求时，按改动范围选择：
 
 ```bash
 ./gradlew :app:assembleDebug
@@ -156,18 +235,34 @@ Activity / Fragment 只承担生命周期、窗口与 Insets、导航、对话�
 git diff --check
 ```
 
-- 获授权执行时 Lint 要求 0 errors；文档编辑可直接执行 `git diff --check` 与本地链接检查，不因此启动构建或设备任务。
-- UI 改动的待验收范围至少考虑浅深色、大字体、RTL、窄宽屏、手势 / 三键导航、IME、进程重建恢复、前后台切换与播放中断恢复；按实际影响选取，不把清单写成已经通过。
-- 静态阅读、构建、测试、Lint 和设备实测分别报告；历史通过结果不覆盖当前差异，未运行的检查如实标注「未运行」。
-- 直播源可用性随时间变化，任何「源可用」的结论必须来自当次实测，不以代码存在信号源为依据。
+- 获授权运行的 Lint 要求 0 errors；文档编辑可直接检查差异格式、本地链接与锚点，不因此启动构建或设备任务。
+- UI 按实际影响覆盖浅深色、大字体、RTL、窄宽窗口、导航模式、IME、进程重建、前后台和播放中断恢复，不把待验收清单写成已通过。
+- 静态阅读、构建、测试、Lint 和设备实测分开报告；历史通过不覆盖当前差异，未运行就明确写“未运行”。
+- 直播源可用性随时间变化，只能引用当次实测，不能因源码存在 URL 就宣称可播放。
 
-## 文档与历史维护
+## 13. 文档、来源与历史维护
 
-- 文档是功能的一部分：功能、行为或约束变化时同步更新受影响的 README（中英）与本目录专题，保持「当前行为」与「历次修订」各自清楚，不为每次小改动新建重复专题。
-- Markdown 使用 UTF-8、有语义的标题和正常换行；段落 / 列表 / 表格之间保留空行，代码用标注语言的代码块。仓库内引用用相对路径，避免绝对本机路径。
-- 当前文档体系：根目录 `AGENTS.md`（规范）、`README.md` / `README.zh-CN.md`（入口）、`project-docs/`（工程专题）不随 APK 打包；`docs/legal/`（用户协议 / 隐私政策）与 `docs/version-history/`（用户更新日志）作为 assets 随包提供。后续新增专题先登记进[工程索引](project-docs/README.md)。
-- 三份用户文档以 `#` 一级标题 + 概述 + `##` 章节 / 版本为结构，不在围栏代码块中放二级标题；`###` 等子标题交 Markwon 渲染。文档路由仅接受 `LocalDocument` 枚举；法律互链使用已登记文件名，外部 HTTP(S) 网页经确认交系统浏览器，不引入 WebView。版本日志按“开发中”与已知基础能力分开，不虚构发布日期。
-- 文档日志折叠由 Holder 独立执行 240ms 正文高度 / 透明度与箭头联动；连续反向从当前视觉状态接续，首屏、恢复、离屏与系统关闭动画时直接到达目标。收起立即退出正文焦点和读屏遍历，结束后清空链接；动画结束恢复 `wrap_content`，章节定位等待布局稳定，回收和页面销毁取消旧回调。
-- 内置频道目录、播放源出处与免责说明属于用户可见信息，更新源时同步 [README.zh-CN.md](README.zh-CN.md) 的对应章节。
-- 来源记录需区分列表整理项目、实际流服务与节目权利方；公开可访问、来源署名或学习用途不代替内容授权。新增或替换地址需记录频道 id、线路标签、上游文件与版本／获取日期及改写说明；无法核对的出处明确标为待补，不把整个内置目录归给单一项目。
-- 开发记录需说明触发原因、最终行为与实际检查范围；没有实测依据时不宣称可用性、性能或兼容性结论。
+### 13.1 文档职责
+
+- `README.md`、`README.zh-CN.md`：项目入口、功能、使用边界和构建方式。
+- `AGENTS.md`：长期开发规则，只在根目录维护一份。
+- `project-docs/TECHNICAL_DESIGN.md`：当前实现。
+- `project-docs/CHANNEL_SOURCES.md`：内置目录、地址来源和内容抽样。
+- `project-docs/IMPLEMENTATION_HISTORY.md`：按日期记录触发原因、改动与实际检查。
+- `docs/legal/`、`docs/version-history/`：面向用户的正文，作为 assets 打包；其他文档不打包。
+
+功能变化时同步相关文档，不为每次小改动新建重复专题。新增专题先登记[工程索引](project-docs/README.md)。使用 UTF-8、语义标题和正常段落，段落／列表／表格之间留空行，代码块标注语言，仓库查阅用相对链接。
+
+### 13.2 随包文档
+
+正文采用 `#` 一级标题、概述、`##` 章节／版本结构；三级以下标题交 Markwon 渲染，围栏代码块不放二级标题。日志区分开发中与已知基础能力，不虚构发布日期。
+
+路由只接受 `LocalDocument` 枚举；法律互链用登记文件名，工程文档等未打包内容使用 HTTP(S) 项目链接，经确认后交浏览器打开，不引入 WebView。
+
+章节折叠由 Holder 独立执行 240ms 高度、透明度和箭头联动。反向操作从当前视觉状态接续；首屏、恢复、离屏和系统关闭动画直接到目标状态。收起立即退出正文焦点与读屏遍历，结束后清除链接并恢复 `wrap_content`；章节定位等待布局稳定，回收和销毁取消旧回调。
+
+### 13.3 来源与历史
+
+更新内置目录、地址出处或免责边界时，同步双语 README 和来源记录。新增或替换地址记录频道 id、线路标签、上游文件、版本／获取日期及改写原因；无法核对的明确标为待补，不能把全部目录归给单一项目。
+
+区分列表整理者、实际流服务与节目权利方。公开访问、署名和学习用途不替代授权。工程记录说明触发原因、最终行为和当次检查范围；没有实测依据时，不宣称可用性、性能或兼容性提升。
