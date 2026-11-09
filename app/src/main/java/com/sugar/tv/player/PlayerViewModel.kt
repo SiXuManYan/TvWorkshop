@@ -92,6 +92,9 @@ class PlayerViewModel(
     /** 当前「全部失败」回合内已执行的自动重试次数，换频道或手动重试时归零。 */
     private var autoRetryAttempts = 0
 
+    /** 已为直播窗口落后执行过原线路恢复的请求，避免损坏的播放列表无限重接。 */
+    private var liveWindowRecoveryRequestId: Long? = null
+
     init {
         // 加载任务会立即读写上述字段，声明先于 init 以明确初始化依赖。
         viewModelScope.launch {
@@ -226,14 +229,30 @@ class PlayerViewModel(
     }
 
     /**
-     * 当前信号源播放失败（由播放器 `Player.Listener` 回调驱动）：自动切到下一路；
-     * 已到最后一路则停在「全部失败」错误态，并在有限次数内自动重试当前源
-     * （见 [scheduleAutoRetry]），等待期间用户随时可以重试或手动换源。
+     * 当前媒体报告致命错误：直播窗口落后先在原线路重新接入一次，其他错误或恢复再次失败
+     * 才尝试下一路；末路失败进入错误态并有限重试，等待期间仍可手动操作。
+     *
+     * @param playRequestId 事件所属的媒体请求，拒绝旧媒体的迟到错误
+     * @param isBehindLiveWindow 是否已落到直播播放列表保留窗口之外
      */
-    fun onPlaybackError(playRequestId: Long) {
+    fun onPlaybackError(playRequestId: Long, isBehindLiveWindow: Boolean) {
         if (playRequestId != _uiState.value.playRequestId || _uiState.value.sources.isEmpty()) return
         autoRetryJob?.cancel()
         val current = _uiState.value
+        if (isBehindLiveWindow && liveWindowRecoveryRequestId != playRequestId) {
+            val recoveryRequestId = current.playRequestId + 1
+            liveWindowRecoveryRequestId = recoveryRequestId
+            // 新 MediaItem 从源的默认直播位置接入；同一恢复请求再次落后时交回正常换源流程。
+            _uiState.update {
+                it.copy(
+                    allSourcesFailed = false,
+                    isBuffering = true,
+                    qualityOptions = emptyList(),
+                    playRequestId = recoveryRequestId,
+                )
+            }
+            return
+        }
         val nextIndex = current.currentSourceIndex + 1
         if (nextIndex < current.sources.size) {
             savedStateHandle[PlayerActivity.EXTRA_SOURCE_INDEX] = nextIndex

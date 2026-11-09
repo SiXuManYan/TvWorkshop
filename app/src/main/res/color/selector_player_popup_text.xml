@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 菜单文字、箭头与单选标记统一使用浅色，禁用项保留可读的次级色。 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="@color/tv_player_panel_secondary_text" />
+    <item android:color="@color/white" />
+</selector>

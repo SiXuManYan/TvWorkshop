@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 播放设置固定不透明深色，保证菜单与视频画面之间的对比度。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/tv_player_panel_background" />
+    <corners android:radius="@dimen/dp_8" />
+    <padding android:top="@dimen/dp_8" android:bottom="@dimen/dp_8" />
+</shape>

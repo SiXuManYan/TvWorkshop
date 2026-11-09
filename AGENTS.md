@@ -121,6 +121,7 @@ XML 正整数尺寸一律引用 `@dimen/dp_N` 或 `@dimen/sp_N`，不直接写 `
 - 选台时，根布局统一避让系统栏、挖孔和 IME，子控件不重复处理。
 - 底部固定上一频道、频道列表、下一频道和末端设置；图标触达区至少 48dp，受限文案可省略但保留完整读屏描述。
 - 无源不显示计数，单路禁用选源；没有可用设置动作时禁用设置；错误区仅在至少两路时提供一步换源。
+- 设置根菜单与线路／画质子菜单使用固定深色背景、浅色文字和明确的禁用色；主题须同时覆盖 Material 弹窗背景与文字，不能只套 AppCompat 深色文字主题。
 
 操作区通常 3 秒无操作后以 200ms 淡出并轻移。错误态、设置打开、持续触摸、键盘／遥控器焦点或读屏触摸浏览期间不自动隐藏，窗口失焦暂停计时。隐藏后设为 `INVISIBLE`，保留布局尺寸并退出 TalkBack 遍历；方向键可以唤出，错误态不能手动隐藏。
 
@@ -141,7 +142,7 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 ### 7.2 播放器配置
 
 - 音频使用 `USAGE_MEDIA`，启用 `handleAudioFocus` 和 `handleAudioBecomingNoisy`。
-- `DefaultLoadControl` 起播 800ms、重缓冲 1500ms，min 15s / max 30s；这些不是实际出画耗时或性能提升的证据。
+- `DefaultLoadControl` 起播 1500ms、重缓冲 3000ms，min 15s / max 30s；直播目标延迟可能进一步限制实际阈值，这些不是实际出画耗时或性能提升的证据。
 - 扩展渲染器为 `EXTENSION_RENDERER_MODE_OFF`，启用 `setEnableDecoderFallback(true)`。备用解码器由设备决定，不保证软解或消除所有黑屏。
 - `PlayerView` 使用 `use_controller=false` 和 `surface_type=surface_view`，操作区自绘；`keepScreenOn=true`。
 
@@ -149,10 +150,11 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 
 - 上下频道按全集顺序循环回绕。同频道重复加载不重新起播，新频道从第一路开始，起始下标经 `resolveStartIndex` 写回恢复句柄。
 - 连续换台以上一次请求目标为基准，先取消旧加载，写回前核对最新请求；观看记录跟随核对后的结果落库。
-- 媒体回调携带 `MediaItem.mediaId` 中的请求序号，过期代次不得更新当前状态。
-- `onPlayerError` 按下标顺序切下一路；末路失败进入 `allSourcesFailed`，延迟 8 秒重试当前源，最多 2 次。
+- 媒体回调使用 `AnalyticsListener.EventTime` 所属时间线中 `MediaItem.mediaId` 的请求序号，不能用播放器当前媒体替旧事件贴标签；过期代次不得更新当前状态。
+- 普通缓冲与可恢复的分片加载错误不触发换源。致命 `ERROR_CODE_BEHIND_LIVE_WINDOW` 先在原线路默认直播位置重接一次，同一恢复请求再次失败才按下标顺序切下一路；其他致命错误直接顺序切源。末路失败进入 `allSourcesFailed`，延迟 8 秒重试当前源，最多 2 次。
 - 换频道、手动重试和换源都会取消待执行重试；换频道与手动重试归零计数，换源保留计数。`nextSource` 循环切换并可从错误态恢复。
 - 线路菜单校验媒体请求代次与当前选项，重复选择正常线路不重装。换频道、自动换源、画质偏好或选项变化时关闭旧菜单；退后台和进入画中画同时关闭根菜单与独立子菜单。
+- `TvPlayback` 诊断只在调试包写本机 Logcat，记录缓冲、错误码、HTTP 状态和掉帧等技术指标；不记录频道名、URL、令牌、异常消息或堆栈，不落盘、不上报，不驱动播放策略。
 
 ### 7.4 清晰度
 

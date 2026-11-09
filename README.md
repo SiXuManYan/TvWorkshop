@@ -53,7 +53,7 @@ The current source version is `1.0` and the minimum supported Android version is
 
 ### Playback and zapping
 
-- On playback errors, try later sources in order. After the last source fails, retry the current source every 8 seconds, at most twice.
+- If playback falls behind the live window, reconnect to the same source once. Other fatal errors or failed recovery try later sources in order. After the last source fails, retry the current source every 8 seconds, at most twice. Buffering alone does not trigger source switching.
 - Previous channel, channel list, and next channel stay in the bottom bar. Source selection, quality, and picture-in-picture are available in the settings menu.
 - For streams with multiple video heights, choose Auto, Highest, or a height limit. If a new source does not provide the selected height, the player returns to Auto.
 - Double-tap the left or right half of the video, or make a qualifying horizontal swipe, to change channels. When controls are hidden, a short channel hint appears at the top edge instead of covering the center of the picture.

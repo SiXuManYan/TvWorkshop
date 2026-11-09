@@ -46,6 +46,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.sugar.tv.R
 import com.sugar.tv.base.BaseActivity
 import com.sugar.tv.data.model.ChannelCategory
@@ -81,6 +82,9 @@ class PlayerActivity : BaseActivity() {
 
     /** 已装载到播放器的播放请求序号；[NO_PLAY_REQUEST] 表示尚未装载（含释放后重置）。 */
     private var appliedPlayRequestId: Long = NO_PLAY_REQUEST
+
+    /** 调试包的本机播放诊断；不保存媒体地址，不参与状态机或网络上报。 */
+    private val playbackDiagnostics = PlayerDiagnostics()
 
     /** 覆盖层（顶栏 + 底栏）当前是否可见。 */
     private var controlsVisible = true
@@ -151,30 +155,35 @@ class PlayerActivity : BaseActivity() {
     /** 播放区手势识别：单击确认切换浮层显隐、双击换台、横向轻扫换台；构造期 Context 未挂载，在 onCreate 创建。 */
     private lateinit var channelGestureDetector: GestureDetector
 
-    /** 播放器事件监听：缓冲状态同步、视频档位上报与播放失败自动换源。 */
-    private val playerListener = object : Player.Listener {
-        override fun onPlaybackStateChanged(playbackState: Int) {
-            val requestId = currentMediaRequestId() ?: return
+    /** 按事件时间线核对媒体代次，避免把旧源的迟到回调归到当前媒体。 */
+    private val playerListener = object : AnalyticsListener {
+        /** 缓冲只更新指示器，普通网络等待不会直接触发换源。 */
+        override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, playbackState: Int) {
+            val requestId = eventTime.playRequestId() ?: return
             viewModel.onBufferingChanged(
                 playRequestId = requestId,
                 isBuffering = playbackState == Player.STATE_BUFFERING,
             )
         }
 
-        override fun onTracksChanged(tracks: Tracks) {
+        /** 只接受事件所属媒体的真实档位，装载期空轨道不清除高度偏好。 */
+        override fun onTracksChanged(eventTime: AnalyticsListener.EventTime, tracks: Tracks) {
             // setMediaItem 会先清空轨道；这不是新源的真实档位，不能据此丢弃用户的高度偏好。
             if (tracks.isEmpty) return
-            val requestId = currentMediaRequestId() ?: return
+            val requestId = eventTime.playRequestId() ?: return
             viewModel.onVideoQualityOptionsChanged(
                 playRequestId = requestId,
                 options = extractQualityOptions(tracks),
             )
         }
 
-        override fun onPlayerError(error: PlaybackException) {
-            val requestId = currentMediaRequestId() ?: return
-            // 当前信号源失败：交由 ViewModel 自动切下一路，全部失败则停在错误态
-            viewModel.onPlaybackError(playRequestId = requestId)
+        /** 直播窗口落后交回原线路恢复，其他致命错误仍由 ViewModel 顺序换源。 */
+        override fun onPlayerError(eventTime: AnalyticsListener.EventTime, error: PlaybackException) {
+            val requestId = eventTime.playRequestId() ?: return
+            viewModel.onPlaybackError(
+                playRequestId = requestId,
+                isBehindLiveWindow = error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW,
+            )
         }
     }
 
@@ -759,6 +768,11 @@ class PlayerActivity : BaseActivity() {
             target.clearMediaItems()
             return true
         }
+        playbackDiagnostics.onSourceRequested(
+            playRequestId = state.playRequestId,
+            sourceIndex = state.currentSourceIndex,
+            sourceCount = state.sources.size,
+        )
         target.setMediaItem(buildMediaItem(url = url, playRequestId = state.playRequestId))
         target.prepare()
         target.play()
@@ -783,14 +797,11 @@ class PlayerActivity : BaseActivity() {
             .build()
     }
 
-    /** 从已装载媒体读取请求代次，用于拒绝新请求尚未装载时旧媒体发出的回调。 */
-    private fun currentMediaRequestId(): Long? = player?.currentMediaItem?.mediaId?.toLongOrNull()
-
     /** 获取可用的播放器实例；不存在时按直播播放配置创建并绑定到播放视图（PlayerView）。 */
     private fun ensurePlayer(): ExoPlayer {
         player?.let { return it }
-        // 缩短起播 / 重缓冲阈值；这是媒体缓冲参数，实际出画时间还取决于网络和源，
-        // min / max 缓冲维持本页配置，不据参数值承诺实测性能。
+        // 起播与卡顿后恢复分别留出缓冲余量；直播目标延迟仍可能使实际阈值低于配置值。
+        // 不据参数值承诺实测性能，持续下载速度不足时仍需降低画质或使用其他线路。
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ MIN_BUFFER_MS,
@@ -814,7 +825,9 @@ class PlayerActivity : BaseActivity() {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
-        newPlayer.addListener(playerListener)
+        // 先记录诊断再推进状态；两类监听都使用事件本身的时间线关联媒体请求。
+        newPlayer.addAnalyticsListener(playbackDiagnostics)
+        newPlayer.addAnalyticsListener(playerListener)
         player = newPlayer
         binding.playerView.player = newPlayer
         // 新实例为默认轨道参数：立即按当前清晰度模式恢复用户的档位偏好
@@ -826,7 +839,8 @@ class PlayerActivity : BaseActivity() {
     /** 释放播放器并重置装载标记；回到前台后由状态重放重新装载当前信号源。 */
     private fun releasePlayer() {
         val current = player ?: return
-        current.removeListener(playerListener)
+        current.removeAnalyticsListener(playerListener)
+        current.removeAnalyticsListener(playbackDiagnostics)
         // 先解除 Surface 关联，再释放实例，避免 PlayerView 在释放期间仍指向已失效播放器。
         binding.playerView.player = null
         player = null
@@ -1025,11 +1039,17 @@ class PlayerActivity : BaseActivity() {
         /** OSD 淡入淡出时长。 */
         private const val OSD_FADE_DURATION_MS = 150L
 
-        /** 直播起播（默认 15s/30s/2500ms/5000ms）：压缩起播与重缓冲首包等待。 */
+        /** 媒体缓冲的最小时长，限制下载阶段的预留量。 */
         private const val MIN_BUFFER_MS = 15_000
+
+        /** 媒体缓冲的最大时长，不为卡顿无限扩大内存预取。 */
         private const val MAX_BUFFER_MS = 30_000
-        private const val BUFFER_FOR_PLAYBACK_MS = 800
-        private const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 1_500
+
+        /** 首次接入保留的媒体时长，在出画等待与短时抖动之间取舍。 */
+        private const val BUFFER_FOR_PLAYBACK_MS = 1_500
+
+        /** 卡顿后积累更多媒体再恢复，降低立即耗尽缓冲的机会。 */
+        private const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 3_000
 
         /** 画中画画幅：直播画面普遍为 16:9。 */
         private val PIP_ASPECT_RATIO = Rational(16, 9)

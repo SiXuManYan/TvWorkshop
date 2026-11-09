@@ -31,8 +31,23 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
-    <!-- 播放设置固定深色，浅色系统主题下也与视频控件保持一致。 -->
-    <style name="ThemeOverlay.TvWorkshop.PlayerPopup" parent="ThemeOverlay.AppCompat.Dark" />
+    <!-- 同时覆盖 Material 的弹窗背景与文字；只套 AppCompat.Dark 会留下浅色菜单底。 -->
+    <style name="ThemeOverlay.TvWorkshop.PlayerPopup" parent="ThemeOverlay.Material3.Dark">
+        <item name="colorSurface">@color/tv_player_panel_background</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="colorOnSurfaceVariant">@color/tv_player_panel_secondary_text</item>
+        <item name="colorControlNormal">@color/selector_player_popup_text</item>
+        <item name="colorControlActivated">@color/tv_player_panel_accent</item>
+        <item name="colorControlHighlight">@color/tv_player_control_highlight</item>
+        <item name="android:textColorPrimary">@color/selector_player_popup_text</item>
+        <item name="android:textColorSecondary">@color/selector_player_popup_text</item>
+        <item name="popupMenuBackground">@color/tv_player_panel_background</item>
+        <item name="popupMenuStyle">@style/Widget.TvWorkshop.PlayerPopup</item>
+    </style>
+    <!-- 根菜单和 AppCompat 创建的独立／级联子菜单共用具体背景，不再解析浅色主题属性。 -->
+    <style name="Widget.TvWorkshop.PlayerPopup" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_player_popup</item>
+    </style>
     <!-- 选台面板固定深色，输入、列表和焦点在浅色系统主题下仍与播放区一致。 -->
     <style name="ThemeOverlay.TvWorkshop.PlayerPanel" parent="ThemeOverlay.Material3.Dark">
         <item name="colorSurface">@color/tv_player_panel_background</item>
