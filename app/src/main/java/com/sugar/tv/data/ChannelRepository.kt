@@ -1,6 +1,7 @@
 package com.sugar.tv.data
 
 import android.content.Context
+import android.net.Uri
 import androidx.room.Room
 import com.sugar.tv.data.builtin.BuiltinChannels
 import com.sugar.tv.data.db.AppDatabase
@@ -9,6 +10,7 @@ import com.sugar.tv.data.db.ImportedChannelEntity
 import com.sugar.tv.data.db.RecentChannelEntity
 import com.sugar.tv.data.m3u.M3uEntry
 import com.sugar.tv.data.m3u.M3uParser
+import com.sugar.tv.data.m3u.M3uWriter
 import com.sugar.tv.data.model.Channel
 import com.sugar.tv.data.model.ChannelSource
 import java.io.IOException
@@ -49,6 +51,9 @@ private class MergedCandidate(
  * @param appContext Application 级 Context，仅用于访问应用级资源，不持有页面生命周期对象
  */
 class ChannelRepository(appContext: Context) {
+
+    /** 仅保留应用级文件访问入口，文件授权由系统选择器按次提供。 */
+    private val contentResolver = appContext.applicationContext.contentResolver
 
     /** Room 数据库单例：仓库本身是应用级单例，数据库随仓库只建一次。 */
     private val database: AppDatabase = Room.databaseBuilder(
@@ -116,6 +121,53 @@ class ChannelRepository(appContext: Context) {
                 ),
             )
         }
+    }
+
+    /** 删除全部观看记录，频道目录与收藏不受影响。 */
+    suspend fun clearRecentChannels() = withContext(Dispatchers.IO) {
+        recentDao.deleteAll()
+    }
+
+    /** 观察用户导入的频道，管理页不混入内置目录或受业务分类限制。 */
+    fun observeImportedChannels(): Flow<List<Channel>> = importedDao.observeAll().map { imported ->
+        imported.mapNotNull { it.toChannel() }
+    }.flowOn(Dispatchers.Default)
+
+    /** 按系统授权的 URI 流式读取 UTF-8 列表，复用文本导入的合并和去重规则。 */
+    suspend fun importFromDocument(uri: Uri): Int = withContext(Dispatchers.IO) {
+        val input = contentResolver.openInputStream(uri) ?: throw IOException("无法读取列表文件")
+        val entries = input.bufferedReader(Charsets.UTF_8).use { M3uParser.parse(reader = it) }
+        importEntries(entries)
+    }
+
+    /**
+     * 导出全部导入频道的快照，保留分组与各路地址，不包含内置目录、收藏或观看记录。
+     * 输出目的地由用户通过系统选择器决定，关闭流后才报告成功。
+     */
+    suspend fun exportToDocument(uri: Uri): Int = withContext(Dispatchers.IO) {
+        var channelCount = 0
+        val exportContext = currentCoroutineContext()
+        val entries = importedDao.getAll().flatMap { entity ->
+            exportContext.ensureActive()
+            val sources = SourceCodec.decode(entity.sourcesJson)
+            if (sources.isNotEmpty()) channelCount++
+            sources.map { source ->
+                M3uEntry(
+                    name = entity.name,
+                    group = entity.groupName,
+                    tvgId = null,
+                    tvgName = null,
+                    url = source.url,
+                )
+            }
+        }
+        require(entries.isNotEmpty()) { "没有可导出的频道" }
+        exportContext.ensureActive()
+        val output = contentResolver.openOutputStream(uri, "wt") ?: throw IOException("无法写入列表文件")
+        output.bufferedWriter(Charsets.UTF_8).use { writer ->
+            M3uWriter.write(entries = entries, writer = writer)
+        }
+        channelCount
     }
 
     /**

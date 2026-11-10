@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">我的收藏</string>
+    <string name="manager_title">頻道管理</string>
+    <string name="manager_summary_format">%1$d 個匯入頻道 · %2$d 筆觀看記錄</string>
+    <string name="manager_hint">管理全部匯入頻道，點按頻道即可播放。檔案使用 UTF-8 編碼的 m3u / m3u8 格式；匯出範圍為全部匯入頻道。</string>
+    <string name="manager_import_file">從檔案匯入</string>
+    <string name="manager_export">匯出頻道清單</string>
+    <string name="manager_export_notice">將匯出全部匯入頻道的名稱、群組與完整播放網址，不包含內建目錄、收藏或觀看記錄。網址可能含存取權杖，請妥善保管匯出檔案。</string>
+    <string name="manager_export_success_format">已匯出 %1$d 個頻道</string>
+    <string name="manager_imported_channels">已匯入頻道</string>
+    <string name="manager_empty">還沒有匯入頻道。可以從檔案匯入，或在首頁貼上訂閱網址和清單內容。</string>
+    <string name="manager_delete">刪除頻道</string>
+    <string name="manager_delete_description_format">刪除 %1$s</string>
+    <string name="manager_delete_confirm_format">確定刪除「%1$s」嗎？僅刪除這筆匯入記錄，收藏與觀看記錄不受影響。</string>
+    <string name="manager_channel_removed">已刪除匯入頻道</string>
+    <string name="manager_clear_history">清空觀看記錄</string>
+    <string name="manager_clear_history_confirm">確定清空全部最近觀看記錄嗎？收藏與匯入頻道不受影響。</string>
+    <string name="manager_history_cleared">已清空觀看記錄</string>
+    <string name="manager_operation_failed">操作未完成，請檢查檔案存取權限或稍後重試</string>
+    <string name="manager_picker_unavailable">裝置上沒有可用的檔案選擇器</string>
+    <string name="video_display_mode">畫面比例</string>
+    <string name="video_display_fit">適應畫面（完整顯示）</string>
+    <string name="video_display_zoom">等比填滿（裁切）</string>
+    <string name="video_display_fill">拉伸填滿</string>
+    <string name="sleep_timer">睡眠定時</string>
+    <string name="sleep_timer_off">關閉定時</string>
+    <string name="sleep_duration_format">%1$d 分鐘</string>
+    <string name="sleep_timer_remaining_format">睡眠定時：%1$d 分鐘後停止</string>
+    <string name="sleep_timer_finished">睡眠定時已到，已停止播放</string>
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">Favoritos</string>
+    <string name="manager_title">Gerenciador de canais</string>
+    <string name="manager_summary_format">%1$d canais importados · %2$d registros no histórico</string>
+    <string name="manager_hint">Gerencie todos os canais importados. Toque em um canal para reproduzir. Arquivos m3u / m3u8 em UTF-8; a exportação inclui todos os canais importados.</string>
+    <string name="manager_import_file">Importar de arquivo</string>
+    <string name="manager_export">Exportar lista de canais</string>
+    <string name="manager_export_notice">Exportar nomes, grupos e URLs completas de todos os canais importados. Canais integrados, favoritos e histórico não são incluídos. As URLs podem conter tokens de acesso. Guarde o arquivo com segurança.</string>
+    <string name="manager_export_success_format">%1$d canais exportados</string>
+    <string name="manager_imported_channels">Canais importados</string>
+    <string name="manager_empty">Nenhum canal importado. Importe um arquivo ou cole uma URL de assinatura ou lista na tela inicial.</string>
+    <string name="manager_delete">Excluir canal</string>
+    <string name="manager_delete_description_format">Excluir %1$s</string>
+    <string name="manager_delete_confirm_format">Excluir “%1$s”? Apenas esta entrada importada será removida. Os favoritos e o histórico serão mantidos.</string>
+    <string name="manager_channel_removed">Canal importado excluído</string>
+    <string name="manager_clear_history">Limpar histórico</string>
+    <string name="manager_clear_history_confirm">Limpar todo o histórico de reprodução? Os favoritos e os canais importados serão mantidos.</string>
+    <string name="manager_history_cleared">Histórico limpo</string>
+    <string name="manager_operation_failed">Não foi possível concluir a operação. Verifique o acesso ao arquivo ou tente novamente mais tarde.</string>
+    <string name="manager_picker_unavailable">Nenhum seletor de arquivos disponível neste dispositivo</string>
+    <string name="video_display_mode">Tamanho da imagem</string>
+    <string name="video_display_fit">Ajustar (imagem inteira)</string>
+    <string name="video_display_zoom">Ampliar (recortar)</string>
+    <string name="video_display_fill">Esticar para preencher</string>
+    <string name="sleep_timer">Temporizador de sono</string>
+    <string name="sleep_timer_off">Desativar temporizador</string>
+    <string name="sleep_duration_format">%1$d minutos</string>
+    <string name="sleep_timer_remaining_format">Temporizador: parar em %1$d min</string>
+    <string name="sleep_timer_finished">O temporizador terminou. Reprodução interrompida.</string>
+</resources>

@@ -53,6 +53,10 @@ interface RecentChannelDao {
     /** 记录一次观看；同一频道已存在记录时覆盖为最新时间。 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: RecentChannelEntity)
+
+    /** 清空观看记录，不影响频道和收藏。 */
+    @Query("DELETE FROM recent_channels")
+    suspend fun deleteAll()
 }
 
 /** 导入频道表的数据访问：提供流式观察、批量写入与删除。 */
@@ -62,6 +66,10 @@ interface ImportedChannelDao {
     /** 观察全部导入频道，按导入先后稳定排序。 */
     @Query("SELECT * FROM imported_channels ORDER BY rowid ASC")
     fun observeAll(): Flow<List<ImportedChannelEntity>>
+
+    /** 导出时读取一致的有序快照，不依赖页面当前的搜索结果。 */
+    @Query("SELECT * FROM imported_channels ORDER BY rowid ASC")
+    suspend fun getAll(): List<ImportedChannelEntity>
 
     /** 查询单个导入频道；不存在时返回 `null`。 */
     @Query("SELECT * FROM imported_channels WHERE id = :id")

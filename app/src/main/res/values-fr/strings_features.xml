@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">Favoris</string>
+    <string name="manager_title">Gestion des chaînes</string>
+    <string name="manager_summary_format">%1$d chaînes importées · %2$d entrées d’historique</string>
+    <string name="manager_hint">Gérez toutes les chaînes importées. Touchez une chaîne pour la lire. Fichiers m3u / m3u8 en UTF-8 ; toutes les chaînes importées sont exportées.</string>
+    <string name="manager_import_file">Importer un fichier</string>
+    <string name="manager_export">Exporter les chaînes</string>
+    <string name="manager_export_notice">Exporter les noms, groupes et URL complètes de toutes les chaînes importées. Les chaînes intégrées, favoris et historiques sont exclus. Les URL peuvent contenir des jetons d’accès. Conservez le fichier en sécurité.</string>
+    <string name="manager_export_success_format">%1$d chaînes exportées</string>
+    <string name="manager_imported_channels">Chaînes importées</string>
+    <string name="manager_empty">Aucune chaîne importée. Importez un fichier ou collez une URL d’abonnement ou une liste sur l’écran d’accueil.</string>
+    <string name="manager_delete">Supprimer la chaîne</string>
+    <string name="manager_delete_description_format">Supprimer %1$s</string>
+    <string name="manager_delete_confirm_format">Supprimer « %1$s » ? Seule cette entrée importée sera supprimée. Les favoris et l’historique seront conservés.</string>
+    <string name="manager_channel_removed">Chaîne importée supprimée</string>
+    <string name="manager_clear_history">Effacer l’historique</string>
+    <string name="manager_clear_history_confirm">Effacer tout l’historique de lecture ? Les favoris et les chaînes importées seront conservés.</string>
+    <string name="manager_history_cleared">Historique effacé</string>
+    <string name="manager_operation_failed">Opération impossible. Vérifiez l’accès au fichier ou réessayez plus tard.</string>
+    <string name="manager_picker_unavailable">Aucun sélecteur de fichiers disponible sur cet appareil</string>
+    <string name="video_display_mode">Taille de l’image</string>
+    <string name="video_display_fit">Ajuster (image entière)</string>
+    <string name="video_display_zoom">Agrandir (recadrer)</string>
+    <string name="video_display_fill">Étirer pour remplir</string>
+    <string name="sleep_timer">Minuterie de veille</string>
+    <string name="sleep_timer_off">Désactiver la minuterie</string>
+    <string name="sleep_duration_format">%1$d minutes</string>
+    <string name="sleep_timer_remaining_format">Minuterie : arrêt dans %1$d min</string>
+    <string name="sleep_timer_finished">Minuterie terminée. Lecture arrêtée.</string>
+</resources>

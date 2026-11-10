@@ -36,12 +36,13 @@ import com.sugar.tv.browse.ChannelListAdapter
 import com.sugar.tv.browse.ChannelListItem
 import com.sugar.tv.databinding.ActivityMainBinding
 import com.sugar.tv.databinding.DialogImportBinding
+import com.sugar.tv.manage.ChannelManagerActivity
 import com.sugar.tv.player.PlayerActivity
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
- * 主页：频道分类、搜索、收藏与频道源导入的浏览页。
+ * 主页：频道分类、搜索、收藏、频道源导入与独立管理页入口。
  *
  * 只承担生命周期、窗口与 Insets、导航、对话框和 ViewBinding 渲染；
  * 业务状态全部由 [BrowseViewModel] 持有，数据访问由频道数据仓库完成。
@@ -100,7 +101,7 @@ class MainActivity : BaseActivity() {
         return true
     }
 
-    /** 导入在当前页面处理，关于通过显式 Intent 进入版本与协议入口页。 */
+    /** 导入在当前页面处理，频道管理和关于通过显式 Intent 打开。 */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_import -> {
@@ -109,6 +110,10 @@ class MainActivity : BaseActivity() {
             }
             R.id.menu_about -> {
                 startActivity(Intent(this, AboutActivity::class.java))
+                true
+            }
+            R.id.menu_manage_channels -> {
+                startActivity(Intent(this, ChannelManagerActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)

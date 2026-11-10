@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">Favorites</string>
+    <string name="manager_title">Channel manager</string>
+    <string name="manager_summary_format">%1$d imported channels · %2$d history entries</string>
+    <string name="manager_hint">Manage all imported channels. Tap a channel to play. Files use UTF-8 m3u / m3u8; exports include all imported channels.</string>
+    <string name="manager_import_file">Import from file</string>
+    <string name="manager_export">Export channel list</string>
+    <string name="manager_export_notice">Export names, groups, and complete stream URLs for all imported channels. Built-in channels, favorites, and history are excluded. URLs may contain access tokens. Keep the file secure.</string>
+    <string name="manager_export_success_format">Exported %1$d channels</string>
+    <string name="manager_imported_channels">Imported channels</string>
+    <string name="manager_empty">No imported channels yet. Import a file, or paste a subscription URL or playlist on the home screen.</string>
+    <string name="manager_delete">Delete channel</string>
+    <string name="manager_delete_description_format">Delete %1$s</string>
+    <string name="manager_delete_confirm_format">Delete “%1$s”? Only this imported entry is removed. Favorites and history are kept.</string>
+    <string name="manager_channel_removed">Imported channel deleted</string>
+    <string name="manager_clear_history">Clear watch history</string>
+    <string name="manager_clear_history_confirm">Clear all recently watched entries? Favorites and imported channels are kept.</string>
+    <string name="manager_history_cleared">Watch history cleared</string>
+    <string name="manager_operation_failed">Could not complete the operation. Check file access or try again later.</string>
+    <string name="manager_picker_unavailable">No file picker is available on this device</string>
+    <string name="video_display_mode">Picture size</string>
+    <string name="video_display_fit">Fit (show full picture)</string>
+    <string name="video_display_zoom">Zoom (crop to fill)</string>
+    <string name="video_display_fill">Stretch to fill</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_off">Turn timer off</string>
+    <string name="sleep_duration_format">%1$d minutes</string>
+    <string name="sleep_timer_remaining_format">Sleep timer: stopping in %1$d min</string>
+    <string name="sleep_timer_finished">Sleep timer ended. Playback stopped.</string>
+</resources>

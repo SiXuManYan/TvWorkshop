@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">Favoriten</string>
+    <string name="manager_title">Kanalverwaltung</string>
+    <string name="manager_summary_format">%1$d importierte Kanäle · %2$d Verlaufseinträge</string>
+    <string name="manager_hint">Alle importierten Kanäle verwalten. Zum Abspielen auf einen Kanal tippen. Dateien: UTF-8, m3u / m3u8. Der Export umfasst alle importierten Kanäle.</string>
+    <string name="manager_import_file">Aus Datei importieren</string>
+    <string name="manager_export">Kanalliste exportieren</string>
+    <string name="manager_export_notice">Namen, Gruppen und vollständige Stream-URLs aller importierten Kanäle exportieren. Integrierte Kanäle, Favoriten und Verlauf sind ausgeschlossen. URLs können Zugriffstoken enthalten. Die Datei sicher aufbewahren.</string>
+    <string name="manager_export_success_format">%1$d Kanäle exportiert</string>
+    <string name="manager_imported_channels">Importierte Kanäle</string>
+    <string name="manager_empty">Noch keine importierten Kanäle. Eine Datei importieren oder auf der Startseite eine Abonnement-URL oder Wiedergabeliste einfügen.</string>
+    <string name="manager_delete">Kanal löschen</string>
+    <string name="manager_delete_description_format">%1$s löschen</string>
+    <string name="manager_delete_confirm_format">„%1$s“ löschen? Nur dieser importierte Eintrag wird entfernt. Favoriten und Verlauf bleiben erhalten.</string>
+    <string name="manager_channel_removed">Importierter Kanal gelöscht</string>
+    <string name="manager_clear_history">Wiedergabeverlauf löschen</string>
+    <string name="manager_clear_history_confirm">Den gesamten Wiedergabeverlauf löschen? Favoriten und importierte Kanäle bleiben erhalten.</string>
+    <string name="manager_history_cleared">Wiedergabeverlauf gelöscht</string>
+    <string name="manager_operation_failed">Vorgang nicht abgeschlossen. Dateizugriff prüfen oder später erneut versuchen.</string>
+    <string name="manager_picker_unavailable">Auf diesem Gerät ist keine Dateiauswahl verfügbar</string>
+    <string name="video_display_mode">Bildgröße</string>
+    <string name="video_display_fit">Einpassen (ganzes Bild)</string>
+    <string name="video_display_zoom">Vergrößern (zuschneiden)</string>
+    <string name="video_display_fill">Auf Bildschirm strecken</string>
+    <string name="sleep_timer">Einschlaftimer</string>
+    <string name="sleep_timer_off">Timer ausschalten</string>
+    <string name="sleep_duration_format">%1$d Minuten</string>
+    <string name="sleep_timer_remaining_format">Einschlaftimer: Stopp in %1$d Min.</string>
+    <string name="sleep_timer_finished">Einschlaftimer abgelaufen. Wiedergabe beendet.</string>
+</resources>

@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Rational
 import android.view.GestureDetector
 import android.view.KeyEvent
@@ -47,6 +48,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.ui.AspectRatioFrameLayout
 import com.sugar.tv.R
 import com.sugar.tv.base.BaseActivity
 import com.sugar.tv.data.model.ChannelCategory
@@ -64,7 +66,7 @@ import kotlinx.coroutines.launch
  * （画中画中仍属可见前台不释放，其余情形直播不后台播放），换源 / 换频道复用同一实例
  * `setMediaItem` 平滑过渡；旋转由 `configChanges` 接管，不重建、不重复初始化。
  *
- * 常用换台入口位于底部；选台时视频与列表分别占位，选源、画质与画中画收进深色设置菜单。
+ * 常用换台入口位于底部；选台时视频与列表分别占位，线路、画质、观看选项与画中画收进深色菜单。
  * 手势：单击确认切换浮层显隐；双击左 / 右半区与横向轻扫按方向换台（配合边缘换台提示）。
  */
 class PlayerActivity : BaseActivity() {
@@ -123,6 +125,15 @@ class PlayerActivity : BaseActivity() {
 
     /** 菜单打开时的媒体快照，防止自动换源后继续操作旧线路或旧画质。 */
     private var settingsSnapshot: PlayerUiState? = null
+
+    /** 设置菜单的观看选项快照，显示模式或定时被修改后关闭旧菜单。 */
+    private var settingsViewingSnapshot: PlayerViewingOptions? = null
+
+    /** 只允许处理一次到期退出，避免定时回调与 StateFlow 同时到达时重复提示。 */
+    private var sleepTimerFinished = false
+
+    /** 到期检查独立于 STARTED 收集器，保留画中画或后台期间的停止边界。 */
+    private val sleepTimerRunnable = Runnable { renderViewingOptions(viewModel.viewingOptions.value) }
 
     /** 执行时再次核对焦点与读屏状态，避免计时期间开始操作的用户失去控件。 */
     private val hideControlsRunnable = Runnable {
@@ -218,12 +229,18 @@ class PlayerActivity : BaseActivity() {
     /** 前台就绪后创建播放器、重放请求并恢复可操作的控件。 */
     override fun onStart() {
         super.onStart()
+        viewModel.refreshSleepTimer()
+        if (viewModel.viewingOptions.value.sleepTimerExpired) {
+            finishForSleepTimer()
+            return
+        }
         controlsStarted = true
         hideSystemBars()
         ensurePlayer()
         renderChannelPanel(viewModel.channelPanelState.value)
         // 不依赖生命周期收集器与播放器创建的先后顺序，前台恢复时显式重放当前请求。
         render(viewModel.uiState.value)
+        renderViewingOptions(viewModel.viewingOptions.value)
         if (!isInPictureInPictureMode) {
             setControlsVisible(visible = true)
             scheduleControlsHide()
@@ -256,6 +273,7 @@ class PlayerActivity : BaseActivity() {
         binding.root.viewTreeObserver.removeOnGlobalFocusChangeListener(controlsFocusListener)
         binding.root.removeCallbacks(hideControlsRunnable)
         binding.root.removeCallbacks(osdHideRunnable)
+        binding.root.removeCallbacks(sleepTimerRunnable)
         closePlaybackSettings()
         binding.tvPlayerOsd.animate().cancel()
         channelsPanelController.dispose()
@@ -462,6 +480,9 @@ class PlayerActivity : BaseActivity() {
                     viewModel.uiState.collect { render(it) }
                 }
                 launch {
+                    viewModel.viewingOptions.collect(::renderViewingOptions)
+                }
+                launch {
                     viewModel.favoriteNotice.collect { noticeRes ->
                         Toast.makeText(this@PlayerActivity, noticeRes, Toast.LENGTH_SHORT).show()
                     }
@@ -487,6 +508,7 @@ class PlayerActivity : BaseActivity() {
 
     /** 幂等渲染：由 UiState 驱动顶栏、操作条与浮层；播放 / 清晰度请求变化才推进对应标记。 */
     private fun render(state: PlayerUiState) {
+        if (sleepTimerFinished || viewModel.viewingOptions.value.sleepTimerExpired) return
         renderHeader(state)
         renderSourceControls(state)
         renderSettings(state)
@@ -550,12 +572,10 @@ class PlayerActivity : BaseActivity() {
         binding.btnPlayerErrorSwitchSource.text = sourceText
     }
 
-    /** 只保留有实际动作的设置入口，已打开菜单的媒体快照失效后立即关闭。 */
+    /** 观看设置始终可用，已打开菜单的媒体快照失效后立即关闭。 */
     private fun renderSettings(state: PlayerUiState) {
-        val hasSettings = state.sources.size >= 2 || state.qualityOptions.size >= 2 ||
-            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
-        binding.btnPlayerSettings.isEnabled = hasSettings
-        binding.btnPlayerSettings.alpha = if (hasSettings) 1f else DISABLED_CONTROL_ALPHA
+        binding.btnPlayerSettings.isEnabled = true
+        binding.btnPlayerSettings.alpha = 1f
         settingsSnapshot?.let { snapshot ->
             if (snapshot.playRequestId != state.playRequestId ||
                 snapshot.qualityRequestId != state.qualityRequestId ||
@@ -574,12 +594,13 @@ class PlayerActivity : BaseActivity() {
     }
 
     /**
-     * 边缘弹出菜单按需提供线路、画质和画中画，不在播放画面上常驻次要按钮。
+     * 边缘菜单集中提供线路、画质、画面模式、睡眠定时和画中画。
      * 子菜单直接标记当前选项；来源和轨道变化会作废快照，不能误用旧菜单下标。
      */
     private fun showPlaybackSettings() {
         if (settingsPopup != null || isInPictureInPictureMode || channelPanelVisible) return
         val state = viewModel.uiState.value
+        val viewing = viewModel.viewingOptions.value
         val popup = PopupMenu(
             ContextThemeWrapper(this, R.style.ThemeOverlay_TvWorkshop_PlayerPopup),
             binding.btnPlayerSettings,
@@ -613,6 +634,30 @@ class PlayerActivity : BaseActivity() {
             }
             qualities.setGroupCheckable(QUALITY_MENU_GROUP, true, true)
         }
+        val displayModes = popup.menu.addSubMenu(R.string.video_display_mode)
+        VideoDisplayMode.entries.forEach { mode ->
+            displayModes.add(DISPLAY_MENU_GROUP, mode.ordinal, Menu.NONE, mode.labelRes)
+                .isChecked = viewing.displayMode == mode
+        }
+        displayModes.setGroupCheckable(DISPLAY_MENU_GROUP, true, true)
+        val timer = popup.menu.addSubMenu(
+            if (viewing.sleepDeadlineElapsedMs > 0L) {
+                getString(
+                    R.string.sleep_timer_remaining_format,
+                    SleepTimer.remainingMinutes(
+                        deadlineElapsedMs = viewing.sleepDeadlineElapsedMs,
+                        nowElapsedMs = SystemClock.elapsedRealtime(),
+                    ),
+                )
+            } else getString(R.string.sleep_timer),
+        )
+        timer.add(TIMER_MENU_GROUP, 0, Menu.NONE, R.string.sleep_timer_off)
+            .isChecked = viewing.sleepDeadlineElapsedMs == 0L
+        SleepTimer.durationsMinutes.forEach { minutes ->
+            timer.add(TIMER_MENU_GROUP, minutes, Menu.NONE, getString(R.string.sleep_duration_format, minutes))
+                .isChecked = viewing.sleepDeadlineElapsedMs > 0L && viewing.sleepDurationMinutes == minutes
+        }
+        timer.setGroupCheckable(TIMER_MENU_GROUP, true, true)
         if (packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
             popup.menu.add(Menu.NONE, PIP_MENU_ITEM, Menu.NONE, R.string.player_pip)
                 .setIcon(R.drawable.ic_player_pip)
@@ -620,12 +665,14 @@ class PlayerActivity : BaseActivity() {
         if (popup.menu.size() == 0) return
         settingsPopup = popup
         settingsSnapshot = state
+        settingsViewingSnapshot = viewing
         binding.root.removeCallbacks(hideControlsRunnable)
         popup.setOnMenuItemClickListener { item ->
             // 回调可能先于下一次状态渲染，执行前仍须核对媒体代次与真实轨道。
             val current = viewModel.uiState.value
             if (current.playRequestId != state.playRequestId ||
-                current.qualityRequestId != state.qualityRequestId || current.qualityOptions != state.qualityOptions
+                current.qualityRequestId != state.qualityRequestId || current.qualityOptions != state.qualityOptions ||
+                viewModel.viewingOptions.value != viewing
             ) {
                 closePlaybackSettings()
                 return@setOnMenuItemClickListener true
@@ -638,6 +685,10 @@ class PlayerActivity : BaseActivity() {
                     QUALITY_HIGHEST_ITEM -> viewModel.selectQuality(mode = QualityMode.HIGHEST, height = 0)
                     else -> viewModel.selectQuality(mode = QualityMode.PINNED, height = item.itemId)
                 }
+                DISPLAY_MENU_GROUP -> VideoDisplayMode.entries.getOrNull(item.itemId)?.let {
+                    viewModel.selectDisplayMode(mode = it)
+                }
+                TIMER_MENU_GROUP -> viewModel.setSleepTimer(minutes = item.itemId)
                 else -> if (item.itemId == PIP_MENU_ITEM) enterPictureInPictureIfSupported()
             }
             true
@@ -646,6 +697,7 @@ class PlayerActivity : BaseActivity() {
             if (settingsPopup === popup) {
                 settingsPopup = null
                 settingsSnapshot = null
+                settingsViewingSnapshot = null
                 scheduleControlsHide()
             }
         }
@@ -659,6 +711,56 @@ class PlayerActivity : BaseActivity() {
             popup.menu.getItem(index).subMenu?.close()
         }
         popup.dismiss()
+    }
+
+    /** 画面缩放即时生效；定时标签随操作条显示，计时回调不依赖页面持续收集。 */
+    private fun renderViewingOptions(options: PlayerViewingOptions) {
+        binding.root.removeCallbacks(sleepTimerRunnable)
+        viewModel.refreshSleepTimer()
+        val current = viewModel.viewingOptions.value
+        if (current.sleepTimerExpired) {
+            finishForSleepTimer()
+            return
+        }
+        // 到期核对可能推进状态，后续始终使用最新快照。
+        if (options != current) return
+        settingsViewingSnapshot?.let { if (it != current) closePlaybackSettings() }
+        binding.playerView.resizeMode = when (current.displayMode) {
+            VideoDisplayMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+            VideoDisplayMode.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            VideoDisplayMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+        }
+        val active = current.sleepDeadlineElapsedMs > 0L
+        binding.tvPlayerSleepTimer.isVisible = active
+        if (active) {
+            val timerText = getString(
+                R.string.sleep_timer_remaining_format,
+                SleepTimer.remainingMinutes(
+                    deadlineElapsedMs = current.sleepDeadlineElapsedMs,
+                    nowElapsedMs = SystemClock.elapsedRealtime(),
+                ),
+            )
+            if (binding.tvPlayerSleepTimer.text.toString() != timerText) {
+                binding.tvPlayerSleepTimer.text = timerText
+            }
+            // 即使进入 STOPPED 的画中画仍保留检查；销毁时明确移除，不持有已退出的页面。
+            binding.root.postDelayed(sleepTimerRunnable, SLEEP_TIMER_TICK_MS)
+        }
+    }
+
+    /** 先释放音视频再离开播放页；恢复前台时也在创建播放器之前执行同一停止路径。 */
+    private fun finishForSleepTimer() {
+        if (sleepTimerFinished) return
+        sleepTimerFinished = true
+        binding.root.removeCallbacks(sleepTimerRunnable)
+        binding.root.removeCallbacks(hideControlsRunnable)
+        closePlaybackSettings()
+        releasePlayer()
+        binding.root.keepScreenOn = false
+        if (controlsStarted || isInPictureInPictureMode) {
+            Toast.makeText(this, R.string.sleep_timer_finished, Toast.LENGTH_LONG).show()
+        }
+        finish()
     }
 
     /** 把当前清晰度模式写成播放器 `TrackSelectionParameters`（自动 / 锁最高 / 锁高度）。 */
@@ -1014,6 +1116,15 @@ class PlayerActivity : BaseActivity() {
 
         /** 画质选项身份由模式标记或真实视频高度组成。 */
         private const val QUALITY_MENU_GROUP = 2
+
+        /** 显示模式与时长各自使用分组，避免同号 itemId 被解释成线路下标。 */
+        private const val DISPLAY_MENU_GROUP = 3
+
+        /** 定时子菜单以分钟为身份，0 表示取消。 */
+        private const val TIMER_MENU_GROUP = 4
+
+        /** 每秒核对截止时间，避免分钟显示影响实际停止边界。 */
+        private const val SLEEP_TIMER_TICK_MS = 1_000L
 
         /** 不属于线路或画质分组的画中画动作。 */
         private const val PIP_MENU_ITEM = 1

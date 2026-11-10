@@ -25,7 +25,7 @@ See [Built-in Channels and Source Attribution](#built-in-channels-and-source-att
 
 ---
 
-TV Workshop is an Android live-TV player for personal technical learning and research. It browses, searches, and plays third-party stream URLs on the device, with favorites, watch history, m3u/m3u8 import, source failover, quality selection, and picture-in-picture.
+TV Workshop is an Android live-TV player for personal technical learning and research. It browses, searches, and plays third-party stream URLs on the device, with a Favorites category, watch history, channel management, m3u/m3u8 file import and export, source failover, quality and picture-size selection, a sleep timer, and picture-in-picture.
 
 The current source version is `1.0` and the minimum supported Android version is Android 10 (API 29). The app uses Kotlin, Android Views/XML, ViewBinding, and MVVM. Long-term engineering rules are in [AGENTS.md](AGENTS.md), and the [Chinese README](README.zh-CN.md) is the primary user guide.
 
@@ -34,8 +34,10 @@ The current source version is `1.0` and the minimum supported Android version is
 | Area | Current behavior |
 | --- | --- |
 | Built-in catalog | 66 channels and 162 stream URLs, shipped with the app and not synchronized at startup |
-| Import | A single HTTP(S) subscription URL or pasted m3u/m3u8 text; each import is a snapshot |
+| Import | A single HTTP(S) subscription URL, pasted m3u/m3u8 text, or a UTF-8 file selected in Channel manager; each import is a snapshot |
+| Channel manager | Search all imported channels, delete individual entries, export the imported playlist, and clear watch history |
 | Playback | Fullscreen and picture-in-picture; normal backgrounding stops playback |
+| Viewing settings | Fit, proportional crop, or stretch; optional 15–120 minute sleep timer |
 | Local data | Favorites, watch history, and imported channels are stored locally; Android may include them in backup or device transfer |
 | Network | The device requests subscription and playback resources directly from third parties; the app does not send telemetry |
 | Offline documents | About provides the changelog, user agreement, privacy policy, and channel-source notes |
@@ -44,18 +46,33 @@ The current source version is `1.0` and the minimum supported Android version is
 
 ### Browsing and import
 
-- Browse Recent, CCTV, Satellite TV, Foreign channels, and Custom categories.
+- Browse Recent, Favorites, CCTV, Satellite TV, Foreign channels, and Custom categories. Favorites combines channels across categories, with the newest favorites first.
 - Search by channel name with 250 ms input debouncing, background filtering, and query restoration after recreation.
 - Favorite a channel from the list or player, and find recently requested channels in watch history.
 - Import a subscription URL or paste playlist text, including multiple bare URLs. Same-name entries in one import are merged with ordered source deduplication.
 - A same-name entry with a new URL is stored separately from the built-in channel. Re-importing an existing entry does not update its other sources. Imported channels are categorized by name and group, so they may appear outside Custom.
 - “Clear custom channels” removes all imported channels while keeping favorites and watch history. Subscriptions are never refreshed automatically.
 
+### Channel and history management
+
+Open **Channel manager** from the home screen overflow menu:
+
+- View and search all imported channels, tap to play, or confirm deletion of an individual imported entry.
+- Import a UTF-8 `.m3u` / `.m3u8` file through the system picker without storage permissions. Existing name-merging and deduplication rules also apply to files.
+- Export the names, groups, and complete URLs of all imported channels to `.m3u`. Search does not restrict the export. Built-in channels, favorites, and history are excluded. A confirmation explains that URLs may contain access tokens.
+- An export is a playlist snapshot rather than a database backup. Re-importing follows existing same-name merge rules. Double quotes in groups become single quotes, and line breaks in metadata become spaces.
+- Confirm **Clear watch history** to remove all recent entries, including records for deleted channels, while retaining favorites and imported channels.
+
+File locations are not saved as subscriptions and are never refreshed automatically. If you select a cloud document provider, that provider handles the file transfer.
+
 ### Playback and zapping
 
 - If playback falls behind the live window, reconnect to the same source once. Other fatal errors or failed recovery try later sources in order. After the last source fails, retry the current source every 8 seconds, at most twice. Buffering alone does not trigger source switching.
 - Previous channel, channel list, and next channel stay in the bottom bar. Source selection, quality, and picture-in-picture are available in the settings menu.
 - For streams with multiple video heights, choose Auto, Highest, or a height limit. If a new source does not provide the selected height, the player returns to Auto.
+- Choose Fit, Zoom with proportional cropping, or Stretch in playback settings. Changing picture size does not reload the stream.
+- Set a sleep timer for 15, 30, 60, 90, or 120 minutes, or turn it off. Remaining minutes appear in the top bar. Channel and source changes keep the timer; expiration releases audio and video and exits the player, including picture-in-picture.
+- Picture size and the timer restore when the current player page is recreated. The timer uses a monotonic clock while running and restores from a saved wall-clock deadline after process recreation. An expired timer is checked before playback resumes. Leaving the player ends the session; this is not a system alarm or background playback service.
 - Double-tap the left or right half of the video, or make a qualifying horizontal swipe, to change channels. When controls are hidden, a short channel hint appears at the top edge instead of covering the center of the picture.
 - Controls normally hide after 3 seconds. They stay visible during keyboard or remote focus, screen-reader interaction, and error actions.
 - The searchable channel panel shares the page with the video: side by side in wide windows and stacked in narrow windows. Select a channel, close the panel, press Back, or tap the preview to return to fullscreen. The query and list position restore after recreation.
@@ -84,7 +101,7 @@ Report attribution errors, broken links, or rights concerns through [Issues](htt
 
 ## Privacy and data boundaries
 
-Favorites, watch history, and imported channels are processed in a local Room database. The app has no accounts, analytics, crash-reporting SDK, or developer-operated cloud sync, and it does not report search terms, playback history, or device identifiers.
+Favorites, watch history, and imported channels are processed in a local Room database. An explicit export writes channel names, groups, and complete URLs to the location you choose; you manage the exported file. The app has no accounts, analytics, crash-reporting SDK, or developer-operated cloud sync, and it does not report search terms, playback history, or device identifiers.
 
 Subscription downloads, playlists, media segments, and external webpages still create third-party network requests. Those services may receive the IP address, requested URL, and ordinary request headers. Query parameters in user-provided URLs are sent as entered and may contain tokens. Android backup is enabled and does not exclude the Room database, so system settings may include these records in cloud backup or device transfer.
 

@@ -80,6 +80,16 @@
                         android:maxLines="1"
                         android:textColor="@color/white"
                         android:textSize="@dimen/sp_12" />
+
+                    <TextView
+                        android:id="@+id/tv_player_sleep_timer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/tv_player_panel_accent"
+                        android:textSize="@dimen/sp_12"
+                        android:visibility="gone" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.AppCompatImageButton

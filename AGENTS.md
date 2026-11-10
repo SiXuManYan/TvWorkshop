@@ -55,7 +55,7 @@
 | Repository | Room、订阅下载、解析调度、内置目录合并、收藏与观看记录；本地文档 IO 和后台排版 | 页面生命周期和 View 类型 |
 | Adapter | ListAdapter / DiffUtil 渲染、一次性绑定监听、幂等回填 | 保存业务状态；点击应通过回调交给页面和 ViewModel |
 
-页面包括 `MainActivity`、`PlayerActivity`、`AboutActivity`、`LocalDocumentActivity`；选台几何布局由 `PlayerChannelsPanelController` 管理。ViewModel 包括 `BrowseViewModel`、`PlayerViewModel`、`LocalDocumentViewModel`，`AndroidViewModel` 只取 Application 级依赖。
+页面包括 `MainActivity`、`PlayerActivity`、`ChannelManagerActivity`、`AboutActivity`、`LocalDocumentActivity`；选台几何布局由 `PlayerChannelsPanelController` 管理。ViewModel 包括 `BrowseViewModel`、`PlayerViewModel`、`ChannelManagerViewModel`、`LocalDocumentViewModel`，`AndroidViewModel` 只取 Application 级依赖。
 
 ### 3.2 状态与恢复
 
@@ -98,7 +98,7 @@ XML 正整数尺寸一律引用 `@dimen/dp_N` 或 `@dimen/sp_N`，不直接写 `
 
 界面文字使用占位符字符串资源和位置参数，不将字符串模板直接传给 `setText`。例如 `source_count_format` 的 `%1$d 路信号`、`switch_source_format` 的 `信号源 %1$d/%2$d`。不使用 `@Suppress` 或 `tools:ignore` 压制 `SetTextI18n`。
 
-- 通用 key 同步维护全部 11 个目录：`values`、`values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`；当前各有 56 个 key，提交前比较 key 集合与占位符。
+- 通用 key 同步维护全部 11 个目录：`values`、`values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW`；当前各有 84 个 key（含 `strings_features.xml` 中的 28 个），提交前比较 key 集合与占位符。
 - **2026-11-09 的明确例外**：关于页、更新日志、用户协议、隐私政策仅提供简体中文。新增文案集中在 `values/strings_documents.xml` 并标记 `translatable=false`，正文在 `docs/`；不复制中文到其他目录假作翻译。
 - 频道名称是数据，保持官方命名，不放入 strings.xml，不参与多语言。
 - 纯数字和十六进制格式化注意 Locale。
@@ -128,6 +128,8 @@ XML 正整数尺寸一律引用 `@dimen/dp_N` 或 `@dimen/sp_N`，不直接写 `
 ### 6.3 关于与文档页
 
 使用 DayNight 信息卡和阅读卡，内容最大宽度 500dp，章节导航固定在顶部。根容器避让系统栏、挖孔和 IME，列表与正文不重复避让。
+
+频道管理页同样使用 DayNight 和 500dp 最大宽度。管理操作与空态作为列表头部滚动，避免短窗口下固定操作区挤掉内容；首次数据提交后放行位置恢复，合法空目录也要保留头部滚动位置。
 
 ## 7. 播放器、换源与选台
 
@@ -176,6 +178,12 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 - 主动重开清空查询并定位当前频道一次；重建保留查询和滚动位置。
 - 不自动弹出键盘，按 IME 与实际窗口空间重排；进入画中画关闭面板并恢复全尺寸视频。
 
+### 7.7 观看设置
+
+- 画面模式使用完整显示、等比裁切和拉伸，仅设置 `PlayerView.resizeMode`，不重装媒体；偏好仅在当前播放页会话恢复。
+- 睡眠定时按单调时钟核对到期，进程恢复用已保存的墙上时钟截止值换算，不重新计满原时长。画中画、前后台和进程恢复均不能绕过到期停止；起播前必须先检查。
+- 到期取消待执行加载和重试，先释放播放器再退出；页面销毁移除计时回调。不创建后台播放服务、系统闹钟或设备关机功能。
+
 ## 8. 性能与协程
 
 - 网络、Room、解析和文件访问放 IO；频道合并、状态合成与目录过滤放 Default。主线程只处理 View 和轻量渲染，不用 `runBlocking`。
@@ -199,7 +207,7 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 
 ### 10.1 输入与解析
 
-- 入口仅为主页“导入频道源”对话框：单行 HTTP(S) 地址下载，其他输入按正文解析，支持多行裸 URL，scheme 不区分大小写。
+- 主页“导入频道源”对话框接受粘贴：单行 HTTP(S) 地址下载，其他输入按正文解析，支持多行裸 URL，scheme 不区分大小写。频道管理页另提供系统文件选择器，按 UTF-8 流式解析 m3u / m3u8。
 - 说明独立换行，标签保持简短，输入区显示 4～6 行并可滚动，不截断正文；短窗口下对话框内容也可滚动。
 - 兼容 BOM、`\r\n`；读取 `tvg-id`、`tvg-name`、`group-title`；名称取首个未被引号包裹的逗号之后内容，连续多条 EXTINF 可以共用一个 URL。
 - 地址须有合法主机和端口；连接、读取超时各 10 秒，非 2xx 抛错，字符集优先响应头，否则 UTF-8。
@@ -212,6 +220,7 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 - 只保存当次结果，不保存订阅 URL，不定时同步。
 - 名称或分组含“央视／CCTV／CNTV／CGTN”归央视，含“卫视”归卫视，其他含 CJK 归自定义，其余归外国频道。
 - “清空自定义频道”删除全部导入记录，不限分类，不删除收藏和观看记录；频道消失后列表自动跳过弱关联记录。
+- 频道管理页的单个删除仅删除目标导入身份；导出使用全部导入频道的有序快照，不受搜索影响，不包含内置目录、收藏、观看记录或媒体。完整 URL 可能含令牌，导出前提示保管；系统文件授权按次使用，不保存 URI。
 
 ### 10.3 错误处理
 
@@ -222,6 +231,7 @@ Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supports
 - 收藏、最近观看和导入频道保存于本机 Room；应用无账号、统计／崩溃 SDK 或开发者数据收集服务，不主动上报这些记录，不做播放遥测或设备标识采集。
 - `allowBackup=true`，备份规则未排除 Room。数据可能进入系统云备份或设备迁移，不能承诺始终不离开设备。
 - 网络用于用户订阅下载，以及播放列表、媒体分片和相关资源。第三方仍会收到 IP、请求地址等信息，其日志不由应用控制。
+- 导出频道列表会将名称、分组和完整地址写入用户所选文档位置；清理应用记录不会删除外部文件，云文件提供器按自身政策传输和保存文件。
 - Manifest 仅申请 `INTERNET`；`usesCleartextTraffic=true` 用于兼容 HTTP。导入源不可枚举，当前没有域白名单，也不剥离 URL 中的令牌等参数。
 - 若增加登录／账号，必须改用 `networkSecurityConfig` 按域收紧；加入敏感配置前也需收紧备份边界。
 - 不实现 WebView；外部网页交系统浏览器，新增相关交互需单独考虑。现有文档外链按确认流程处理。

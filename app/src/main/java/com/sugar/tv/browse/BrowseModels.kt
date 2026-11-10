@@ -5,10 +5,10 @@ import com.sugar.tv.R
 import com.sugar.tv.data.model.ChannelCategory
 
 /**
- * 浏览页分类：在频道实体分类之上增加「最近观看」聚合入口。
+ * 浏览页分类：在频道实体分类之上增加收藏与最近观看的聚合入口。
  *
  * @param labelRes 分类 Chip 展示文案资源
- * @param channelCategory 对应的频道实体分类；[RECENT] 为观看记录聚合，无对应实体分类
+ * @param channelCategory 对应的频道实体分类；聚合入口无对应实体分类
  */
 enum class BrowseCategory(
     @StringRes val labelRes: Int,
@@ -16,6 +16,9 @@ enum class BrowseCategory(
 ) {
     /** 最近观看：按观看记录顺序映射全部分类的频道。 */
     RECENT(R.string.category_recent, null),
+
+    /** 收藏：跨分类聚合，最新收藏在前。 */
+    FAVORITES(R.string.category_favorites, null),
 
     /** 央视。 */
     CCTV(R.string.category_cctv, ChannelCategory.CCTV),
@@ -33,14 +36,13 @@ enum class BrowseCategory(
 /**
  * 空态原因：列表为空时向 UI 下发的文案来源。
  *
- * [FAVORITES] 为收藏视图预留分支；当前分类契约中无收藏入口（Chip 仅有五类），
- * 该原因暂不可达，保留以覆盖字符串契约中的 empty_favorites。
+ * 收藏与搜索分别提供可操作的空态说明。
  */
 enum class EmptyReason(@StringRes val messageRes: Int) {
     /** 有搜索词但无匹配频道。 */
     SEARCH(R.string.empty_search_result),
 
-    /** 收藏视图为空（预留）。 */
+    /** 收藏视图为空。 */
     FAVORITES(R.string.empty_favorites),
 
     /** 当前分类下没有频道（含最近观看无记录）。 */

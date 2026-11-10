@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">المفضلة</string>
+    <string name="manager_title">إدارة القنوات</string>
+    <string name="manager_summary_format">%1$d قناة مستوردة · %2$d سجل مشاهدة</string>
+    <string name="manager_hint">إدارة جميع القنوات المستوردة. اضغط على قناة لتشغيلها. تدعم الملفات m3u / m3u8 بترميز UTF-8؛ يشمل التصدير جميع القنوات المستوردة.</string>
+    <string name="manager_import_file">استيراد من ملف</string>
+    <string name="manager_export">تصدير قائمة القنوات</string>
+    <string name="manager_export_notice">تصدير الأسماء والمجموعات وروابط البث الكاملة لجميع القنوات المستوردة، دون القنوات المدمجة أو المفضلة أو السجل. قد تتضمن الروابط رموز وصول؛ احفظ الملف بأمان.</string>
+    <string name="manager_export_success_format">تم تصدير %1$d قناة</string>
+    <string name="manager_imported_channels">القنوات المستوردة</string>
+    <string name="manager_empty">لا توجد قنوات مستوردة. استورد ملفًا أو الصق رابط اشتراك أو قائمة تشغيل في الشاشة الرئيسية.</string>
+    <string name="manager_delete">حذف القناة</string>
+    <string name="manager_delete_description_format">حذف %1$s</string>
+    <string name="manager_delete_confirm_format">هل تريد حذف «%1$s»؟ يُحذف هذا الإدخال المستورد فقط، مع الاحتفاظ بالمفضلة والسجل.</string>
+    <string name="manager_channel_removed">تم حذف القناة المستوردة</string>
+    <string name="manager_clear_history">مسح سجل المشاهدة</string>
+    <string name="manager_clear_history_confirm">هل تريد مسح سجل المشاهدة بالكامل؟ سيتم الاحتفاظ بالمفضلة والقنوات المستوردة.</string>
+    <string name="manager_history_cleared">تم مسح سجل المشاهدة</string>
+    <string name="manager_operation_failed">تعذر إكمال العملية. تحقق من الوصول إلى الملف أو حاول لاحقًا.</string>
+    <string name="manager_picker_unavailable">لا يتوفر منتقي ملفات على هذا الجهاز</string>
+    <string name="video_display_mode">حجم الصورة</string>
+    <string name="video_display_fit">احتواء (عرض كامل الصورة)</string>
+    <string name="video_display_zoom">تكبير (قص لملء الشاشة)</string>
+    <string name="video_display_fill">تمديد لملء الشاشة</string>
+    <string name="sleep_timer">مؤقت النوم</string>
+    <string name="sleep_timer_off">إيقاف المؤقت</string>
+    <string name="sleep_duration_format">%1$d دقيقة</string>
+    <string name="sleep_timer_remaining_format">مؤقت النوم: إيقاف بعد %1$d دقيقة</string>
+    <string name="sleep_timer_finished">انتهى مؤقت النوم. تم إيقاف التشغيل.</string>
+</resources>

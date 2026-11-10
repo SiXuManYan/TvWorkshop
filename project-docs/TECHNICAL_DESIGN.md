@@ -1,6 +1,6 @@
 # 技术设计
 
-更新日期：2026-11-09。
+更新日期：2026-11-11。
 
 本文描述电视工坊当前源码的结构和行为，供开发、排查和评审使用。带日期的审查过程、取舍和历史检查见[工程变更记录](IMPLEMENTATION_HISTORY.md)，内置频道地址与抽样证据见[内置频道与来源记录](CHANNEL_SOURCES.md)。文中路径均相对于仓库根目录。
 
@@ -49,7 +49,7 @@ flowchart TB
 
 - `TvApplication` 通过 `by lazy` 持有全局唯一的 `ChannelRepository`，供浏览与播放 ViewModel 使用；`LocalDocumentViewModel` 创建使用 Application 的 `LocalDocumentRepository`。ViewModel 均不保存 Activity、View、Binding 或 Dialog。
 - `BaseActivity` 在 `super.onCreate` 前调用 `enableEdgeToEdge()`。
-- 页面由 `MainActivity`、`PlayerActivity`、`AboutActivity` 和 `LocalDocumentActivity` 承担。除 Launcher 外，Activity 均为显式导航且 `exported=false`。
+- 页面由 `MainActivity`、`PlayerActivity`、`ChannelManagerActivity`、`AboutActivity` 和 `LocalDocumentActivity` 承担。除 Launcher 外，Activity 均为显式导航且 `exported=false`。
 - 播放页使用 `sensorLandscape`、`singleTop` 和 `configChanges` 接管旋转；不通过重建页面初始化播放器。
 - 一次性提示使用 `Channel`，页面在 `repeatOnLifecycle(STARTED)` 中收集；页面状态使用不可变 UiState 和只读 `StateFlow`。
 
@@ -66,6 +66,7 @@ flowchart TB
 | `com.sugar.tv.data.m3u` | 无 IO 的 m3u / m3u8 解析器 |
 | `com.sugar.tv.data.model` | `Channel`、`ChannelSource`、`ChannelCategory` 等业务模型 |
 | `com.sugar.tv.player` | 播放页、播放状态和同页选台控制器 |
+| `com.sugar.tv.manage` | 频道管理页、文件选择、导入频道列表与观看记录清理 |
 | `com.sugar.tv.about` | 关于页、离线文档读取、Markdown 排版和章节动画 |
 
 ## 3. 页面、窗口与 Insets
@@ -82,7 +83,7 @@ flowchart TB
 
 错误区、设置菜单、持续触摸、键盘／遥控器焦点和读屏触摸浏览期间不会自动隐藏；窗口失焦暂停计时。方向键可以唤出操作区，错误态不允许手动隐藏。系统栏默认沉浸隐藏，边缘滑动可以临时唤出，按钮安全区不随临时系统栏移动。
 
-设置根菜单与线路／画质子菜单统一使用固定深色背景，文字、箭头和单选标记使用浅色，禁用项使用次级色。`ThemeOverlay.TvWorkshop.PlayerPopup` 继承 Material3 深色主题，并显式指定 `popupMenuBackground`、`popupMenuStyle` 和具体背景 drawable，避免浅色 Material 弹窗背景与白字混用。
+设置根菜单与线路／画质／画面模式／睡眠定时子菜单统一使用固定深色背景，文字、箭头和单选标记使用浅色，禁用项使用次级色。观看设置始终有可用动作，单线路或不支持画中画的设备仍保留设置入口。`ThemeOverlay.TvWorkshop.PlayerPopup` 继承 Material3 深色主题，并显式指定 `popupMenuBackground`、`popupMenuStyle` 和具体背景 drawable，避免浅色 Material 弹窗背景与白字混用。
 
 ### 3.3 关于与本地文档页
 
@@ -94,6 +95,12 @@ flowchart TB
 
 浮动标签保持简短，长说明独立换行，输入区显示 4～6 行且不截断正文。`PlaylistInputEditText` 仅在正文可滚动时阻止外层截走滑动，不接管点击、选择和编辑；对话框在短窗口下也可滚动。混合输入关闭自动填充和拼写建议，取消或销毁后释放 Binding。
 
+### 3.5 频道管理页
+
+主页溢出菜单通过显式 Intent 打开 `ChannelManagerActivity`。页面使用 DayNight、500dp 最大宽度，根容器统一避让系统栏、挖孔和 IME。固定工具栏提供可恢复搜索；统计、导入、导出、清空观看记录和空态均放进可滚动列表头部，短窗口不会被固定操作区挤掉内容。
+
+列表由 `ConcatAdapter` 连接头部与 `ManagedChannelAdapter`，频道行按 id 做 Diff，显示分类与线路数，不显示完整 URL。点行播放，独立 48dp 删除按钮经确认删除。首次数据及 Diff 提交完成后才放行位置恢复，合法空列表也能恢复头部滚动位置。确认窗口、Snackbar 和 Adapter 都由页面销毁时释放。
+
 ## 4. 数据模型与 Room
 
 数据库文件为 `tv_workshop.db`，schema version 为 1，`exportSchema=false`。内置目录不落库，导入频道保存在 Room；收藏和观看记录按频道 id 弱关联到“内置目录 ∪ 导入目录”。清空导入频道不会删除收藏或观看记录，列表映射时自动跳过已经消失的频道。
@@ -101,7 +108,7 @@ flowchart TB
 | 表 | 实体 | 关键字段 | 当前行为 |
 | --- | --- | --- | --- |
 | `favorite_channels` | `FavoriteChannelEntity` | `channelId` 主键、`addedAt` | `toggle` 使用 DAO 单条事务；观察流按 `addedAt DESC` 返回 id。 |
-| `recent_channels` | `RecentChannelEntity` | `channelId` 主键、`watchedAt` | 播放请求写入并覆盖时间；观察流按 `watchedAt DESC` 返回 id。 |
+| `recent_channels` | `RecentChannelEntity` | `channelId` 主键、`watchedAt` | 播放请求写入并覆盖时间；观察流按 `watchedAt DESC` 返回 id；管理页可清空全部记录。 |
 | `imported_channels` | `ImportedChannelEntity` | `id` 主键、`name`、`groupName`、`sourcesJson` | id 为 `m3u:` 加 SHA-256 前 12 位；按 `rowid ASC` 稳定读取；线路以 `SourceCodec` JSON 数组保存。 |
 
 网络、序列化或反射使用的模型以及 Room 实体加 `@Keep`。`SourceCodec` 固定保存 `label`、`url` 字段组成的 JSON 数组，解码时跳过坏元素。修改 schema 或字段格式必须评估迁移和旧数据兼容，不能静默丢弃数据。
@@ -111,7 +118,7 @@ flowchart TB
 1. `importedDao.observeAll()` 与 `BuiltinChannels.all` 合并。导入实体解码失败或没有合法 HTTP(S) 线路时丢弃；合并和索引在 `Dispatchers.Default` 执行。
 2. 频道全集变化时重建 `channelsById`；收藏 id、最近观看 id 和收藏乐观覆盖只参与状态合成，不重复创建目录索引。
 3. `BrowseViewModel` 将目录、收藏、最近观看、当前分类和已生效搜索词合成为不可变 `BrowseUiState`。搜索输入写入侧 250ms 去抖，清空立即生效；状态流使用 `WhileSubscribed(5_000)`。
-4. “最近观看”按最近 id 顺序映射并跳过已经删除的频道；其他分类按频道分类过滤；搜索为忽略大小写的名称包含匹配。
+4. “最近观看”按最近 id 顺序映射，“我的收藏”按收藏 id 顺序映射（最新在前），两者跳过已经删除的频道；其他分类按频道分类过滤；搜索为忽略大小写的名称包含匹配。收藏分类复用原有乐观更新与写入门禁，空态使用专门收藏文案。
 5. 收藏点击先写入带代次的内存覆盖，再由 Mutex 按点击顺序提交 Room；等待数据库观察流确认，宽限 1 秒。只有创建该覆盖的请求可以释放它，旧请求不会覆盖后续点击；失败时回滚。
 6. `MainActivity` 只负责收集状态、提交列表、同步 Chip、显示 Snackbar 和导航。加载、空态、列表三种视图互斥；导入成功或清空结果通过事件通道显示。
 
@@ -136,7 +143,7 @@ flowchart TB
 
 ### 6.2 输入分流
 
-主页“导入频道源”只接受两类输入：
+主页“导入频道源”接受两类粘贴输入；本地文件入口见第 6.4 节：
 
 - 单行、以 `http://` 或 `https://` 开头的地址（忽略大小写）：通过 `HttpURLConnection` 下载并逐行解析；
 - 其他输入：作为列表正文解析，支持多行裸 URL。
@@ -160,6 +167,17 @@ flowchart TB
 `IllegalArgumentException` 映射格式错误，`IOException` 映射网络不可用，其他异常显示通用失败；`CancellationException` 原样上抛。合并循环与提交前检查取消，但阻塞网络读取仍受超时约束，不保证立即中断套接字。
 
 导入进行中拒绝重复触发并禁用按钮。结果通过 `BrowseEvent` 显示，成功关闭对话框，失败保留输入，取消或页面销毁时清除 Binding，避免持有大体积正文。
+
+### 6.4 本地文件与导入频道管理
+
+`ChannelManagerViewModel` 合成导入频道、全部最近观看 id、搜索词与操作进度，过滤在 Default 执行，状态流使用 `WhileSubscribed(5_000)`。只在 `SavedStateHandle` 保存查询词。页面所有管理操作共用 ViewModel 的写入门禁，防止该页并行删除、导入或导出；取消异常原样上抛，其余失败通过通道提示，不输出异常详情或 URI。
+
+- `OpenDocument` 按次授权选择文件，兼容未标注正确 MIME 的 m3u 文件。仓库用 Application 的 `ContentResolver` 在 IO 调度器读取 UTF-8 流，关闭流后复用 `importEntries`，保留既有分类、合并和幂等规则。不保存 URI、不请求持久授权，也不自动同步文件。
+- `CreateDocument("audio/x-mpegurl")` 建议文件名为 `tv-workshop-channels.m3u`。用户先确认完整 URL 可能含令牌，再选择保存位置。仓库用单条查询取得全部导入实体的有序快照，解码有效线路后交 `M3uWriter` 写入；只有流成功关闭才提示导出频道数，按导入身份计数，不按名称或线路数计数。搜索不限制导出范围。
+- `M3uWriter` 输出 `#EXTM3U`，每路地址独立输出 `#EXTINF` 和原样 URL。分组双引号替换为单引号，元数据换行替换为空格，拒绝含换行的地址，防止元数据成为额外指令。它不持久化未保存的 EPG 字段，不导出内置频道、收藏、历史或音视频。重新导入仍按名称合并，不能当作数据库完整恢复。
+- 单频道删除调用原有 `removeImportedChannel`，只删除目标导入身份；保留收藏和历史弱关联。清空历史使用 `RecentChannelDao.deleteAll`，包含已删除频道留下的记录，不触碰收藏或导入表。两项操作均先确认。
+
+Room schema 仍为 version 1，没有修改实体或引入迁移。系统文件提供器可能是云盘；文件 IO 失败可能留下不完整输出文件，由用户管理目标位置。解析结果和导出快照仍全量驻留内存，超大文件峰值未实测。
 
 ## 7. 播放器与信号源轮换
 
@@ -237,6 +255,16 @@ ViewModel 只决定“应播放哪一路”，播放器实例由 Activity 管理
 
 日志提供排查线索，不能只凭截图、存在 URL、调大缓冲或出现自动换源就判定责任。需结合出现问题时的网络、设备与连续日志复现；此轮没有运行设备任务或重新请求直播地址。
 
+### 7.7 画面模式与睡眠定时
+
+`PlayerViewingOptions` 与媒体 UiState 分离，经独立 StateFlow 暴露。`VideoDisplayMode` 的 FIT／ZOOM／FILL 分别映射 `AspectRatioFrameLayout` 的完整显示、等比裁切和拉伸模式，仅改变 `PlayerView.resizeMode`，不重建播放器或递增媒体请求。模式按枚举名存入恢复句柄，在当前播放页会话内跨频道保留。
+
+睡眠定时提供 15、30、60、90、120 分钟和关闭。重新选择时长从当前时刻重新计时，换台、自动换源和手动重试不重置。正常运行使用 `SystemClock.elapsedRealtime`；恢复句柄保存墙上时钟截止值、选择时长和已到期标记，进程恢复时换算剩余时长并限制为最长 120 分钟。进程恢复时调整过系统时间可能改变剩余值，运行中改时间不改变单调时钟截止值。
+
+页面在 STARTED 收集观看状态，标签随操作条显示；一个页面级秒级回调独立核对截止时间，画中画和普通后台仍可处理到期，在销毁时移除。分钟数不变时不重新赋值 TextView。到期先取消待执行重试和频道加载、保持过期标记，再关闭菜单、释放播放器、解除常亮并退出播放页。`onStart` 在 `ensurePlayer` 前核对截止值，过期恢复不能短暂重新开播。
+
+这是播放页会话计时，不创建闹钟、通知或后台服务；进程结束后没有额外唤醒机制，媒体也随进程结束。主动离开播放页结束会话，新开播放页默认完整显示且未启用定时。`SleepTimerTest` 覆盖恢复与取整边界，运行时验证范围见工程记录。
+
 ## 8. 同页选台
 
 ### 8.1 布局与退出
@@ -297,7 +325,7 @@ Adapter 使用稳定章节身份、ListAdapter 和 DiffUtil，关闭整行条目
 
 - `values/dimens.xml` 提供脚本生成的 `dp_1`～`dp_500`、`sp_1`～`sp_500`，以及语义别名 `browse_list_max_width`；XML 正整数尺寸引用资源，不直接写 `10dp` 等数值。
 - `Theme.TvWorkshop` 使用 Material 3 DayNight；`values-night/colors.xml` 提供深色颜色；播放页使用纯黑窗口和浅色系统栏图标。
-- 通用 string key 在 `values` 加 `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW` 共 11 个目录同步维护；格式化文案使用占位符。关于页和三份随包文档的本轮中文例外集中在 `values/strings_documents.xml`，并标记 `translatable=false`。
+- 通用 string key 在 `values` 加 `values-en/ar/de/es/fr/ja/ko/pt/zh-rCN/zh-rTW` 共 11 个目录同步维护；当前各 84 个 key，28 个新功能 key 集中于 `strings_features.xml`，格式化文案使用位置占位符。关于页和三份随包文档的中文例外集中在 `values/strings_documents.xml`，并标记 `translatable=false`。
 - selector、ripple、layer-list 等嵌套 drawable 的 item 不使用 `?attr`，直接引用颜色资源；根级 vector 的主题属性可以沿用 AppCompat 包装路径。
 - 自适应图标为蓝色渐变背景、白色电视／天线／播放键前景，收在中央 66dp 安全区；`monochrome` 复用前景供 Android 13+ themed icon。没有密度 PNG，设计稿见 [tv-workshop-logo.svg](design/tv-workshop-logo.svg)。
 
@@ -305,12 +333,13 @@ Adapter 使用稳定章节身份、ListAdapter 和 DiffUtil，关闭整行条目
 
 - Manifest 只声明 `INTERNET`，并以 `usesCleartextTraffic=true` 兼容 HTTP 订阅和直播地址；输入 URL 的查询参数按原样请求，可能包含令牌。
 - 收藏、最近观看和导入频道保存在本机 Room；应用没有账号、统计、崩溃上报或开发者云同步。
+- 用户主动导出时，导入频道的名称、分组和完整地址会写入用户选择的文档位置；文件可能含令牌，由用户和所选文件提供器管理。清理应用数据库不删除外部导出文件。
 - `allowBackup=true` 且备份规则没有排除 Room，系统可能把数据纳入云备份或设备迁移；“本机保存”不等于数据永不离开设备。
 - 播放和订阅请求会把 IP、请求地址和普通请求头交给第三方服务；其日志政策不由应用控制。
 - 直播不承诺长期可用性、出画速度、画质或解码能力；源状态会变化，IPv6、地区和运营商限制可能影响结果。
 - 导入下载逐行读取，但解析结果和合并结构仍全量保留；超大列表的峰值内存和耗时没有实测。
-- `tvg-id`／`tvg-name` 没有持久化，EPG 尚未实现。收藏星标已提供，独立“收藏”分类未开放；`removeImportedChannel` 虽已实现，但没有单个导入频道删除入口。
-- 当前已有解析、Codec 和 DAO 回归测试源码，但本轮未运行。未运行的构建、测试、Lint 和设备验证不能由历史记录代替。
+- `tvg-id`／`tvg-name` 没有持久化，EPG 尚未实现。独立收藏分类、本地文件导入导出和单个导入频道删除已经提供。
+- 当前已有解析、导出、睡眠定时、Codec 和 DAO 回归测试源码，但本轮未运行。未运行的构建、测试、Lint 和设备验证不能由历史记录代替。
 
 ## 12. 验证与后续方向
 
@@ -325,6 +354,6 @@ git diff --check
 
 静态阅读、构建、测试、Lint 和设备实测需要分开报告。UI 变更至少按实际影响考虑浅深色、大字体、RTL、窄宽窗口、IME、系统栏、导航模式、进程重建、前后台切换和画中画。直播源可用性只能引用当次实测，不能从源码中存在某个 URL 推断。
 
-自然的后续方向包括：EPG、信号源健康度和测速、内置源画质标注、来源记录补全、单频道导入管理、收藏分类、本地 `.m3u` 文件导入，以及扩大 ViewModel 和播放器生命周期测试覆盖。以上均未实现。
+自然的后续方向包括：EPG、信号源健康度和测速、内置源画质标注、来源记录补全，以及扩大 ViewModel 和播放器生命周期测试覆盖。以上均未实现。
 
 历史审查的触发原因、修正细节和实际检查边界见[工程变更记录](IMPLEMENTATION_HISTORY.md)；频道来源、地址清理与内容抽样见[内置频道与来源记录](CHANNEL_SOURCES.md)。

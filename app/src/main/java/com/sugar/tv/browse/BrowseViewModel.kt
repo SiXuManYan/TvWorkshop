@@ -279,7 +279,7 @@ class BrowseViewModel(
     /**
      * 由数据快照合成当前分类与搜索词下的 UI 状态。
      *
-     * 最近观看按 recentIds 顺序映射（最近在前，已删除的频道自动跳过），
+     * 最近观看与收藏按各自 id 顺序映射（最新在前，已删除的频道自动跳过），
      * 其余分类保持仓库原始顺序按频道实体分类过滤；搜索词忽略大小写做包含匹配。
      */
     private fun buildUiState(
@@ -289,6 +289,7 @@ class BrowseViewModel(
     ): BrowseUiState {
         val categoryChannels = when (category) {
             BrowseCategory.RECENT -> snapshot.recentIds.mapNotNull(snapshot.channelsById::get)
+            BrowseCategory.FAVORITES -> snapshot.favoriteIds.mapNotNull(snapshot.channelsById::get)
             else -> snapshot.channels.filter { it.category == category.channelCategory }
         }
         val trimmedQuery = query.trim()
@@ -314,7 +315,11 @@ class BrowseViewModel(
             favorites = snapshot.favoriteIds,
             // 状态契约（BrowseUiState.emptyReason）：列表非空时为 null，仅在空态给出原因
             emptyReason = if (filteredChannels.isEmpty()) {
-                if (trimmedQuery.isEmpty()) EmptyReason.LIST else EmptyReason.SEARCH
+                when {
+                    trimmedQuery.isNotEmpty() -> EmptyReason.SEARCH
+                    category == BrowseCategory.FAVORITES -> EmptyReason.FAVORITES
+                    else -> EmptyReason.LIST
+                }
             } else {
                 null
             },

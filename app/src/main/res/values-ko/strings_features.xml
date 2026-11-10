@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">즐겨찾기</string>
+    <string name="manager_title">채널 관리</string>
+    <string name="manager_summary_format">가져온 채널 %1$d개 · 시청 기록 %2$d개</string>
+    <string name="manager_hint">가져온 모든 채널을 관리합니다. 채널을 눌러 재생하세요. UTF-8 m3u / m3u8 파일을 지원하며 가져온 모든 채널을 내보냅니다.</string>
+    <string name="manager_import_file">파일에서 가져오기</string>
+    <string name="manager_export">채널 목록 내보내기</string>
+    <string name="manager_export_notice">가져온 모든 채널의 이름, 그룹, 전체 스트림 URL을 내보냅니다. 기본 채널, 즐겨찾기, 기록은 제외됩니다. URL에 접근 토큰이 포함될 수 있으니 파일을 안전하게 보관하세요.</string>
+    <string name="manager_export_success_format">채널 %1$d개를 내보냈습니다</string>
+    <string name="manager_imported_channels">가져온 채널</string>
+    <string name="manager_empty">가져온 채널이 없습니다. 파일을 가져오거나 홈에서 구독 URL 또는 목록을 붙여넣으세요.</string>
+    <string name="manager_delete">채널 삭제</string>
+    <string name="manager_delete_description_format">%1$s 삭제</string>
+    <string name="manager_delete_confirm_format">“%1$s”을(를) 삭제할까요? 이 가져오기 항목만 삭제되며 즐겨찾기와 기록은 유지됩니다.</string>
+    <string name="manager_channel_removed">가져온 채널을 삭제했습니다</string>
+    <string name="manager_clear_history">시청 기록 지우기</string>
+    <string name="manager_clear_history_confirm">모든 시청 기록을 지울까요? 즐겨찾기와 가져온 채널은 유지됩니다.</string>
+    <string name="manager_history_cleared">시청 기록을 지웠습니다</string>
+    <string name="manager_operation_failed">작업을 완료하지 못했습니다. 파일 접근 권한을 확인하거나 나중에 다시 시도하세요.</string>
+    <string name="manager_picker_unavailable">이 기기에서 파일 선택기를 사용할 수 없습니다</string>
+    <string name="video_display_mode">화면 크기</string>
+    <string name="video_display_fit">맞춤 (전체 화면 표시)</string>
+    <string name="video_display_zoom">확대 (잘라서 채우기)</string>
+    <string name="video_display_fill">늘려서 채우기</string>
+    <string name="sleep_timer">취침 타이머</string>
+    <string name="sleep_timer_off">타이머 끄기</string>
+    <string name="sleep_duration_format">%1$d분</string>
+    <string name="sleep_timer_remaining_format">취침 타이머: %1$d분 후 중지</string>
+    <string name="sleep_timer_finished">취침 타이머가 끝나 재생을 중지했습니다.</string>
+</resources>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 主页工具栏菜单：展开式搜索 + 导入频道源入口 + 关于（溢出菜单）。 -->
+<!-- 主页工具栏保留搜索与粘贴导入，溢出菜单提供独立管理页。 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -15,6 +15,11 @@
         android:icon="@drawable/ic_import"
         android:title="@string/menu_import"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/menu_manage_channels"
+        android:title="@string/manager_title"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/menu_about"

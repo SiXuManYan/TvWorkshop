@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 收藏、频道管理与观看设置的通用文案，各语言保持相同 key 和占位符。 -->
+<resources>
+    <string name="category_favorites">お気に入り</string>
+    <string name="manager_title">チャンネル管理</string>
+    <string name="manager_summary_format">インポート済み %1$d 件 · 視聴履歴 %2$d 件</string>
+    <string name="manager_hint">すべてのインポート済みチャンネルを管理します。タップで再生できます。UTF-8 の m3u / m3u8 に対応し、全件をエクスポートします。</string>
+    <string name="manager_import_file">ファイルからインポート</string>
+    <string name="manager_export">チャンネル一覧をエクスポート</string>
+    <string name="manager_export_notice">全インポートチャンネルの名前、グループ、完全な配信 URL を出力します。内蔵チャンネル、お気に入り、履歴は含みません。URL に認証トークンが含まれる場合があります。ファイルは安全に保管してください。</string>
+    <string name="manager_export_success_format">%1$d 件をエクスポートしました</string>
+    <string name="manager_imported_channels">インポート済みチャンネル</string>
+    <string name="manager_empty">まだチャンネルがありません。ファイルを読み込むか、ホームで購読 URL や一覧を貼り付けてください。</string>
+    <string name="manager_delete">チャンネルを削除</string>
+    <string name="manager_delete_description_format">%1$s を削除</string>
+    <string name="manager_delete_confirm_format">「%1$s」を削除しますか？このインポート項目のみを削除し、お気に入りと履歴は残します。</string>
+    <string name="manager_channel_removed">インポートチャンネルを削除しました</string>
+    <string name="manager_clear_history">視聴履歴を消去</string>
+    <string name="manager_clear_history_confirm">視聴履歴をすべて消去しますか？お気に入りとインポートチャンネルは残ります。</string>
+    <string name="manager_history_cleared">視聴履歴を消去しました</string>
+    <string name="manager_operation_failed">操作を完了できませんでした。ファイルへのアクセス権を確認するか、後でもう一度お試しください。</string>
+    <string name="manager_picker_unavailable">この端末ではファイル選択を利用できません</string>
+    <string name="video_display_mode">画面サイズ</string>
+    <string name="video_display_fit">全体表示（比率を維持）</string>
+    <string name="video_display_zoom">拡大（切り抜き）</string>
+    <string name="video_display_fill">画面いっぱいに引き伸ばす</string>
+    <string name="sleep_timer">スリープタイマー</string>
+    <string name="sleep_timer_off">タイマーを解除</string>
+    <string name="sleep_duration_format">%1$d 分</string>
+    <string name="sleep_timer_remaining_format">スリープタイマー：あと %1$d 分</string>
+    <string name="sleep_timer_finished">タイマーが終了し、再生を停止しました。</string>
+</resources>

@@ -29,6 +29,12 @@
             </intent-filter>
         </activity>
 
+        <!-- 本地频道与观看记录管理：系统文件选择器按次授予文件访问能力。 -->
+        <activity
+            android:name=".manage.ChannelManagerActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- 关于与中文离线文档：仅接受应用内显式导航，随窗口变化正常重建。 -->
         <activity
             android:name=".about.AboutActivity"

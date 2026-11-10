@@ -1,6 +1,7 @@
 package com.sugar.tv.player
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -95,7 +96,20 @@ class PlayerViewModel(
     /** 已为直播窗口落后执行过原线路恢复的请求，避免损坏的播放列表无限重接。 */
     private var liveWindowRecoveryRequestId: Long? = null
 
+    /** 观看选项与媒体状态分离，SavedStateHandle 仅保存枚举和时间戳。 */
+    private val _viewingOptions = MutableStateFlow(
+        PlayerViewingOptions(
+            displayMode = VideoDisplayMode.entries.firstOrNull {
+                it.name == savedStateHandle.get<String>(KEY_DISPLAY_MODE)
+            } ?: VideoDisplayMode.FIT,
+        ),
+    )
+
+    /** 当前会话的显示模式和定时截止值；跨频道保留，退出播放页结束。 */
+    val viewingOptions: StateFlow<PlayerViewingOptions> = _viewingOptions.asStateFlow()
+
     init {
+        restoreSleepTimer()
         // 加载任务会立即读写上述字段，声明先于 init 以明确初始化依赖。
         viewModelScope.launch {
             repository.observeAllChannels().collect { channels ->
@@ -135,6 +149,7 @@ class PlayerViewModel(
      * 保持当前源且不重新装载播放请求；切换到新频道则从第一路信号源开始。
      */
     fun loadChannel(channelId: String) {
+        if (_viewingOptions.value.sleepTimerExpired) return
         latestRequestedChannelId = channelId
         autoRetryJob?.cancel()
         autoRetryAttempts = 0
@@ -299,6 +314,7 @@ class PlayerViewModel(
 
     /** 错误浮层「重试」：频道缺失或无信号源时重新查询频道，否则保持下标重试当前信号源。 */
     fun retry() {
+        if (_viewingOptions.value.sleepTimerExpired) return
         autoRetryJob?.cancel()
         autoRetryAttempts = 0
         val current = _uiState.value
@@ -412,6 +428,58 @@ class PlayerViewModel(
         _channelPanelState.update { it.copy(query = query) }
     }
 
+    /** 画面模式只驱动 View 缩放，不重新 prepare 当前直播。 */
+    fun selectDisplayMode(mode: VideoDisplayMode) {
+        savedStateHandle[KEY_DISPLAY_MODE] = mode.name
+        _viewingOptions.update { it.copy(displayMode = mode) }
+    }
+
+    /** 设置或取消当前会话的定时；重新选择同一时长也从当前时刻重新计时。 */
+    fun setSleepTimer(minutes: Int) {
+        if (minutes != 0 && minutes !in SleepTimer.durationsMinutes) return
+        val duration = minutes * SleepTimer.MILLIS_PER_MINUTE
+        savedStateHandle[KEY_SLEEP_DEADLINE] = if (minutes == 0) 0L else System.currentTimeMillis() + duration
+        savedStateHandle[KEY_SLEEP_DURATION] = minutes
+        savedStateHandle[KEY_SLEEP_EXPIRED] = false
+        _viewingOptions.update {
+            it.copy(
+                sleepDeadlineElapsedMs = if (minutes == 0) 0L else SystemClock.elapsedRealtime() + duration,
+                sleepDurationMinutes = minutes,
+                sleepTimerExpired = false,
+            )
+        }
+    }
+
+    /** 页面在起播前与计时回调中核对单调时钟，过期后取消重试和未完成频道加载。 */
+    fun refreshSleepTimer() {
+        val deadline = _viewingOptions.value.sleepDeadlineElapsedMs
+        if (deadline == 0L || SystemClock.elapsedRealtime() < deadline) return
+        autoRetryJob?.cancel()
+        loadJob?.cancel()
+        savedStateHandle[KEY_SLEEP_EXPIRED] = true
+        _viewingOptions.update { it.copy(sleepDeadlineElapsedMs = 0L, sleepTimerExpired = true) }
+    }
+
+    /** 恢复时将墙上时钟的截止值转为本进程单调时钟，已到期状态优先于媒体加载。 */
+    private fun restoreSleepTimer() {
+        val deadline = savedStateHandle.get<Long>(KEY_SLEEP_DEADLINE) ?: 0L
+        val wasExpired = savedStateHandle.get<Boolean>(KEY_SLEEP_EXPIRED) == true
+        if (deadline == 0L && !wasExpired) return
+        val remaining = SleepTimer.restoreRemainingMillis(
+            deadlineEpochMs = deadline,
+            nowEpochMs = System.currentTimeMillis(),
+        )
+        val expired = wasExpired || remaining == 0L
+        savedStateHandle[KEY_SLEEP_EXPIRED] = expired
+        _viewingOptions.update {
+            it.copy(
+                sleepDeadlineElapsedMs = if (expired) 0L else SystemClock.elapsedRealtime() + remaining,
+                sleepDurationMinutes = savedStateHandle[KEY_SLEEP_DURATION] ?: 0,
+                sleepTimerExpired = expired,
+            )
+        }
+    }
+
     /** 仅由可见面板收集；查询变化时 UI 取消旧流，避免隐藏期间持续构造列表。 */
     fun channelPanelRows(query: String): Flow<List<ChannelPanelRow>> {
         val search = query.trim()
@@ -457,6 +525,18 @@ class PlayerViewModel(
     }
 
     private companion object {
+        /** 显示模式只在当前播放页会话中恢复。 */
+        const val KEY_DISPLAY_MODE = "player_display_mode"
+
+        /** 墙上时钟截止值供进程重建恢复，正常运行使用 elapsedRealtime。 */
+        const val KEY_SLEEP_DEADLINE = "player_sleep_deadline_epoch"
+
+        /** 菜单保留用户选中的时长。 */
+        const val KEY_SLEEP_DURATION = "player_sleep_duration_minutes"
+
+        /** 已到期不能因为配置变化、后台恢复或进程重建而再次起播。 */
+        const val KEY_SLEEP_EXPIRED = "player_sleep_expired"
+
         /** 选台开关和查询分别存入恢复句柄，不保存频道对象或整个列表。 */
         const val CHANNEL_PANEL_OPEN = "channel_panel_open"
 
