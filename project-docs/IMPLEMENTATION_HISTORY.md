@@ -216,3 +216,9 @@ AGP 9.5.1 的[官方兼容说明](https://developer.android.com/build/releases/a
 ## 2026-11-25：Material 3 主题使用规则
 
 在 [AGENTS.md](../AGENTS.md) 中新增规则：如果项目中使用了 Android 的 Material Design，使用主题时必须采用最新的 Material 3，不得使用旧版 Material 2。本次仅维护工程规则，未修改现有主题、控件或依赖，也不代表已完成旧主题迁移。检查规则一致性、历史内容保全、本地链接与 `git diff --check`；未运行 Gradle、构建、测试、Lint 或设备验证。
+
+## 2026-11-25：文档去重与阅读入口
+
+AGENTS 保留长期规则和修改时必须遵守的边界，将具体版本、窗口布局、播放器参数及状态转换指向技术设计；原先仅在 AGENTS 中记录的 PlayerView 配置与窗口声明补入技术设计。中英文 README 将产品介绍前置，完整致谢与来源链接保留在文末。未修改代码、依赖、播放策略或隐私范围。
+
+静态检查覆盖规则与实现说明的对应关系、链接与锚点、历史及致谢内容保全和 `git diff --check`；未运行 Gradle、构建、测试、Lint 或设备验证。

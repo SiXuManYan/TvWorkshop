@@ -1,6 +1,6 @@
 # 技术设计
 
-更新日期：2026-11-11。
+更新日期：2026-11-25。
 
 本文描述电视工坊当前源码的结构和行为，供开发、排查和评审使用。带日期的审查过程、取舍和历史检查见[工程变更记录](IMPLEMENTATION_HISTORY.md)，内置频道地址与抽样证据见[内置频道与来源记录](CHANNEL_SOURCES.md)。文中路径均相对于仓库根目录。
 
@@ -73,7 +73,7 @@ flowchart TB
 
 ### 3.1 主页
 
-主页列表铺满窗口，`clipToPadding=false`。Toolbar 与分类 Chip 组成半透明浮层；根容器负责左右系统栏和挖孔，浮层顶部避让状态栏，列表顶部留白跟随浮层实际高度更新。加载、空态和列表位于浮层下方的可滚动区域，底部 padding 使用导航栏和 IME 的较大值并保留 16dp。
+主页列表铺满窗口，`clipToPadding=false`。Toolbar 与分类 Chip 组成 `colorSurface` 半透明浮层，背景 alpha 为 230/255，文字和控件保持原 alpha；根容器负责左右系统栏和挖孔，浮层顶部避让状态栏，列表顶部留白跟随浮层实际高度更新。加载、空态和列表位于浮层下方的可滚动区域，底部 padding 使用导航栏和 IME 的较大值并保留 16dp。
 
 首次渲染保留 RecyclerView 恢复的位置，后续切换分类才回顶。列表启用 `PREVENT_WHEN_EMPTY`、固定尺寸和增量 Diff；频道名最多两行，摘要允许换行。
 
@@ -81,7 +81,7 @@ flowchart TB
 
 播放页使用纯黑背景和浅色系统栏图标，顶底操作区使用黑色渐隐遮罩，中央画面不压暗。常用入口固定为上一频道、频道列表、下一频道，线路、画质和画中画放入设置菜单。操作区通常 3 秒无操作后 200ms 淡出并向边缘轻移，完全隐藏后设为 `INVISIBLE` 以保留布局尺寸，并退出无障碍遍历。
 
-错误区、设置菜单、持续触摸、键盘／遥控器焦点和读屏触摸浏览期间不会自动隐藏；窗口失焦暂停计时。方向键可以唤出操作区，错误态不允许手动隐藏。系统栏默认沉浸隐藏，边缘滑动可以临时唤出，按钮安全区不随临时系统栏移动。
+错误区、设置菜单、持续触摸、键盘／遥控器焦点和读屏触摸浏览期间不会自动隐藏；窗口失焦暂停计时。方向键可以唤出操作区，错误态不允许手动隐藏。系统栏默认沉浸隐藏，边缘滑动可以临时唤出，按钮安全区不随临时系统栏移动：全屏的顶底栏、错误内容和换台提示按忽略可见性的系统栏与挖孔避让；选台模式由根布局统一避让系统栏、挖孔和 IME。图标触达区至少 48dp，省略的文案仍保留完整读屏描述。
 
 设置根菜单与线路／画质／画面模式／睡眠定时子菜单统一使用固定深色背景，文字、箭头和单选标记使用浅色，禁用项使用次级色。观看设置始终有可用动作，单线路或不支持画中画的设备仍保留设置入口。`ThemeOverlay.TvWorkshop.PlayerPopup` 继承 Material3 深色主题，并显式指定 `popupMenuBackground`、`popupMenuStyle` 和具体背景 drawable，避免浅色 Material 弹窗背景与白字混用。
 
@@ -191,6 +191,10 @@ ExoPlayer 实例由 `PlayerActivity` 持有：
 - 其他退后台场景释放播放器，回前台后按当前状态重新装载线路。
 
 创建配置使用 `USAGE_MEDIA`、`AUDIO_CONTENT_TYPE_MOVIE`、音频焦点和拔耳机暂停。`DefaultLoadControl` 起播阈值为 1500ms、重缓冲阈值为 3000ms，最小／最大缓冲为 15s／30s；为短时抖动保留更多余量，代价是可能增加首次出画和卡顿后的等待。Media3 还会按目标直播延迟的一半限制起播与恢复阈值，不能假定始终积累到配置时长。参数调整没有形成实测改善结论。扩展渲染器关闭，启用 `setEnableDecoderFallback(true)`；设备是否有可用备用解码器由设备决定。
+
+`PlayerView` 使用 `use_controller=false` 和 `surface_type=surface_view`，操作区自绘；播放页通过根视图的 `keepScreenOn` 保持亮屏。
+
+Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 与 `supportsPictureInPicture`；`configChanges` 包含 orientation、screenSize、screenLayout、smallestScreenSize、keyboardHidden，旋转不重复初始化。
 
 ### 7.2 播放请求与换台
 

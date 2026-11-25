@@ -31,17 +31,7 @@
 
 ### 2.1 固定配置
 
-| 项目 | 当前配置 |
-| --- | --- |
-| 模块 | 单 `:app`；`settings.gradle.kts` 仅 `include(":app")` |
-| namespace / application id | `com.sugar.tv` |
-| UI | Kotlin + Android View/XML + ViewBinding；**不使用 Compose，不引入 Compose 依赖** |
-| AGP / Gradle Wrapper | 9.5.1 / 9.6.1；AGP 要求 Gradle ≥ 9.6.0、JDK ≥ 17 |
-| Kotlin / KSP | AGP 内置 Kotlin，不添加 `kotlin-android`；KSP 2.3.13 仅用于 Room 编译器 |
-| SDK / Java | minSdk 29，targetSdk / compileSdk 37，`compileOptions` Java 11 |
-| Release | `optimization { enable = false }`，未开启 R8 |
-
-关键依赖以 `gradle/libs.versions.toml` 为准：Media3 1.11.1（ExoPlayer、HLS、UI）、Room 2.8.5、Material 1.14.0、AppCompat 1.8.0、Lifecycle 2.11.0、Coroutines 1.11.0、Annotation 1.11.0、Core 1.19.1。升级默认采用稳定版，同步本文与技术设计，历史验证保留原日期和版本。
+当前模块、包名、SDK、工具链、依赖和 Release 配置集中见[技术设计 §1](project-docs/TECHNICAL_DESIGN.md#1-工程边界)及 [版本目录](gradle/libs.versions.toml)。升级默认采用稳定版，核对 AGP、Gradle 和 JDK 兼容要求，同步技术设计；历史验证保留原日期和版本。此处不重复维护版本表。
 
 ### 2.2 不扩展的边界
 
@@ -49,7 +39,7 @@
 - 本项目没有 `core_framework`、`module_image` 等库模块，不按其他项目模板引入。
 - 页面用显式 `Intent` 导航，不为既有页面引入 Navigation 框架。
 - 订阅下载只用 `HttpURLConnection`，信号源 JSON 只用 `org.json`；不引入 OkHttp、Retrofit、Gson、Coil、Glide 等第三方网络、图片或序列化库。
-- 本地文档使用 Markwon core 4.6.2，与拼图工坊、RadioWorkshop 一致；仅渲染随包 Markdown，不启用网络图片插件。
+- 本地文档沿用 Markwon core；仅渲染随包 Markdown，不启用网络图片插件。
 - 改动混淆配置前，先确认模型的 `@Keep` 边界仍成立。
 
 ## 3. MVVM、状态与初始化
@@ -63,7 +53,7 @@
 | Repository | Room、订阅下载、解析调度、内置目录合并、收藏与观看记录；本地文档 IO 和后台排版 | 页面生命周期和 View 类型 |
 | Adapter | ListAdapter / DiffUtil 渲染、一次性绑定监听、幂等回填 | 保存业务状态；点击应通过回调交给页面和 ViewModel |
 
-页面包括 `MainActivity`、`PlayerActivity`、`ChannelManagerActivity`、`AboutActivity`、`LocalDocumentActivity`；选台几何布局由 `PlayerChannelsPanelController` 管理。ViewModel 包括 `BrowseViewModel`、`PlayerViewModel`、`ChannelManagerViewModel`、`LocalDocumentViewModel`，`AndroidViewModel` 只取 Application 级依赖。
+页面与状态类清单见[技术设计 §2](project-docs/TECHNICAL_DESIGN.md#2-架构与职责)。`AndroidViewModel` 只取 Application 级依赖。
 
 ### 3.2 状态与恢复
 
@@ -113,84 +103,51 @@ XML 正整数尺寸一律引用 `@dimen/dp_N` 或 `@dimen/sp_N`，不直接写 `
 
 ## 6. Edge-to-edge 与操作区
 
-`BaseActivity` 在 `super.onCreate` 前调用 `enableEdgeToEdge()`。系统栏透明，内容延伸到系统栏后方，操作区按 Insets 避让。以 XML 初始值为基准设置绝对 padding，不重复累加；主页按各区域继续分发，播放、关于和文档页处理后返回 `CONSUMED`。
+系统栏透明，内容延伸到系统栏后方，操作区按 Insets 避让。以 XML 初始值为基准设置绝对 padding，不重复累加。修改页面时遵循[技术设计 §3](project-docs/TECHNICAL_DESIGN.md#3-页面窗口与-insets)的区域归属与布局契约；具体尺寸、颜色和动画时长集中在那里维护。
 
 ### 6.1 主页
 
-- 列表铺满窗口，`clipToPadding=false`；Toolbar + 分类 Chip 为 `colorSurface` 半透明浮层，背景 alpha 为 230/255，不降低控件 alpha。
-- 根容器避让左右系统栏与挖孔；浮层顶部避让状态栏与挖孔。
-- 列表顶部留白跟随浮层实测高度；加载与空态位于浮层下方且可滚动。
-- 列表和状态区底部 padding 为 `max(导航栏, IME) + 16dp`。
+保留列表铺满与半透明浮层模式。浮层高度按实测更新，列表、加载和空态均考虑顶部遮挡及导航栏/IME；只调整背景透明度，不降低文字和控件 alpha。
 
 ### 6.2 播放页
 
-- 纯黑背景和白色前景，系统栏沉浸隐藏，允许边缘滑动临时唤出；顶底栏使用黑色渐隐遮罩，不压暗中央画面。
-- 全屏时，顶底栏、错误内容和换台提示分别避让忽略可见性的系统栏与挖孔，保持稳定安全区。
-- 选台时，根布局统一避让系统栏、挖孔和 IME，子控件不重复处理。
-- 底部固定上一频道、频道列表、下一频道和末端设置；图标触达区至少 48dp，受限文案可省略但保留完整读屏描述。
-- 无源不显示计数，单路禁用选源；没有可用设置动作时禁用设置；错误区仅在至少两路时提供一步换源。
-- 设置根菜单与线路／画质子菜单使用固定深色背景、浅色文字和明确的禁用色；主题须同时覆盖 Material 弹窗背景与文字，不能只套 AppCompat 深色文字主题。
-
-操作区通常 3 秒无操作后以 200ms 淡出并轻移。错误态、设置打开、持续触摸、键盘／遥控器焦点或读屏触摸浏览期间不自动隐藏，窗口失焦暂停计时。隐藏后设为 `INVISIBLE`，保留布局尺寸并退出 TalkBack 遍历；方向键可以唤出，错误态不能手动隐藏。
+保留黑色背景、浅色前景与可临时唤出的系统栏。全屏与选台模式分别处理安全区，弹出菜单同时覆盖背景和文字主题。错误、触摸、键盘焦点及读屏交互不得被自动隐藏打断；隐藏操作退出无障碍遍历。详细行为见[技术设计 §3.2](project-docs/TECHNICAL_DESIGN.md#32-播放页)及[§7.5](project-docs/TECHNICAL_DESIGN.md#75-手势操作区和画中画)。
 
 ### 6.3 关于与文档页
 
-使用 DayNight 信息卡和阅读卡，内容最大宽度 500dp，章节导航固定在顶部。根容器避让系统栏、挖孔和 IME，列表与正文不重复避让。
-
-频道管理页同样使用 DayNight 和 500dp 最大宽度。管理操作与空态作为列表头部滚动，避免短窗口下固定操作区挤掉内容；首次数据提交后放行位置恢复，合法空目录也要保留头部滚动位置。
+沿用 DayNight，根容器与子视图不重复避让。短窗口和大字体下保持正文、操作与空态可达；频道管理页包括合法空目录的位置恢复。具体布局见[技术设计 §3.3～3.5](project-docs/TECHNICAL_DESIGN.md#33-关于与本地文档页)。
 
 ## 7. 播放器、换源与选台
 
+以下为修改时必须保持的边界；请求序号、恢复键、参数与状态转换集中在[技术设计 §7](project-docs/TECHNICAL_DESIGN.md#7-播放器与信号源轮换)维护，改动时同步该处。
+
 ### 7.1 生命周期与装载
 
-ExoPlayer 归 `PlayerActivity` 持有。`onStart` 创建或复用，`onStop` 和 `onDestroy` 释放；**画中画属于可见前台，不释放播放器**，判断用 `isInPictureInPictureMode`。普通退后台释放，回前台由状态重放装载当前线路；释放时将 `appliedPlayRequestId` 重置为 -1。
-
-ViewModel 只决定应播放哪一路。`playRequestId` 递增驱动 Activity 用同一实例执行 `setMediaItem + prepare + play`，换频道、换源和重试不重建播放器。`.m3u` / `.m3u8` 路径显式设置 `MimeTypes.APPLICATION_M3U8`，包括带查询串的地址；其余交播放器识别。
-
-Manifest 保持 `sensorLandscape`、`singleTop`、`exported=false` 和 `supportsPictureInPicture`；`configChanges` 包含 orientation、screenSize、screenLayout、smallestScreenSize、keyboardHidden，旋转不重复初始化。
+播放器由 Activity 托管，ViewModel 只决定播放目标。普通退后台释放，画中画保留；回前台按状态恢复。同页换台、换源和重试复用实例，旧媒体事件不能更新新请求。
 
 ### 7.2 播放器配置
 
-- 音频使用 `USAGE_MEDIA`，启用 `handleAudioFocus` 和 `handleAudioBecomingNoisy`。
-- `DefaultLoadControl` 起播 1500ms、重缓冲 3000ms，min 15s / max 30s；直播目标延迟可能进一步限制实际阈值，这些不是实际出画耗时或性能提升的证据。
-- 扩展渲染器为 `EXTENSION_RENDERER_MODE_OFF`，启用 `setEnableDecoderFallback(true)`。备用解码器由设备决定，不保证软解或消除所有黑屏。
-- `PlayerView` 使用 `use_controller=false` 和 `surface_type=surface_view`，操作区自绘；`keepScreenOn=true`。
+保持音频焦点、拔耳机暂停及设备解码回退；使用自绘操作区。缓冲阈值和设备能力不能作为实际出画速度或性能收益的保证，配置及窗口声明见[技术设计 §7.1](project-docs/TECHNICAL_DESIGN.md#71-生命周期与创建)。
 
 ### 7.3 换频道、轮换与重试
 
-- 上下频道按全集顺序循环回绕。同频道重复加载不重新起播，新频道从第一路开始，起始下标经 `resolveStartIndex` 写回恢复句柄。
-- 连续换台以上一次请求目标为基准，先取消旧加载，写回前核对最新请求；观看记录跟随核对后的结果落库。
-- 媒体回调使用 `AnalyticsListener.EventTime` 所属时间线中 `MediaItem.mediaId` 的请求序号，不能用播放器当前媒体替旧事件贴标签；过期代次不得更新当前状态。
-- 普通缓冲与可恢复的分片加载错误不触发换源。致命 `ERROR_CODE_BEHIND_LIVE_WINDOW` 先在原线路默认直播位置重接一次，同一恢复请求再次失败才按下标顺序切下一路；其他致命错误直接顺序切源。末路失败进入 `allSourcesFailed`，延迟 8 秒重试当前源，最多 2 次。
-- 换频道、手动重试和换源都会取消待执行重试；换频道与手动重试归零计数，换源保留计数。`nextSource` 循环切换并可从错误态恢复。
-- 线路菜单校验媒体请求代次与当前选项，重复选择正常线路不重装。换频道、自动换源、画质偏好或选项变化时关闭旧菜单；退后台和进入画中画同时关闭根菜单与独立子菜单。
-- `TvPlayback` 诊断只在调试包写本机 Logcat，记录缓冲、错误码、HTTP 状态和掉帧等技术指标；不记录频道名、URL、令牌、异常消息或堆栈，不落盘、不上报，不驱动播放策略。
+只有致命播放错误进入换源流程，普通缓冲不换源；直播窗口过期先有限次原源恢复。快速换台与重试须取消旧任务、核对请求代次；菜单、观看记录和回调不得错配。完整重试上限与计数重置规则见[技术设计 §7.2～7.3](project-docs/TECHNICAL_DESIGN.md#72-播放请求与换台)。诊断仅在 Debug 写本机摘要，不记录 URL、令牌、异常正文，不上报或驱动播放策略。
 
 ### 7.4 清晰度
 
-`onTracksChanged` 按轨道支持状态过滤视频格式，按高度去重，同高度取最高码率。保留单档信息用于偏好校验，不足两种高度时隐藏入口，装载期临时空轨道不清除偏好。
-
-模式为自动、最高（`setForceHighestSupportedBitrate`）和高度上限（`setMaxVideoSize`，仍在上限内自适应）。所选高度在真实新选项中不存在时回落自动；用户切换和自动回落均递增 `qualityRequestId`，新实例立即恢复当前偏好。
+按真实支持轨道展示和恢复偏好，装载期空轨道不清除偏好；新线路不支持旧选择时回落自动。过滤、去重与请求代次见[技术设计 §7.4](project-docs/TECHNICAL_DESIGN.md#74-清晰度)。
 
 ### 7.5 手势、提示与画中画
 
-单击经约 300ms 确认后通过 `performClick` 切换操作区，保持触摸、TalkBack 与键盘一致。正常观看时，双击左／右半区和满足速度、横纵比条件的横扫用于换台。只有操作区隐藏时才在顶部起始边缘显示频道名，1.5 秒后淡出，不重复显示标题。
-
-画中画以 16:9 画幅进入；设备不支持时隐藏入口，调用仍检查能力。进入后关闭面板、隐藏覆盖层，退出后恢复操作区并重启隐藏计时，不打断前台播放。
+触摸、键盘和 TalkBack 的点击语义保持一致。进入画中画关闭覆盖层和菜单但不中断前台播放；退出时恢复操作区。手势阈值与提示行为见[技术设计 §7.5](project-docs/TECHNICAL_DESIGN.md#75-手势操作区和画中画)。
 
 ### 7.6 同页选台
 
-- 视频与列表为兄弟节点，不使用覆盖画面的 BottomSheet 或抽屉；可用宽度至少 600dp 时列表占末端 280～320dp，窄窗口视频在上、列表在下。
-- 选台期间隐藏顶底栏与 OSD。点选频道、关闭按钮、系统返回或点击预览均收起列表，恢复全屏；预览不执行双击或横扫换台。
-- 查询和开关由 ViewModel / SavedStateHandle 保存。过滤在 Default 执行，只在面板可见且页面 STARTED 时收集。
-- 主动重开清空查询并定位当前频道一次；重建保留查询和滚动位置。
-- 不自动弹出键盘，按 IME 与实际窗口空间重排；进入画中画关闭面板并恢复全尺寸视频。
+视频与列表并列或上下排列，不用覆盖视频的抽屉/BottomSheet。过滤随页面 STARTED 和面板可见性运行，重建保留查询与位置；主动重开的定位行为、焦点及退出规则见[技术设计 §8](project-docs/TECHNICAL_DESIGN.md#8-同页选台)。
 
 ### 7.7 观看设置
 
-- 画面模式使用完整显示、等比裁切和拉伸，仅设置 `PlayerView.resizeMode`，不重装媒体；偏好仅在当前播放页会话恢复。
-- 睡眠定时按单调时钟核对到期，进程恢复用已保存的墙上时钟截止值换算，不重新计满原时长。画中画、前后台和进程恢复均不能绕过到期停止；起播前必须先检查。
-- 到期取消待执行加载和重试，先释放播放器再退出；页面销毁移除计时回调。不创建后台播放服务、系统闹钟或设备关机功能。
+画面模式只改变显示比例，不重新装载媒体。睡眠到期优先于加载和重试，画中画、前后台或进程恢复不能重置倒计时；先释放播放器再退出。不增加后台播放服务、系统闹钟或设备关机功能。计时与恢复契约见[技术设计 §7.7](project-docs/TECHNICAL_DESIGN.md#77-画面模式与睡眠定时)。
 
 ## 8. 性能与协程
 
@@ -279,7 +236,7 @@ git diff --check
 
 路由只接受 `LocalDocument` 枚举；法律互链用登记文件名，工程文档等未打包内容使用 HTTP(S) 项目链接，经确认后交浏览器打开，不引入 WebView。
 
-章节折叠由 Holder 独立执行 240ms 高度、透明度和箭头联动。反向操作从当前视觉状态接续；首屏、恢复、离屏和系统关闭动画直接到目标状态。收起立即退出正文焦点与读屏遍历，结束后清除链接并恢复 `wrap_content`；章节定位等待布局稳定，回收和销毁取消旧回调。
+章节动画与定位遵循[技术设计 §9.3](project-docs/TECHNICAL_DESIGN.md#93-状态与动画)：反向操作接续当前进度，隐藏正文退出焦点和读屏遍历，回收与销毁取消旧回调；不在此重复维护动画时长和恢复字段。
 
 ### 13.3 来源与历史
 
