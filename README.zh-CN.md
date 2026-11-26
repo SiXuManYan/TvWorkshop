@@ -17,7 +17,7 @@
 | 观看设置 | 完整显示、等比裁切或拉伸；可设置 15～120 分钟睡眠定时 |
 | 本地记录 | 保存收藏、最近观看和导入频道；系统可能参与备份或设备迁移 |
 | 网络请求 | 订阅下载和播放资源由设备直接访问第三方服务，应用不做遥测或播放行为上报 |
-| 随包文档 | 关于页提供离线更新日志、用户协议、隐私政策和频道来源说明 |
+| 随包文档 | 关于页提供离线用户协议、隐私政策和频道来源说明 |
 
 ## 功能概览
 
@@ -59,16 +59,15 @@
 
 主页菜单中的“关于”显示当前构建版本，并提供：
 
-- [版本更新日志](docs/version-history/CHANGELOG.md)
 - [用户协议](docs/legal/USER_AGREEMENT.md)
 - [隐私政策](docs/legal/PRIVACY_POLICY.md)
 - 频道来源说明（详见[内置频道与来源记录](project-docs/CHANNEL_SOURCES.md)）
 
-关于页和三份正文当前只提供简体中文，其他通用界面文案继续维护既有多语言。正文随 APK 提供，阅读无需网络，支持章节定位、阅读位置恢复和回到顶部；更新日志可按版本展开或收起，区分“开发中”与 `v1.0` 基础能力。
+关于页和随包正文当前只提供简体中文，其他通用界面文案继续维护既有多语言。正文随 APK 提供，阅读无需网络，支持章节定位、阅读位置恢复和回到顶部。
 
 ## 内置频道与来源
 
-内置目录参考了 [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv) 和 [Guovin/iptv-api](https://github.com/Guovin/iptv-api) 的部分公开列表或历史结果，部分地址仍缺少可复核的逐条出处。固定版本、地址比对范围、2026-11-09 内容抽样和移除的 7 个错配地址，集中记录在[内置频道与来源记录](project-docs/CHANNEL_SOURCES.md)。
+内置目录参考了 [fanmingming/live](https://github.com/fanmingming/live)、[iptv-org/iptv](https://github.com/iptv-org/iptv) 和 [Guovin/iptv-api](https://github.com/Guovin/iptv-api) 的部分公开列表或历史结果，部分地址仍缺少可复核的逐条出处。目录快照、地址出处和内容核对边界见[内置频道与来源记录](project-docs/CHANNEL_SOURCES.md)。
 
 公开列表的整理者、实际流服务和节目权利方可能不是同一主体。应用与这些项目或电视台没有官方合作或背书；“主源”“备用”只表示尝试顺序，不代表官方来源、画质或长期可用性。地址可能受地区、运营商、IPv6、网络变化或第三方策略影响。
 
@@ -101,7 +100,7 @@
 - AGP 运行要求 JDK 17 及以上，Java 编译目标为 11；
 - Media3 1.11.1、Room 2.8.5、Material 1.14.0、Lifecycle 2.11.0、Coroutines 1.11.0。
 
-近期工程审查以源码和资源静态检查为主，构建、测试、Lint 和设备验证未在相应修订中运行；没有据此形成性能或兼容性实测结论。当前架构和实现见[技术设计](project-docs/TECHNICAL_DESIGN.md)，各次改动的原因与检查范围见[工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md)。
+构建、测试、Lint 和设备验收状态以实际检查范围为准。当前实现与限制见[技术设计](project-docs/TECHNICAL_DESIGN.md)，已有检查证据见[工程记录](project-docs/IMPLEMENTATION_HISTORY.md)。
 
 ## 文档导航
 
@@ -110,7 +109,7 @@
 | 用户如何使用、有哪些限制 | 本页、[用户协议](docs/legal/USER_AGREEMENT.md)、[隐私政策](docs/legal/PRIVACY_POLICY.md) |
 | 当前架构和实现 | [技术设计](project-docs/TECHNICAL_DESIGN.md) |
 | 内置频道、地址出处和清理证据 | [内置频道与来源记录](project-docs/CHANNEL_SOURCES.md) |
-| 历次工程审查和界面调整 | [工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md)、[版本更新日志](docs/version-history/CHANGELOG.md) |
+| 历次工程审查和界面调整 | [工程变更记录](project-docs/IMPLEMENTATION_HISTORY.md) |
 | 长期开发规则 | [AGENTS.md](AGENTS.md) |
 | 工程文档索引 | [project-docs/README.md](project-docs/README.md) |
 | English entry | [README.md](README.md) |

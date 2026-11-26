@@ -17,7 +17,7 @@ The current source version is `1.0` and the minimum supported Android version is
 | Viewing settings | Fit, proportional crop, or stretch; optional 15–120 minute sleep timer |
 | Local data | Favorites, watch history, and imported channels are stored locally; Android may include them in backup or device transfer |
 | Network | The device requests subscription and playback resources directly from third parties; the app does not send telemetry |
-| Offline documents | About provides the changelog, user agreement, privacy policy, and channel-source notes |
+| Offline documents | About provides the user agreement, privacy policy, and channel-source notes |
 
 ## Features
 
@@ -59,16 +59,15 @@ File locations are not saved as subscriptions and are never refreshed automatica
 
 The main menu opens About with the current build version and links to:
 
-- [Changelog](docs/version-history/CHANGELOG.md)
 - [User agreement](docs/legal/USER_AGREEMENT.md)
 - [Privacy policy](docs/legal/PRIVACY_POLICY.md)
 - Channel-source notes, with details in the [source records](project-docs/CHANNEL_SOURCES.md)
 
-About and the three user documents are currently Simplified Chinese only; existing general UI translations remain in place. The documents ship in the APK, support offline reading, chapter navigation, position restoration, and back to top. Version cards expand independently, and the changelog separates work in progress from the `v1.0` baseline.
+About and the packaged user documents are currently Simplified Chinese only; existing general UI translations remain in place. The documents ship in the APK, support offline reading, chapter navigation, position restoration, and back to top.
 
 ## Built-in channels and source attribution
 
-The built-in catalog references parts of the public lists or historical outputs from [fanmingming/live](https://github.com/fanmingming/live), [iptv-org/iptv](https://github.com/iptv-org/iptv), and [Guovin/iptv-api](https://github.com/Guovin/iptv-api). Some URLs still lack reproducible per-address provenance. Fixed snapshots, address comparisons, the 2026-11-09 content sampling, and the seven removed misrouted URLs are documented in [Built-in channels and source records](project-docs/CHANNEL_SOURCES.md).
+The built-in catalog references parts of the public lists or historical outputs from [fanmingming/live](https://github.com/fanmingming/live), [iptv-org/iptv](https://github.com/iptv-org/iptv), and [Guovin/iptv-api](https://github.com/Guovin/iptv-api). Some URLs still lack reproducible per-address provenance. Snapshot provenance, address comparisons, and content-sampling limits are documented in [Built-in channels and source records](project-docs/CHANNEL_SOURCES.md).
 
 List curators, stream operators, and broadcast rights holders may be different parties. This app has no official affiliation with those projects or broadcasters. “Primary” and “backup” labels describe attempt order only; they do not certify origin, quality, availability, or authorization. Streams can depend on region, operator, IPv6 connectivity, and third-party changes.
 
@@ -101,7 +100,7 @@ Current toolchain:
 - JDK 17 or later to run AGP, with Java 11 compilation targets;
 - Media3 1.11.1, Room 2.8.5, Material 1.14.0, Lifecycle 2.11.0, and Coroutines 1.11.0.
 
-Recent engineering reviews relied on static source and resource checks. Builds, tests, Lint, and device validation were not run for those revisions, and no measured performance or compatibility result is claimed. See [Technical Design](project-docs/TECHNICAL_DESIGN.md) for current behavior, and [Implementation History](project-docs/IMPLEMENTATION_HISTORY.md) for the reasons and verification scope of each revision.
+Build, test, Lint and device acceptance remain subject to the scope of actual checks. See [Technical Design](project-docs/TECHNICAL_DESIGN.md) for current behavior and limitations, and [Implementation History](project-docs/IMPLEMENTATION_HISTORY.md) for recorded verification evidence.
 
 ## Documentation map
 
@@ -110,7 +109,7 @@ Recent engineering reviews relied on static source and resource checks. Builds, 
 | User behavior, usage boundaries, and privacy | This page, the [user agreement](docs/legal/USER_AGREEMENT.md), and the [privacy policy](docs/legal/PRIVACY_POLICY.md) |
 | Current architecture and implementation | [Technical Design](project-docs/TECHNICAL_DESIGN.md) |
 | Built-in channels, attribution, and sampling evidence | [Built-in channels and source records](project-docs/CHANNEL_SOURCES.md) |
-| Dated engineering reviews and UI changes | [Implementation History](project-docs/IMPLEMENTATION_HISTORY.md) and the [changelog](docs/version-history/CHANGELOG.md) |
+| Dated engineering reviews and UI changes | [Implementation History](project-docs/IMPLEMENTATION_HISTORY.md) |
 | Long-term development rules | [AGENTS.md](AGENTS.md) |
 | Project documentation index | [project-docs/README.md](project-docs/README.md) |
 | Chinese entry | [README.zh-CN.md](README.zh-CN.md) |
